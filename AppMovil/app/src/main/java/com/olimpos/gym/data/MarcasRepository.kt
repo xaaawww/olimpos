@@ -53,7 +53,12 @@ data class SocioRango(
     val edad: Int?,
     val sexo: SexoBiologico?,
     val mejorLevantamiento: MejorLevantamiento?,
-    val creadoMs: Long? = null
+    val creadoMs: Long? = null,
+    /** Rango por zona muscular (mismo cálculo que el Bodygraph propio, ver
+     *  [resumenMuscular]) — ya sale calculado acá de paso, así que el perfil
+     *  de CUALQUIER socio en Clasificación puede mostrar su Bodygraph real,
+     *  no solo el de uno mismo. */
+    val rangoPorZona: Map<ZonaMuscular, RangoMuscular?> = emptyMap()
 )
 
 /** Referencia SOLO para el caso borde de una cuenta sin datos físicos
@@ -113,7 +118,10 @@ suspend fun cargarRangosDeSocios(): List<SocioRango>? {
                     edad = datosFisicos?.edad,
                     sexo = datosFisicos?.sexo,
                     mejorLevantamiento = mejorLevantamientoVigente(marcas, pesoCorporal),
-                    creadoMs = creadoPorUid[socioId]
+                    creadoMs = creadoPorUid[socioId],
+                    rangoPorZona = ZonaMuscular.entries.associateWith { zona ->
+                        resumen.puntajes[zona]?.let(::nivelDesdePuntaje)?.rango
+                    }
                 )
             }
     } catch (e: Exception) {

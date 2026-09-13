@@ -601,12 +601,12 @@ private fun FilaMiembro(socio: SocioRango, esYo: Boolean, onClick: () -> Unit) {
 
 /** Detalle de un perfil: nombre como título grande, datos personales (los
  *  rangos se calculan contra el peso de cada uno, así que se muestran acá),
- *  la frase de cuántas veces su peso levanta y un recuadro al costado
- *  reservado para su Bodygraph personal — todavía no se puede ver el de
- *  otro socio (hoy el Bodygraph solo calcula el propio a partir de las
- *  marcas ya precargadas), así que por ahora queda como adelanto. Se abre
- *  tanto desde la lista de miembros de un rango como directo desde el
- *  buscador. */
+ *  la frase de cuántas veces su peso levanta y su Bodygraph real en
+ *  miniatura (mismo cálculo por zona que la pantalla completa, ver
+ *  [SocioRango.rangoPorZona] — ya sale calculado al armar la Escalera del
+ *  Olimpo, así que se puede mostrar el de CUALQUIER socio, no solo el
+ *  propio). Se abre tanto desde la lista de miembros de un rango como
+ *  directo desde el buscador. */
 @Composable
 private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
     Box(
@@ -650,41 +650,27 @@ private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
             )
 
             Spacer(Modifier.height(14.dp))
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        buildString {
-                            socio.mejorLevantamiento?.let { m ->
-                                append("${socio.nombre} levanta ${"%.1f".format(m.vecesPesoCorporal)} veces su peso corporal (en ${m.ejercicio}). ")
-                            }
-                            append("Lleva un total estimado de ${socio.kgTotales.toInt()} kg levantados en sus marcas")
-                            append(if (socio.verificado) " verificadas" else " (todavía sin verificar)")
-                            append(", y forma parte de OlimpΩs desde hace ")
-                            append(formatearAntiguedad(socio.creadoMs).removePrefix("Socio hace ").removePrefix("Se unió "))
-                            append(".")
-                        },
-                        fontSize = 12.5.sp, color = Olimpos.Muted
-                    )
-                }
-                // Recuadro reservado para el Bodygraph personal de este socio
-                // — el detalle por músculo llega en una próxima entrega.
-                Column(
-                    Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Olimpos.Superficie2)
-                        .border(1.dp, Olimpos.Line, RoundedCornerShape(14.dp))
-                        .padding(6.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("🫁", fontSize = 18.sp)
-                    Text(
-                        "Bodygraph\npróx.", fontSize = 8.sp, color = Olimpos.Muted,
-                        textAlign = TextAlign.Center, lineHeight = 9.sp
-                    )
-                }
-            }
+            Text(
+                buildString {
+                    socio.mejorLevantamiento?.let { m ->
+                        append("${socio.nombre} levanta ${"%.1f".format(m.vecesPesoCorporal)} veces su peso corporal (en ${m.ejercicio}). ")
+                    }
+                    append("Lleva un total estimado de ${socio.kgTotales.toInt()} kg levantados en sus marcas")
+                    append(if (socio.verificado) " verificadas" else " (todavía sin verificar)")
+                    append(", y forma parte de OlimpΩs desde hace ")
+                    append(formatearAntiguedad(socio.creadoMs).removePrefix("Socio hace ").removePrefix("Se unió "))
+                    append(".")
+                },
+                fontSize = 12.5.sp, color = Olimpos.Muted
+            )
+
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "BODYGRAPH", fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.2.sp, color = Olimpos.Muted
+            )
+            Spacer(Modifier.height(8.dp))
+            CuerpoMuscularRangosMini(rangoPorZona = socio.rangoPorZona, tamano = 90.dp)
         }
     }
 }

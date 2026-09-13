@@ -110,6 +110,22 @@ fun CuerpoMuscularRangos(
     }
 }
 
+/** Miniatura de un solo golpe de vista (solo de frente, sin etiquetas) de la
+ *  variante por rango — para meter el Bodygraph real de un socio en una
+ *  tarjeta chica, como el perfil de Clasificación. */
+@Composable
+fun CuerpoMuscularRangosMini(
+    rangoPorZona: Map<ZonaMuscular, RangoMuscular?>,
+    modifier: Modifier = Modifier,
+    tamano: Dp = 60.dp
+) {
+    Box(modifier) {
+        SiluetaReal(VistaCuerpo.FRENTE, tamano) { zona ->
+            rangoPorZona[zona]?.let { colorDeRango(it) } ?: Olimpos.GrayLight
+        }
+    }
+}
+
 /** Color fijo por rango — de apagado (Mortal) a brillante (Dios), para que
  *  de un vistazo se note qué tan avanzado está cada músculo. */
 fun colorDeRango(rango: RangoMuscular): Color = when (rango) {
