@@ -28,6 +28,13 @@ COLECCION = "socios_app"
 # lee entera porque el Admin SDK no pasa por esas reglas.
 COLECCION_PRIVADA = "socios_privado"
 
+# Caché en memoria: los accesos casi no cambian mientras el sistema está
+# abierto (solo cuando un empleado da de alta o desactiva a alguien), así
+# que no tiene sentido releer Firestore entero cada vez que se abre una
+# pantalla que los necesita.
+_cache_socios_app: dict[str, dict] | None = None
+_cache_dni: dict[str, str] | None = None
+
 
 def _app():
     _repo._asegurar_inicializado()
@@ -58,7 +65,7 @@ def crear_acceso_socio(nombre: str, email: str, password: str, dni: str) -> tupl
     except Exception as e:
         return False, str(e)
 
-    _repo._db().collection(COLECCION).document(user.uid).set({
+    ficha = {
         "uid": user.uid,
         "nombre": nombre.strip(),
         "email": email.strip(),
@@ -66,24 +73,37 @@ def crear_acceso_socio(nombre: str, email: str, password: str, dni: str) -> tupl
         # Fecha de alta en milisegundos (no un string ISO): así la app móvil
         # la lee directo como epoch sin tener que parsear formatos de fecha.
         "creado_ms": int(time.time() * 1000),
-    })
+    }
+    _repo._db().collection(COLECCION).document(user.uid).set(ficha)
     _repo._db().collection(COLECCION_PRIVADA).document(user.uid).set({
         "dni": dni.strip(),
     })
+
+    global _cache_socios_app, _cache_dni
+    if _cache_socios_app is not None:
+        _cache_socios_app[user.uid] = ficha
+    if _cache_dni is not None:
+        _cache_dni[user.uid] = dni.strip()
     return True, user.uid
 
 
-def listar_accesos_socios() -> list[dict]:
-    docs = _repo._db().collection(COLECCION).stream()
-    return [d.to_dict() for d in docs]
+def listar_accesos_socios(forzar: bool = False) -> list[dict]:
+    global _cache_socios_app
+    if _cache_socios_app is None or forzar:
+        docs = _repo._db().collection(COLECCION).stream()
+        _cache_socios_app = {d.id: d.to_dict() for d in docs}
+    return list(_cache_socios_app.values())
 
 
-def dni_de_todos() -> dict[str, str]:
+def dni_de_todos(forzar: bool = False) -> dict[str, str]:
     """uid -> DNI de todos los socios, para la búsqueda del sistema de
     empleados (ver verificacion_marcas.py). El Admin SDK no pasa por
     firestore.rules, así que acá sí se puede leer todo junto."""
-    docs = _repo._db().collection(COLECCION_PRIVADA).stream()
-    return {d.id: d.to_dict().get("dni", "") for d in docs}
+    global _cache_dni
+    if _cache_dni is None or forzar:
+        docs = _repo._db().collection(COLECCION_PRIVADA).stream()
+        _cache_dni = {d.id: d.to_dict().get("dni", "") for d in docs}
+    return _cache_dni
 
 
 def desactivar_acceso_socio(uid: str) -> None:
@@ -91,3 +111,5 @@ def desactivar_acceso_socio(uid: str) -> None:
     queda igual en Firestore, referenciado por este mismo uid)."""
     fb_auth.update_user(uid, disabled=True, app=_app())
     _repo._db().collection(COLECCION).document(uid).update({"activo": False})
+    if _cache_socios_app is not None and uid in _cache_socios_app:
+        _cache_socios_app[uid]["activo"] = False

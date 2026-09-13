@@ -100,7 +100,10 @@ class EditorEjerciciosView:
             page_header(
                 "🏋️ Editor Visual de Ejercicios",
                 "Elegí las zonas musculares trabajadas y publicalas en la Galería",
-                actions=[action_button("➕ Nuevo ejercicio", "gold", on_click=self._crear_ejercicio)],
+                actions=[
+                    action_button("🔄 Actualizar", "outline", on_click=self._refrescar),
+                    action_button("➕ Nuevo ejercicio", "gold", on_click=self._crear_ejercicio),
+                ],
             ),
             *avisos,
             ft.Row(tarjetas, wrap=True, spacing=16, run_spacing=16),
@@ -129,6 +132,16 @@ class EditorEjerciciosView:
             ], spacing=10, width=280),
             padding=14,
         )
+
+    def _refrescar(self, e):
+        """Fuerza una relectura real de Firestore — la lista se cachea en
+        memoria para que abrir esta pantalla sea instantáneo, así que esto
+        es para cuando otro empleado publicó algo desde otra máquina."""
+        try:
+            self.ejercicios = repo.cargar_ejercicios(forzar=True)
+        except Exception as ex:
+            self.error_carga = str(ex)
+        self._render()
 
     def _crear_ejercicio(self, e):
         nuevo = repo.nuevo_ejercicio()

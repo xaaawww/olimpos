@@ -110,15 +110,22 @@ def puntaje_de_marca(marca: dict, peso_corporal_kg: float, sexo: str | None) -> 
     return progreso * TOTAL_NIVELES * PUNTOS_POR_NIVEL
 
 
-def datos_fisicos_de_todos() -> dict[str, dict]:
+_cache_datos_fisicos: dict[str, dict] | None = None
+
+
+def datos_fisicos_de_todos(forzar: bool = False) -> dict[str, dict]:
     """peso_kg y sexo reales de cada socio (colección "datos_fisicos", la
     completa el propio socio en el onboarding obligatorio de la app) — una
-    sola lectura para todos, en vez de una referencia fija compartida."""
-    try:
-        docs = _db().collection("datos_fisicos").stream()
-        return {d.id: d.to_dict() for d in docs}
-    except Exception:
-        return {}
+    sola lectura para todos, cacheada en memoria (cambia poco: cada socio
+    la completa una sola vez, al principio)."""
+    global _cache_datos_fisicos
+    if _cache_datos_fisicos is None or forzar:
+        try:
+            docs = _db().collection("datos_fisicos").stream()
+            _cache_datos_fisicos = {d.id: d.to_dict() for d in docs}
+        except Exception:
+            return {}
+    return _cache_datos_fisicos
 
 
 def nivel_desde_puntaje(puntaje: float) -> str:
@@ -204,16 +211,25 @@ def ranking_por_rango(marcas: list[dict], datos_fisicos: dict[str, dict] | None 
     return agrupado
 
 
-def cargar_marcas() -> list[dict]:
-    """Trae todas las marcas de todos los socios, más nuevas primero."""
-    docs = _db().collection(COLECCION).stream()
-    marcas = []
-    for d in docs:
-        data = d.to_dict()
-        data["id"] = d.id
-        marcas.append(data)
-    marcas.sort(key=lambda m: m.get("timestamp", 0), reverse=True)
-    return marcas
+_cache_marcas: list[dict] | None = None
+
+
+def cargar_marcas(forzar: bool = False) -> list[dict]:
+    """Trae todas las marcas de todos los socios, más nuevas primero.
+    Cacheada en memoria — [verificar_marca]/[rechazar_marca] actualizan la
+    caché directo, así que no hace falta [forzar] después de esas acciones;
+    solo si otro empleado cargó/verificó algo desde otra máquina."""
+    global _cache_marcas
+    if _cache_marcas is None or forzar:
+        docs = _db().collection(COLECCION).stream()
+        marcas = []
+        for d in docs:
+            data = d.to_dict()
+            data["id"] = d.id
+            marcas.append(data)
+        marcas.sort(key=lambda m: m.get("timestamp", 0), reverse=True)
+        _cache_marcas = marcas
+    return _cache_marcas
 
 
 def verificar_marca(marca_id: str, verificado_por: str) -> None:
@@ -221,12 +237,21 @@ def verificar_marca(marca_id: str, verificado_por: str) -> None:
         "verificado": True,
         "verificado_por": verificado_por,
     })
+    if _cache_marcas is not None:
+        for m in _cache_marcas:
+            if m.get("id") == marca_id:
+                m["verificado"] = True
+                m["verificado_por"] = verificado_por
+                break
 
 
 def rechazar_marca(marca_id: str) -> None:
     """Una marca rechazada se borra sin más: deja de contar para el cálculo
     y el socio no se entera (no hace falta justificar cada rechazo menor)."""
+    global _cache_marcas
     _db().collection(COLECCION).document(marca_id).delete()
+    if _cache_marcas is not None:
+        _cache_marcas = [m for m in _cache_marcas if m.get("id") != marca_id]
 
 
 def resumen_por_socio(marcas: list[dict], datos_fisicos: dict[str, dict] | None = None) -> dict[str, dict]:

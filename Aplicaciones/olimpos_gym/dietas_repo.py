@@ -82,10 +82,20 @@ def _db():
     return firestore.client()
 
 
-def cargar_platos() -> list[dict]:
-    """Trae todos los platos (borradores y publicados) desde Firestore."""
-    docs = _db().collection(COLECCION).stream()
-    return [d.to_dict() for d in docs]
+_cache_platos: list[dict] | None = None
+
+
+def cargar_platos(forzar: bool = False) -> list[dict]:
+    """Trae todos los platos (borradores y publicados) desde Firestore.
+    Se cachea en memoria (las imágenes van adentro de cada documento, así
+    que volver a pedirlas cada vez que se abre el editor es lo que hacía
+    tardar segundos en abrir la pantalla) — [forzar] fuerza una relectura
+    real, por si otro empleado publicó algo desde otra máquina."""
+    global _cache_platos
+    if _cache_platos is None or forzar:
+        docs = _db().collection(COLECCION).stream()
+        _cache_platos = [d.to_dict() for d in docs]
+    return _cache_platos
 
 
 def obtener_plato(platos: list[dict], plato_id: str) -> dict | None:
@@ -135,13 +145,18 @@ def procesar_imagen(ruta_origen: str) -> str:
 
 
 def guardar_plato(platos: list[dict], plato: dict) -> list[dict]:
+    global _cache_platos
     plato["actualizado"] = datetime.now().isoformat(timespec="seconds")
     _db().collection(COLECCION).document(plato["id"]).set(plato)
     existentes = [p for p in platos if p["id"] != plato["id"]]
     existentes.append(plato)
+    _cache_platos = existentes
     return existentes
 
 
 def eliminar_plato(platos: list[dict], plato_id: str) -> list[dict]:
+    global _cache_platos
     _db().collection(COLECCION).document(plato_id).delete()
-    return [p for p in platos if p["id"] != plato_id]
+    restantes = [p for p in platos if p["id"] != plato_id]
+    _cache_platos = restantes
+    return restantes

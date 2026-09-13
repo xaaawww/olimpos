@@ -82,7 +82,10 @@ class EditorDietasView:
             page_header(
                 "🖼️ Editor Visual de Dietas",
                 "Subí una imagen, ubicá los puntos y publicalos en la app móvil",
-                actions=[action_button("➕ Nuevo plato", "gold", on_click=self._crear_plato)],
+                actions=[
+                    action_button("🔄 Actualizar", "outline", on_click=self._refrescar),
+                    action_button("➕ Nuevo plato", "gold", on_click=self._crear_plato),
+                ],
             ),
             *avisos,
             ft.Row(tarjetas, wrap=True, spacing=16, run_spacing=16),
@@ -119,6 +122,16 @@ class EditorDietasView:
             ], spacing=10),
             padding=14,
         )
+
+    def _refrescar(self, e):
+        """Fuerza una relectura real de Firestore — la lista se cachea en
+        memoria para que abrir esta pantalla sea instantánea, así que esto
+        es para cuando otro empleado publicó algo desde otra máquina."""
+        try:
+            self.platos = repo.cargar_platos(forzar=True)
+        except Exception as ex:
+            self.error_carga = str(ex)
+        self._render()
 
     def _crear_plato(self, e):
         nuevo = repo.nuevo_plato()

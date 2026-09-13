@@ -47,7 +47,8 @@ class VerificacionMarcasView:
         self.root.controls.clear()
         self.root.controls.append(
             page_header("🏆 Verificación de Marcas",
-                        "Confirmá los levantamientos de tus socios antes de que cuenten como verificados")
+                        "Confirmá los levantamientos de tus socios antes de que cuenten como verificados",
+                        actions=[action_button("🔄 Actualizar", "outline", on_click=self._refrescar_todo)])
         )
         if self.error_carga:
             self.root.controls.append(ft.Container(
@@ -83,6 +84,20 @@ class VerificacionMarcasView:
             border_radius=10, padding=ft.padding.symmetric(horizontal=14, vertical=9),
             on_click=lambda e, t=tab: self._cambiar_tab(t), ink=True,
         )
+
+    def _refrescar_todo(self, e):
+        """Fuerza una relectura real de Firestore en las 4 colecciones que
+        usa esta pantalla — todas se cachean en memoria (para que abrir la
+        pantalla sea instantáneo), así que esto es para cuando otro
+        empleado hizo algo desde otra máquina."""
+        try:
+            self.marcas = repo.cargar_marcas(forzar=True)
+            self.datos_fisicos = repo.datos_fisicos_de_todos(forzar=True)
+            self.socios_app = {s["uid"]: s for s in auth_repo.listar_accesos_socios(forzar=True) if "uid" in s}
+            self.dni_por_uid = auth_repo.dni_de_todos(forzar=True)
+        except Exception as ex:
+            self.error_carga = str(ex)
+        self._render()
 
     def _cambiar_tab(self, tab: str):
         self.tab = tab

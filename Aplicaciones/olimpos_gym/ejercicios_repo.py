@@ -80,10 +80,18 @@ ZONAS_POR_VISTA = {
 }
 
 
-def cargar_ejercicios() -> list[dict]:
-    """Trae todos los ejercicios (borradores y publicados) desde Firestore."""
-    docs = _db().collection(COLECCION).stream()
-    return [d.to_dict() for d in docs]
+_cache_ejercicios: list[dict] | None = None
+
+
+def cargar_ejercicios(forzar: bool = False) -> list[dict]:
+    """Trae todos los ejercicios (borradores y publicados) desde Firestore.
+    Se cachea en memoria — [forzar] fuerza una relectura real, por si otro
+    empleado publicó algo desde otra máquina."""
+    global _cache_ejercicios
+    if _cache_ejercicios is None or forzar:
+        docs = _db().collection(COLECCION).stream()
+        _cache_ejercicios = [d.to_dict() for d in docs]
+    return _cache_ejercicios
 
 
 def obtener_ejercicio(ejercicios: list[dict], ejercicio_id: str) -> dict | None:
@@ -113,13 +121,18 @@ def nuevo_punto(zona: str) -> dict:
 
 
 def guardar_ejercicio(ejercicios: list[dict], ejercicio: dict) -> list[dict]:
+    global _cache_ejercicios
     ejercicio["actualizado"] = datetime.now().isoformat(timespec="seconds")
     _db().collection(COLECCION).document(ejercicio["id"]).set(ejercicio)
     existentes = [e for e in ejercicios if e["id"] != ejercicio["id"]]
     existentes.append(ejercicio)
+    _cache_ejercicios = existentes
     return existentes
 
 
 def eliminar_ejercicio(ejercicios: list[dict], ejercicio_id: str) -> list[dict]:
+    global _cache_ejercicios
     _db().collection(COLECCION).document(ejercicio_id).delete()
-    return [e for e in ejercicios if e["id"] != ejercicio_id]
+    restantes = [e for e in ejercicios if e["id"] != ejercicio_id]
+    _cache_ejercicios = restantes
+    return restantes
