@@ -20,6 +20,15 @@ RADIO_PUNTO = 14
 PASO_RECORTE = 0.18
 CATEGORIAS = ["Proteína", "Verdura", "Fruta", "Carbohidrato", "Grasa saludable", "Cereal integral"]
 
+# Grilla de la lista: 3 columnas fijas — ANCHO_TARJETA en cache_width/height
+# le pide a Flutter que decodifique cada imagen directo a este tamaño (x2
+# para pantallas de alta densidad) en vez de al tamaño real guardado
+# (hasta 700px, ver dietas_repo.DIMENSION_MAXIMA) y después achicarla —
+# decodificar de entrada más chico es lo que más pesa al abrir esta lista.
+COLUMNAS_LISTA = 3
+ANCHO_TARJETA = 220
+ALTO_IMAGEN = 130
+
 
 class EditorDietasView:
     def __init__(self, page: ft.Page):
@@ -70,13 +79,15 @@ class EditorDietasView:
             ))
 
         if not self.platos:
-            tarjetas = [section_card(ft.Column([
+            grilla = section_card(ft.Column([
                 ft.Text("🥗", size=34),
                 ft.Text("Todavía no creaste ninguna dieta.", size=13, weight=ft.FontWeight.W_700, color=DARK),
                 ft.Text("Usá \"Nuevo plato\" para empezar.", size=12, color=TEXT_MUTED),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)]
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)
         else:
             tarjetas = [self._tarjeta_plato(p) for p in self.platos]
+            filas = [tarjetas[i:i + COLUMNAS_LISTA] for i in range(0, len(tarjetas), COLUMNAS_LISTA)]
+            grilla = ft.Column([ft.Row(fila, spacing=16) for fila in filas], spacing=16)
 
         return ft.Column([
             page_header(
@@ -88,39 +99,40 @@ class EditorDietasView:
                 ],
             ),
             *avisos,
-            ft.Row(tarjetas, wrap=True, spacing=16, run_spacing=16),
+            grilla,
         ], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True)
 
     def _tarjeta_plato(self, p: dict) -> ft.Container:
         if p.get("imagen"):
-            imagen = ft.Image(src=p["imagen"], width=268, height=140, fit=ft.BoxFit.COVER)
+            imagen = ft.Image(
+                src=p["imagen"], width=ANCHO_TARJETA, height=ALTO_IMAGEN, fit=ft.BoxFit.COVER,
+                cache_width=ANCHO_TARJETA * 2, cache_height=ALTO_IMAGEN * 2,
+            )
         else:
             imagen = ft.Container(
-                width=268, height=140, bgcolor=CREAM, alignment=ft.Alignment.CENTER,
+                width=ANCHO_TARJETA, height=ALTO_IMAGEN, bgcolor=CREAM, alignment=ft.Alignment.CENTER,
                 content=ft.Text("Sin imagen todavía", size=11, color=TEXT_MUTED),
             )
         estado = status_pill("Publicado", "active") if p.get("publicado") else status_pill("Borrador", "pending")
 
         return section_card(
             ft.Column([
-                ft.Container(content=imagen, border_radius=12, clip_behavior=ft.ClipBehavior.HARD_EDGE),
-                ft.Row([
-                    ft.Text(p["nombre"], size=14, weight=ft.FontWeight.W_800, font_family="Poppins", expand=True),
-                    estado,
+                ft.Stack([
+                    # El nombre solo aparece al pasar el mouse (tooltip
+                    # nativo) — la grilla queda con solo imagen y botones.
+                    ft.Container(
+                        content=imagen, border_radius=12, clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                        tooltip=p["nombre"],
+                    ),
+                    ft.Container(content=estado, top=8, right=8),
                 ]),
-                ft.Row(
-                    [status_pill(t, "pending") for t in p.get("tags", [])] +
-                    ([status_pill("🎯 Asignada", "active")] if p.get("asignada") else []),
-                    spacing=6, wrap=True,
-                ) if (p.get("tags") or p.get("asignada")) else ft.Container(height=0),
-                ft.Text(f"{len(p['puntos'])} puntos interactivos", size=11, color=TEXT_MUTED),
                 ft.Row([
-                    action_button("✏️ Editar", "outline", on_click=lambda e, pid=p["id"]: self._abrir_editor(pid)),
-                    action_button("👁️ Vista previa", "outline", on_click=lambda e, pid=p["id"]: self._abrir_previa(pid)),
-                    self._boton_texto("🗑️ Eliminar", RED, lambda e, pid=p["id"]: self._eliminar_plato(pid)),
-                ], spacing=6),
+                    action_button("✏️", "outline", on_click=lambda e, pid=p["id"]: self._abrir_editor(pid)),
+                    action_button("👁️", "outline", on_click=lambda e, pid=p["id"]: self._abrir_previa(pid)),
+                    self._boton_texto("🗑️", RED, lambda e, pid=p["id"]: self._eliminar_plato(pid)),
+                ], spacing=6, alignment=ft.MainAxisAlignment.CENTER),
             ], spacing=10),
-            padding=14,
+            padding=14, width=ANCHO_TARJETA + 28,
         )
 
     def _refrescar(self, e):

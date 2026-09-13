@@ -204,10 +204,11 @@ class VerificacionMarcasView:
         )
 
     def _tile_rango(self, nivel: str, cantidad: int) -> ft.Container:
+        # El nombre del rango solo aparece al pasar el mouse (tooltip) —
+        # el cuadro en sí queda solo con el ícono y la cantidad de socios.
         return ft.Container(
             content=ft.Column([
                 ft.Image(src=repo.imagen_de_nivel(nivel), width=52, height=52, fit=ft.BoxFit.CONTAIN),
-                ft.Text(nivel, size=10.5, weight=ft.FontWeight.W_800, color=DARK, text_align=ft.TextAlign.CENTER),
                 ft.Text(f"{cantidad} socio(s)", size=9.5, color=TEXT_MUTED),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4),
             bgcolor=WHITE, border_radius=14, border=ft.border.all(1.5, GRAY_LIGHT),
