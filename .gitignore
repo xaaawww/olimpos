@@ -1,0 +1,31 @@
+# Credenciales — NUNCA subir esto a git
+**/firebase_credentials.json
+**/google-services.json
+local.properties
+
+# Backups manuales de antes de tener git: quedan en el disco tal cual,
+# pero a partir de ahora el historial lo lleva git, no estas carpetas.
+_backups/
+
+# Android / Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+.idea/
+**/.idea/
+*.iml
+.cxx/
+captures/
+local.properties
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+venv/
+.venv/
+
+# SO
+.DS_Store
+Thumbs.db

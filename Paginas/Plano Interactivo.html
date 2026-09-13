@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plano Interactivo — OlimpOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: rgb(243, 242, 239);
+    --paper: rgb(254, 253, 252);
+    --ink: rgb(30, 26, 22);
+    --ink-soft: rgb(90, 84, 80);
+    --line: rgb(217, 215, 212);
+    --accent: oklch(0.78 0.11 88);
+    --accent-soft: rgba(203, 100, 67, 0.14);
+    --shadow: 0 1px 2px rgba(29, 20, 13, 0.06), 0 12px 40px rgba(29, 20, 13, 0.1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+
+  .app {
+    height: 100vh;
+    height: 100dvh;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas: "top top" "stage side";
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    grid-area: top;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    z-index: 30;
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand .logo {
+    font-weight: 700; font-size: 22px; letter-spacing: 0.18em;
+  }
+  .brand .logo span { color: var(--accent); }
+  .brand .sub {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* Floor toggle */
+  .floor-switch {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px;
+    position: relative;
+  }
+  .floor-switch button {
+    appearance: none; border: 0; background: transparent;
+    font-family: inherit; font-weight: 600; font-size: 13px;
+    color: var(--ink-soft); cursor: pointer;
+    padding: 8px 18px; border-radius: 999px;
+    display: flex; align-items: center; gap: 8px;
+    transition: color 0.25s;
+    position: relative; z-index: 2;
+  }
+  .floor-switch button .pill {
+    font-family: "IBM Plex Mono", monospace; font-size: 10px;
+    opacity: 0.6;
+  }
+  .floor-switch button.active { color: var(--paper); }
+  .floor-switch .glider {
+    position: absolute; top: 4px; bottom: 4px; left: 4px;
+    width: calc(50% - 4px);
+    background: var(--ink); border-radius: 999px;
+    transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
+    z-index: 1;
+  }
+  .floor-switch[data-floor="2"] .glider { transform: translateX(100%); }
+
+  .top-right { display: flex; align-items: center; gap: 16px; }
+  .hint {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px;
+    color: var(--ink-soft); letter-spacing: 0.02em;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage {
+    grid-area: stage;
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(oklch(0.9 0.005 80 / 0.5) 1px, transparent 1px) 0 0 / 28px 28px,
+      linear-gradient(90deg, oklch(0.9 0.005 80 / 0.5) 1px, transparent 1px) 0 0 / 28px 28px,
+      var(--bg);
+  }
+
+  .viewport {
+    position: absolute;
+    inset: 28px;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+  .plan-wrap {
+    position: absolute;
+    inset: 0;
+  }
+  .plan {
+    position: absolute;
+    transform-origin: 0 0;
+    transition: transform 0.65s cubic-bezier(0.6,0,0.2,1);
+    will-change: transform;
+  }
+  .plan img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    user-select: none; -webkit-user-drag: none;
+    display: block;
+  }
+  .plan .floor-img { transition: opacity 0.45s ease; }
+  .plan .floor-img.hidden { opacity: 0; pointer-events: none; }
+
+  /* ---------- Markers ---------- */
+  .marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    cursor: pointer;
+  }
+  .marker .dot {
+    transform: scale(var(--inv, 1));
+    transform-origin: center;
+    transition: transform 0.4s ease;
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: oklch(0.99 0 0);
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600; font-size: 13px;
+    border: 2px solid oklch(0.99 0 0);
+    box-shadow: 0 2px 8px oklch(0.2 0.02 60 / 0.35);
+  }
+  .marker .dot::before {
+    content: "";
+    position: absolute;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    animation: ping 2.4s cubic-bezier(0,0,0.2,1) infinite;
+  }
+  @keyframes ping {
+    0% { transform: scale(1); opacity: 0.6; }
+    70%, 100% { transform: scale(2.1); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marker .dot::before { animation: none; display: none; }
+  }
+  .marker:hover .dot { background: var(--ink); }
+  .marker.active .dot {
+    background: var(--ink);
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 2px 10px oklch(0.2 0.02 60 / 0.4);
+  }
+  .marker.dim { opacity: 0.32; }
+
+  /* ---------- Side panel ---------- */
+  .side {
+    grid-area: side;
+    border-left: 1px solid var(--line);
+    background: var(--paper);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .side-head {
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .side-head .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  .side-head h2 { font-size: 20px; font-weight: 600; }
+  .side-head .npt {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px;
+    color: var(--ink-soft); margin-top: 4px;
+  }
+
+  .detail {
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--accent-soft), transparent);
+    display: none;
+  }
+  .detail.show { display: block; animation: rise 0.4s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .detail .num {
+    display: inline-grid; place-items: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .detail h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .detail p { font-size: 14px; line-height: 1.55; color: var(--ink-soft); }
+  .detail .close {
+    margin-top: 16px;
+    appearance: none; border: 1px solid var(--line); background: var(--paper);
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-soft);
+    padding: 8px 14px; border-radius: 999px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .detail .close:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .legend { flex: 1; overflow-y: auto; padding: 12px 14px 24px; }
+  .legend .lh {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
+    padding: 8px 10px 10px;
+  }
+  .legend ul { list-style: none; }
+  .legend li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 10px; border-radius: 8px;
+    cursor: pointer; transition: background 0.18s;
+  }
+  .legend li:hover { background: var(--bg); }
+  .legend li.active { background: var(--accent-soft); }
+  .legend li .n {
+    flex: none;
+    display: grid; place-items: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1.5px solid var(--accent); color: var(--accent);
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 12px;
+    transition: all 0.18s;
+  }
+  .legend li.active .n, .legend li:hover .n { background: var(--accent); color: #fff; }
+  .legend li .lbl { font-size: 14px; font-weight: 500; }
+
+  /* ---------- Zoom controls ---------- */
+  .zoom-ctrls {
+    position: absolute; bottom: 20px; left: 20px;
+    display: flex; gap: 8px; z-index: 20;
+  }
+  .zoom-ctrls button {
+    appearance: none; border: 1px solid var(--line);
+    background: var(--paper); color: var(--ink);
+    width: 40px; height: 40px; border-radius: 10px;
+    font-size: 18px; cursor: pointer; box-shadow: var(--shadow);
+    display: grid; place-items: center;
+    transition: all 0.18s;
+  }
+  .zoom-ctrls button:hover { border-color: var(--ink-soft); }
+  .zoom-ctrls .reset { width: auto; padding: 0 14px; font-size: 12px;
+    font-family: "IBM Plex Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .floor-tag {
+    position: absolute; top: 20px; left: 20px; z-index: 20;
+    background: var(--ink); color: var(--paper);
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    letter-spacing: 0.08em; padding: 8px 14px; border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  .floor-tag b { color: var(--accent); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 880px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto;
+      grid-template-areas: "top" "stage" "side"; }
+    .side { border-left: 0; border-top: 1px solid var(--line); max-height: 42vh; }
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">Olimp<span>OS</span></div>
+        <div class="sub">Plano Interactivo</div>
+      </div>
+
+      <div class="floor-switch" id="floorSwitch" data-floor="1">
+        <div class="glider"></div>
+        <button data-floor="1" class="active">Piso 1 <span class="pill">N±0.00</span></button>
+        <button data-floor="2">Piso 2 <span class="pill">N+3.50</span></button>
+      </div>
+
+      <div class="top-right">
+        <div class="hint">Toca un punto para acercar ↗</div>
+      </div>
+    </header>
+
+    <!-- Stage -->
+    <main class="stage">
+      <div class="floor-tag">PISO <b id="floorTagNum">1</b> · Planta Baja</div>
+      <div class="viewport" id="viewport">
+        <div class="plan-wrap">
+          <div class="plan" id="plan">
+            <img class="floor-img" id="img1" src="assets/piso1.png" alt="Plano Piso 1" />
+            <img class="floor-img hidden" id="img2" src="assets/piso2.png" alt="Plano Piso 2" />
+            <!-- markers injected here -->
+          </div>
+        </div>
+      </div>
+      <div class="zoom-ctrls">
+        <button class="reset" id="resetBtn">Vista general</button>
+      </div>
+    </main>
+
+    <!-- Side panel -->
+    <aside class="side">
+      <div class="side-head">
+        <div class="eyebrow" id="sideEyebrow">Piso 1 — Planta Baja</div>
+        <h2 id="sideTitle">Centro Deportivo & Spa</h2>
+        <div class="npt" id="sideNpt">Nivel de piso terminado · N ± 0.00 m</div>
+      </div>
+
+      <div class="detail" id="detail">
+        <div class="num" id="detailNum">1</div>
+        <h3 id="detailTitle"></h3>
+        <p id="detailDesc"></p>
+        <button class="close" id="detailClose">← Volver</button>
+      </div>
+
+      <div class="legend">
+        <div class="lh">Áreas del piso</div>
+        <ul id="legendList"></ul>
+      </div>
+    </aside>
+  </div>
+
+<script>
+(function () {
+  const FLOORS = {
+    1: {
+      label: "Piso 1 — Planta Baja",
+      title: "Recepción, Spinning & Galerías",
+      npt: "Nivel de piso terminado · N ± 0.00 m",
+      tag: "Planta Baja",
+      points: [
+        { n: 1,  x: 33, y: 73, t: "Recepción & Hall", d: "Punto de ingreso principal. Aquí se realiza el registro de miembros, control de acceso e información general del centro." },
+        { n: 2,  x: 39, y: 27, t: "Cafetería", d: "Área de descanso y nutrición. Se ofrecen bebidas, batidos proteicos y snacks saludables para antes y después del entrenamiento." },
+        { n: 3,  x: 41, y: 47, t: "Zona de Galerías", d: "Núcleo circular con escalera helicoidal que conecta ambos pisos. Espacio de circulación y exhibición central del complejo." },
+        { n: 4,  x: 47, y: 49, t: "Zona de Ventas", d: "Tienda de productos deportivos: ropa, suplementos y accesorios de entrenamiento." },
+        { n: 5,  x: 56, y: 31, t: "Vestidores Hombres", d: "Vestidores con lockers, duchas y servicios sanitarios para los usuarios masculinos." },
+        { n: 6,  x: 50, y: 37, t: "Vestidores Mujeres", d: "Vestidores con lockers, duchas y servicios sanitarios para las usuarias femeninas." },
+        { n: 7,  x: 73, y: 45, t: "Sala de Masajes", d: "Cabinas de masaje y recuperación muscular asistida por terapeutas profesionales." },
+        { n: 8,  x: 64, y: 22, t: "Sala de Danza / Aeróbicos", d: "Salón amplio para clases grupales de danza, zumba y rutinas aeróbicas dirigidas." },
+        { n: 9,  x: 53, y: 69, t: "Sala de Spinning", d: "Área equipada con bicicletas estáticas para clases de ciclismo indoor de alta intensidad." },
+        { n: 10, x: 25, y: 49, t: "Administración & Oficinas", d: "Oficinas del personal administrativo, gerencia y atención a socios." },
+        { n: 11, x: 20, y: 66, t: "Caseta de Vigilancia", d: "Control de seguridad y monitoreo del acceso peatonal al complejo." },
+        { n: 12, x: 16, y: 40, t: "Servicios Sanitarios", d: "Baños públicos de apoyo ubicados cerca del acceso y áreas comunes." }
+      ]
+    },
+    2: {
+      label: "Piso 2 — Nivel Superior",
+      title: "Spa, Artes Marciales & Boxeo",
+      npt: "Nivel de piso terminado · N + 3.50 m",
+      tag: "Nivel Superior",
+      points: [
+        { n: 1,  x: 31, y: 54, t: "Hall & Escalera", d: "Distribuidor central del segundo nivel conectado por la escalera helicoidal de la galería." },
+        { n: 2,  x: 32, y: 31, t: "Estética Facial", d: "Cabinas dedicadas a tratamientos faciales, limpieza de cutis y cuidado de la piel." },
+        { n: 3,  x: 15, y: 49, t: "Saunas (H / M)", d: "Saunas secas separadas por género para relajación, desintoxicación y recuperación térmica." },
+        { n: 4,  x: 19, y: 54, t: "Sala de Espera", d: "Área de descanso para usuarios en turno de tratamientos de spa y relajación." },
+        { n: 5,  x: 12, y: 63, t: "Masajes", d: "Cabinas de masaje relajante y terapéutico con ambientación tranquila." },
+        { n: 6,  x: 32, y: 70, t: "Piscina de Aguas Termales", d: "Piscina de hidroterapia con aguas templadas para relajación muscular y circulación." },
+        { n: 7,  x: 28, y: 77, t: "Piscina de Lodo", d: "Tratamiento de fangoterapia: aplicación de lodos minerales con beneficios para la piel." },
+        { n: 8,  x: 45, y: 63, t: "Sala de Pesas / Estaciones", d: "Zona de musculación con estaciones de peso libre y máquinas de fuerza." },
+        { n: 9,  x: 73, y: 39, t: "Sala de Artes Marciales", d: "Tatami amplio para práctica de karate, judo y disciplinas de combate." },
+        { n: 10, x: 60, y: 64, t: "Sala de Boxeo", d: "Ring y sacos de entrenamiento para boxeo y acondicionamiento físico de contacto." },
+        { n: 11, x: 62, y: 18, t: "Terraza", d: "Terraza exterior para enfriamiento, descanso al aire libre y actividades ligeras." }
+      ]
+    }
+  };
+
+  const plan = document.getElementById("plan");
+  const img1 = document.getElementById("img1");
+  const img2 = document.getElementById("img2");
+  const legendList = document.getElementById("legendList");
+  const detail = document.getElementById("detail");
+  const detailNum = document.getElementById("detailNum");
+  const detailTitle = document.getElementById("detailTitle");
+  const detailDesc = document.getElementById("detailDesc");
+  const detailClose = document.getElementById("detailClose");
+  const resetBtn = document.getElementById("resetBtn");
+  const floorSwitch = document.getElementById("floorSwitch");
+  const sideEyebrow = document.getElementById("sideEyebrow");
+  const sideTitle = document.getElementById("sideTitle");
+  const sideNpt = document.getElementById("sideNpt");
+  const floorTagNum = document.getElementById("floorTagNum");
+  const viewport = document.getElementById("viewport");
+
+  let current = 1;
+  let activePoint = null;
+  const ZOOM = 2.3;
+  const PLAN_AR = 1100 / 850; // aspect ratio del plano
+
+  function sizePlan() {
+    const vw = viewport.offsetWidth;
+    const vh = viewport.offsetHeight;
+    let W, H;
+    if (vw / vh > PLAN_AR) {
+      // viewport más ancho → limitar por altura
+      H = vh;
+      W = Math.round(H * PLAN_AR);
+    } else {
+      // viewport más alto → limitar por ancho
+      W = vw;
+      H = Math.round(W / PLAN_AR);
+    }
+    plan.style.width  = W + "px";
+    plan.style.height = H + "px";
+    plan.style.left   = Math.round((vw - W) / 2) + "px";
+    plan.style.top    = Math.round((vh - H) / 2) + "px";
+  }
+
+  function applyTransform(tx, ty, z) {
+    plan.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`;
+    plan.style.setProperty("--inv", 1 / z);
+  }
+
+  function resetView() {
+    applyTransform(0, 0, 1);
+    activePoint = null;
+    detail.classList.remove("show");
+    document.querySelectorAll(".marker").forEach(m => m.classList.remove("active", "dim"));
+    document.querySelectorAll(".legend li").forEach(li => li.classList.remove("active"));
+  }
+
+  function focusPoint(p) {
+    const W = plan.offsetWidth;
+    const H = plan.offsetHeight;
+    const px = p.x / 100, py = p.y / 100;
+    const tx = W * (0.5 - px * ZOOM);
+    const ty = H * (0.5 - py * ZOOM);
+    applyTransform(tx, ty, ZOOM);
+
+    activePoint = p.n;
+    document.querySelectorAll(".marker").forEach(m => {
+      const isActive = +m.dataset.n === p.n;
+      m.classList.toggle("active", isActive);
+      m.classList.toggle("dim", !isActive);
+    });
+    document.querySelectorAll(".legend li").forEach(li => {
+      li.classList.toggle("active", +li.dataset.n === p.n);
+    });
+
+    detailNum.textContent = p.n;
+    detailTitle.textContent = p.t;
+    detailDesc.textContent = p.d;
+    detail.classList.add("show");
+  }
+
+  function render(floor) {
+    current = floor;
+    const data = FLOORS[floor];
+
+    // images
+    img1.classList.toggle("hidden", floor !== 1);
+    img2.classList.toggle("hidden", floor !== 2);
+
+    // header text
+    sideEyebrow.textContent = data.label;
+    sideTitle.textContent = data.title;
+    sideNpt.textContent = data.npt;
+    floorTagNum.textContent = floor;
+    document.querySelector(".floor-tag").innerHTML =
+      `PISO <b>${floor}</b> · ${data.tag}`;
+
+    // switch state
+    floorSwitch.dataset.floor = floor;
+    floorSwitch.querySelectorAll("button").forEach(b =>
+      b.classList.toggle("active", +b.dataset.floor === floor));
+
+    // markers
+    plan.querySelectorAll(".marker").forEach(m => m.remove());
+    data.points.forEach(p => {
+      const m = document.createElement("div");
+      m.className = "marker";
+      m.dataset.n = p.n;
+      m.style.left = p.x + "%";
+      m.style.top = p.y + "%";
+      m.innerHTML = `<div class="dot">${p.n}</div>`;
+      m.addEventListener("click", (e) => { e.stopPropagation(); focusPoint(p); });
+      plan.appendChild(m);
+    });
+
+    // legend
+    legendList.innerHTML = "";
+    data.points.forEach(p => {
+      const li = document.createElement("li");
+      li.dataset.n = p.n;
+      li.innerHTML = `<span class="n">${p.n}</span><span class="lbl">${p.t}</span>`;
+      li.addEventListener("click", () => focusPoint(p));
+      legendList.appendChild(li);
+    });
+
+    resetView();
+  }
+
+  // Floor switch
+  floorSwitch.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const f = +btn.dataset.floor;
+      if (f !== current) render(f);
+    });
+  });
+
+  detailClose.addEventListener("click", resetView);
+  resetBtn.addEventListener("click", resetView);
+  viewport.addEventListener("click", (e) => {
+    if (e.target === viewport || e.target.classList.contains("plan-wrap") || e.target.tagName === "IMG") resetView();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") resetView(); });
+
+  // Re-ajustar plano al cambiar tamaño de ventana o entrar/salir de fullscreen
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { sizePlan(); resetView(); }, 80);
+  });
+  document.addEventListener("fullscreenchange", () => {
+    setTimeout(() => { sizePlan(); resetView(); }, 100);
+  });
+
+  sizePlan();
+  render(1);
+})();
+</script>
+</body>
+</html>
