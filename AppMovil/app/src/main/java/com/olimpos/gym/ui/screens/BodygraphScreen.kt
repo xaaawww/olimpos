@@ -34,10 +34,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.GrupoMuscular
+import com.olimpos.gym.data.MINIMO_EJERCICIOS_PARA_CLASIFICACION
 import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.ZonaMuscular
+import com.olimpos.gym.data.cantidadEjerciciosVigentes
 import com.olimpos.gym.data.nivelDesdePuntaje
+import com.olimpos.gym.data.puntajeGeneralDeSocio
 import com.olimpos.gym.data.resumenMuscular
 import com.olimpos.gym.ui.theme.Olimpos
 
@@ -59,12 +62,16 @@ fun BodygraphScreen(onVolver: () -> Unit) {
     val nivelesPorZona = remember(resumen) {
         ZonaMuscular.entries.associateWith { zona -> resumen.puntajes[zona]?.let(::nivelDesdePuntaje) }
     }
-    // Rango general = promedio del puntaje de las 19 zonas (las que todavía
-    // no tienen marcas suman 0, como corresponde a "no entrenado aún").
-    val nivelGeneral = remember(resumen) {
-        val promedio = ZonaMuscular.entries.sumOf { (resumen.puntajes[it] ?: 0f).toDouble() } / ZonaMuscular.entries.size
-        nivelDesdePuntaje(promedio.toFloat())
+    // Rango general = el mismo cálculo que la Escalera del Olimpo en
+    // Clasificación (promedio por EJERCICIO, no por zona muscular — ver
+    // puntajeGeneralDeSocio) para que un socio nunca vea un rango distinto
+    // acá que en Clasificación. Antes acá se promediaban las 19 zonas
+    // (varias en cero si nunca hizo las isolaciones de la Calculadora),
+    // lo que daba un número más bajo que el real.
+    val nivelGeneral = remember(marcas, datosFisicos) {
+        puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo)?.let { nivelDesdePuntaje(it) }
     }
+    val ejerciciosRegistrados = remember(marcas) { cantidadEjerciciosVigentes(marcas) }
 
     Column(
         Modifier
@@ -77,7 +84,7 @@ fun BodygraphScreen(onVolver: () -> Unit) {
             TarjetaOro(Modifier.fillMaxWidth()) {
                 Box(Modifier.fillMaxWidth()) {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        InsigniaRangoGeneral(nivelGeneral)
+                        InsigniaRangoGeneral(nivelGeneral, ejerciciosRegistrados)
                         Spacer(Modifier.height(14.dp))
                         CuerpoMuscularRangos(rangoPorZona = nivelesPorZona.mapValues { it.value?.rango })
                     }
@@ -158,7 +165,25 @@ private fun FilaGrupoMuscular(
 }
 
 @Composable
-private fun InsigniaRangoGeneral(nivel: NivelMuscular) {
+private fun InsigniaRangoGeneral(nivel: NivelMuscular?, ejerciciosRegistrados: Int) {
+    if (nivel == null) {
+        val faltan = (MINIMO_EJERCICIOS_PARA_CLASIFICACION - ejerciciosRegistrados).coerceAtLeast(0)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "RANGO GENERAL", fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.2.sp, color = Olimpos.Muted
+            )
+            Text(
+                "Sin clasificar todavía", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+            Text(
+                "Cargá marcas en $faltan ejercicio${if (faltan == 1) "" else "s"} más de la Calculadora",
+                fontSize = 11.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        return
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
             painter = painterResource(iconoDeRango(nivel)),

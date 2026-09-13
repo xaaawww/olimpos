@@ -55,6 +55,7 @@ def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str)
 
 def _dialogo_nuevo_socio(page: ft.Page):
     campo_nombre = ft.TextField(label="Nombre y apellido", width=360, autofocus=True)
+    campo_dni = ft.TextField(label="DNI", width=360, keyboard_type=ft.KeyboardType.NUMBER)
     campo_email = ft.TextField(label="Email", width=360, keyboard_type=ft.KeyboardType.EMAIL)
     campo_password = ft.TextField(label="Contraseña", width=270, value=auth_repo.generar_password())
     error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_700, visible=False)
@@ -65,14 +66,15 @@ def _dialogo_nuevo_socio(page: ft.Page):
 
     def _crear(e):
         nombre = (campo_nombre.value or "").strip()
+        dni = (campo_dni.value or "").strip()
         email = (campo_email.value or "").strip()
         password = (campo_password.value or "").strip()
-        if not nombre or not email or not password:
-            error_text.value = "Completá nombre, email y contraseña."
+        if not nombre or not dni or not email or not password:
+            error_text.value = "Completá nombre, DNI, email y contraseña."
             error_text.visible = True
             page.update()
             return
-        ok, resultado = auth_repo.crear_acceso_socio(nombre, email, password)
+        ok, resultado = auth_repo.crear_acceso_socio(nombre, email, password, dni)
         if not ok:
             error_text.value = resultado
             error_text.visible = True
@@ -91,6 +93,7 @@ def _dialogo_nuevo_socio(page: ft.Page):
                 size=12, color=TEXT_MUTED,
             ),
             campo_nombre,
+            campo_dni,
             campo_email,
             ft.Row([campo_password, action_button("🎲 Generar", "outline", on_click=_regenerar)],
                    spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),

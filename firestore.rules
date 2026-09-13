@@ -45,6 +45,17 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Socios_privado: el DNI de cada socio (lo carga un empleado al crear
+    // el acceso, ver auth_repo.py). A diferencia de socios_app, esto NO se
+    // puede leer de cualquier socio a otro — un DNI es un dato demasiado
+    // sensible para dejarlo abierto a todo el club. Cada socio solo puede
+    // leer su propio documento; el sistema de empleados lo lee entero
+    // porque el Admin SDK no pasa por estas reglas.
+    match /socios_privado/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;

@@ -133,6 +133,77 @@ def nivel_desde_puntaje(puntaje: float) -> str:
     return "Dios"
 
 
+def todos_los_niveles() -> list[str]:
+    """Los 25 rangos de la Escalera del Olimpo, de Dios (el más fuerte) a
+    Mortal 1 (el más flojo) — para la grilla de 5x5 de Verificación de
+    Marcas."""
+    niveles = []
+    for rango in RANGOS:
+        for n in range(1, NIVELES_MAX[rango] + 1):
+            niveles.append(rango if rango == "Dios" else f"{rango} {n}")
+    return list(reversed(niveles))
+
+
+_SLUG_RANGO = {
+    "Mortal": "mortal", "Hoplita": "hoplita", "Espartano": "espartano",
+    "Héroe": "heroe", "Semidiós": "semidios", "Titán": "titan",
+    "Coloso": "coloso", "Olímpico": "olimpico", "Dios": "dios",
+}
+
+
+def imagen_de_nivel(nivel: str) -> str:
+    """"Héroe 3" -> "rangos/rango_heroe_3.png"; "Dios" -> "rangos/rango_dios.png"
+    — mismas imágenes que usa la app móvil (ver AppMovil/.../res/drawable/)."""
+    partes = nivel.rsplit(" ", 1)
+    if len(partes) == 2 and partes[1].isdigit():
+        rango, n = partes
+        return f"rangos/rango_{_SLUG_RANGO.get(rango, rango.lower())}_{n}.png"
+    return f"rangos/rango_{_SLUG_RANGO.get(nivel, nivel.lower())}.png"
+
+
+def ranking_por_rango(marcas: list[dict], datos_fisicos: dict[str, dict] | None = None) -> dict[str, list[dict]]:
+    """Agrupa los socios por su rango EXACTO (el mismo que ven en la
+    Escalera del Olimpo de la app) — para la grilla de Verificación de
+    Marcas. Cada entrada trae lo necesario para ordenar (puntaje) y para
+    buscar (nombre, socio_id, email, dni). Solo entran los socios que
+    llegan al mínimo de ejercicios (ver MINIMO_EJERCICIOS_PARA_CLASIFICACION),
+    igual que en la app."""
+    if datos_fisicos is None:
+        datos_fisicos = datos_fisicos_de_todos()
+
+    por_socio: dict[str, list[dict]] = {}
+    for m in marcas:
+        por_socio.setdefault(m.get("socio_id", "?"), []).append(m)
+
+    agrupado: dict[str, list[dict]] = {}
+    for socio_id, ms in por_socio.items():
+        nombre = ms[0].get("socio_nombre", socio_id)
+        vigente_por_ejercicio: dict[str, dict] = {}
+        for m in ms:
+            ej = m.get("ejercicio")
+            actual = vigente_por_ejercicio.get(ej)
+            if actual is None or m.get("timestamp", 0) > actual.get("timestamp", 0):
+                vigente_por_ejercicio[ej] = m
+        if len(vigente_por_ejercicio) < MINIMO_EJERCICIOS_PARA_CLASIFICACION:
+            continue
+
+        datos = datos_fisicos.get(socio_id, {})
+        peso_corporal = datos.get("peso_kg", PESO_CORPORAL_REFERENCIA)
+        sexo = datos.get("sexo")
+        puntajes = [puntaje_de_marca(m, peso_corporal, sexo) for m in vigente_por_ejercicio.values()]
+        puntaje_general = sum(puntajes) / len(puntajes)
+
+        agrupado.setdefault(nivel_desde_puntaje(puntaje_general), []).append({
+            "socio_id": socio_id,
+            "nombre": nombre,
+            "puntaje": puntaje_general,
+        })
+
+    for socios in agrupado.values():
+        socios.sort(key=lambda s: s["puntaje"], reverse=True)
+    return agrupado
+
+
 def cargar_marcas() -> list[dict]:
     """Trae todas las marcas de todos los socios, más nuevas primero."""
     docs = _db().collection(COLECCION).stream()

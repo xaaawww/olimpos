@@ -20,6 +20,13 @@ from firebase_admin import auth as fb_auth
 import dietas_repo as _repo
 
 COLECCION = "socios_app"
+# El DNI va en una colección aparte, NO en "socios_app": esa la puede leer
+# cualquier socio autenticado (necesario para "hace cuánto que es socio"
+# en Clasificación), y un DNI es un dato mucho más sensible que un nombre
+# o una fecha de alta. "socios_privado" solo la puede leer el propio socio
+# sobre su propio uid (ver firestore.rules) — el sistema de empleados la
+# lee entera porque el Admin SDK no pasa por esas reglas.
+COLECCION_PRIVADA = "socios_privado"
 
 
 def _app():
@@ -34,7 +41,7 @@ def generar_password(largo: int = 10) -> str:
     return "".join(random.choices(alfabeto, k=largo))
 
 
-def crear_acceso_socio(nombre: str, email: str, password: str) -> tuple[bool, str]:
+def crear_acceso_socio(nombre: str, email: str, password: str, dni: str) -> tuple[bool, str]:
     """Crea el usuario en Firebase Auth y guarda su ficha en Firestore.
     Devuelve (True, uid) si salió bien, o (False, mensaje de error) si no."""
     try:
@@ -60,12 +67,23 @@ def crear_acceso_socio(nombre: str, email: str, password: str) -> tuple[bool, st
         # la lee directo como epoch sin tener que parsear formatos de fecha.
         "creado_ms": int(time.time() * 1000),
     })
+    _repo._db().collection(COLECCION_PRIVADA).document(user.uid).set({
+        "dni": dni.strip(),
+    })
     return True, user.uid
 
 
 def listar_accesos_socios() -> list[dict]:
     docs = _repo._db().collection(COLECCION).stream()
     return [d.to_dict() for d in docs]
+
+
+def dni_de_todos() -> dict[str, str]:
+    """uid -> DNI de todos los socios, para la búsqueda del sistema de
+    empleados (ver verificacion_marcas.py). El Admin SDK no pasa por
+    firestore.rules, así que acá sí se puede leer todo junto."""
+    docs = _repo._db().collection(COLECCION_PRIVADA).stream()
+    return {d.id: d.to_dict().get("dni", "") for d in docs}
 
 
 def desactivar_acceso_socio(uid: str) -> None:
