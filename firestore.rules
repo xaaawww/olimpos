@@ -17,14 +17,17 @@ service cloud.firestore {
     }
 
     // Marcas: cualquier socio autenticado puede leer todas (hace falta para
-    // el ranking de Clasificación), pero solo puede crear marcas propias
-    // (socio_id == su uid de Firebase Auth). Verificar/rechazar una marca lo
-    // hace un empleado desde el Admin SDK, que no pasa por estas reglas.
+    // el ranking de Clasificación), pero solo puede crear o borrar marcas
+    // propias (socio_id == su uid de Firebase Auth) — borrar la de otro
+    // socio queda prohibido. Verificar/rechazar una marca lo hace un
+    // empleado desde el Admin SDK, que no pasa por estas reglas.
     match /marcas/{marcaId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
                     && request.resource.data.socio_id == request.auth.uid;
-      allow update, delete: if false;
+      allow delete: if request.auth != null
+                    && resource.data.socio_id == request.auth.uid;
+      allow update: if false;
     }
 
     // Socios_app: nombre y fecha de alta de cada acceso (lo crea un

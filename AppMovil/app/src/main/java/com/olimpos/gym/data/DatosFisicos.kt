@@ -24,7 +24,12 @@ data class DatosFisicos(
     val edad: Int,
     val sexo: SexoBiologico,
     val experiencia: String,
-    val condicionMedica: String = ""
+    val condicionMedica: String = "",
+    /** Si es true, este socio no aparece para el resto en la Escalera del
+     *  Olimpo (ni en la búsqueda, ni en las listas de miembros, ni en el
+     *  conteo de cada rango) — sigue viendo su PROPIO rango normalmente,
+     *  ver ClasificacionScreen.kt. */
+    val ocultoClasificacion: Boolean = false
 )
 
 private const val COLECCION_DATOS_FISICOS = "datos_fisicos"
@@ -38,9 +43,22 @@ suspend fun guardarDatosFisicos(datos: DatosFisicos): Boolean {
                 "sexo" to datos.sexo.name,
                 "experiencia" to datos.experiencia,
                 "condicion_medica" to datos.condicionMedica,
+                "oculto_clasificacion" to datos.ocultoClasificacion,
                 "actualizado_ms" to System.currentTimeMillis()
             )
         ).await()
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/** Solo cambia el "mostrar/ocultar" en Clasificación (update parcial, no
+ *  pisa el resto del documento). */
+suspend fun actualizarOcultoClasificacion(oculto: Boolean): Boolean {
+    return try {
+        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId())
+            .update("oculto_clasificacion", oculto).await()
         true
     } catch (e: Exception) {
         false
@@ -54,7 +72,8 @@ private fun documentoADatosFisicos(doc: com.google.firebase.firestore.DocumentSn
         edad = doc.getLong("edad")?.toInt() ?: 0,
         sexo = SexoBiologico.entries.firstOrNull { it.name == doc.getString("sexo") } ?: SexoBiologico.PREFIERO_NO_DECIRLO,
         experiencia = doc.getString("experiencia") ?: "",
-        condicionMedica = doc.getString("condicion_medica") ?: ""
+        condicionMedica = doc.getString("condicion_medica") ?: "",
+        ocultoClasificacion = doc.getBoolean("oculto_clasificacion") ?: false
     )
 }
 

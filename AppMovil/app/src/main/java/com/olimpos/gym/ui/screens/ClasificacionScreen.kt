@@ -30,11 +30,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,12 +59,14 @@ import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.RangoMuscular
 import com.olimpos.gym.data.SexoBiologico
 import com.olimpos.gym.data.SocioRango
+import com.olimpos.gym.data.actualizarOcultoClasificacion
 import com.olimpos.gym.data.cantidadEjerciciosVigentes
 import com.olimpos.gym.data.formatearAntiguedad
 import com.olimpos.gym.data.nivelDesdePuntaje
 import com.olimpos.gym.data.puntajeGeneralDeSocio
 import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.ui.theme.Olimpos
+import kotlinx.coroutines.launch
 
 /** Clasificación: la Escalera del Olimpo — los 25 niveles del Bodygraph
  *  desde Mortal (al pie) hasta Dios (en la cima). Los estandartes flotan
@@ -100,6 +105,7 @@ fun ClasificacionScreen(onVolver: () -> Unit) {
                         .padding(horizontal = 20.dp)
                         .padding(bottom = 26.dp)
                 ) {
+                    ToggleVisibilidadPropia()
                     BuscadorSocios(rangosSocios, onSeleccionar = { perfilSeleccionado = it })
                     EscaleraDelOlimpo(onVerMiembros = { nivelMiembros = it })
                 }
@@ -108,6 +114,50 @@ fun ClasificacionScreen(onVolver: () -> Unit) {
 
         AnimatedVisibility(visible = perfilSeleccionado != null, enter = fadeIn(), exit = fadeOut()) {
             perfilSeleccionado?.let { DetallePerfilSocio(it, onCerrar = { perfilSeleccionado = null }) }
+        }
+    }
+}
+
+/** Botón para que un socio deje de aparecer para los DEMÁS en la Escalera
+ *  del Olimpo (búsqueda, listas de miembros, conteo por rango) — sigue
+ *  viendo su propio rango normalmente, ese cálculo no depende de esta
+ *  lista compartida. Algunos socios prefieren no exponer su posición. */
+@Composable
+private fun ToggleVisibilidadPropia() {
+    val datosFisicos = DatosRemotos.datosFisicosPropios
+    var oculto by remember(datosFisicos) { mutableStateOf(datosFisicos?.ocultoClasificacion ?: false) }
+    val scope = rememberCoroutineScope()
+
+    TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconoCuadrado(if (oculto) "🙈" else "🏆")
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Mostrarme en la Escalera del Olimpo", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                Text(
+                    if (oculto) "Oculto: nadie más te ve en la búsqueda ni en las listas de miembros."
+                    else "Otros socios pueden verte en la búsqueda y en la lista de tu rango.",
+                    fontSize = 11.sp, color = Olimpos.Muted
+                )
+            }
+            Switch(
+                checked = !oculto,
+                onCheckedChange = { visible ->
+                    oculto = !visible
+                    scope.launch {
+                        actualizarOcultoClasificacion(!visible)
+                        DatosRemotos.recargarDatosFisicosPropios()
+                        DatosRemotos.recargarRangosSocios()
+                    }
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Olimpos.Dark,
+                    checkedTrackColor = Olimpos.Gold,
+                    uncheckedThumbColor = Olimpos.Muted,
+                    uncheckedTrackColor = Olimpos.Card,
+                    uncheckedBorderColor = Olimpos.Line
+                )
+            )
         }
     }
 }

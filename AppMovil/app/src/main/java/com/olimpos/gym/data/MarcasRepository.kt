@@ -95,6 +95,11 @@ suspend fun cargarRangosDeSocios(): List<SocioRango>? {
                     )
                 }
                 val datosFisicos = datosFisicosPorUid[socioId]
+                // El socio pidió no aparecer para los demás (botón en
+                // Clasificación) — su propio rango sigue viéndolo él, ya
+                // que eso se calcula aparte con sus propias marcas, no con
+                // esta lista compartida.
+                if (datosFisicos?.ocultoClasificacion == true) return@mapNotNull null
                 val pesoCorporal = datosFisicos?.pesoKg ?: PESO_CORPORAL_REFERENCIA
                 val puntajeGeneral = puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo) ?: return@mapNotNull null
                 val resumen = resumenMuscular(marcas, pesoCorporal, datosFisicos?.sexo)
@@ -134,6 +139,21 @@ suspend fun guardarMarcaEnFirebase(ejercicio: String, pesoKg: Float, reps: Int, 
                 "verificado" to false
             )
         ).await()
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/** Borra una marca ya cargada. El Bodygraph y la Clasificación se
+ *  recalculan a partir de lo que quede en Firestore (ver [resumenMuscular]/
+ *  [puntajeGeneralDeSocio]), así que borrar la única marca de un ejercicio
+ *  puede hacer bajar el rango — quien llama debe recargar [DatosRemotos]
+ *  después de esto para que se note sin reiniciar la app. */
+suspend fun eliminarMarcaEnFirebase(marcaId: String): Boolean {
+    if (marcaId.isBlank()) return false
+    return try {
+        Firebase.firestore.collection("marcas").document(marcaId).delete().await()
         true
     } catch (e: Exception) {
         false
