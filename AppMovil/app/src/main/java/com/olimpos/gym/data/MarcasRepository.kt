@@ -14,7 +14,7 @@ import kotlinx.coroutines.tasks.await
 suspend fun cargarMarcasDesdeFirebase(): List<MarcaPersonal>? {
     return try {
         val snapshot = Firebase.firestore.collection("marcas")
-            .whereEqualTo("socio_id", SOCIO_ACTUAL_ID)
+            .whereEqualTo("socio_id", socioActualId())
             .get()
             .await()
 
@@ -81,8 +81,8 @@ suspend fun guardarMarcaEnFirebase(ejercicio: String, pesoKg: Float, reps: Int, 
         val doc = Firebase.firestore.collection("marcas").document()
         doc.set(
             mapOf(
-                "socio_id" to SOCIO_ACTUAL_ID,
-                "socio_nombre" to SOCIO_ACTUAL_NOMBRE,
+                "socio_id" to socioActualId(),
+                "socio_nombre" to socioActualNombre(),
                 "ejercicio" to ejercicio,
                 "peso" to pesoKg,
                 "repeticiones" to reps,

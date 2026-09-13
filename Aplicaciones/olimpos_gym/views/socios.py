@@ -1,6 +1,7 @@
 import flet as ft
 from theme import *
 from components import stat_card, section_card, status_pill, avatar, action_button, page_header
+import auth_repo
 
 
 SOCIOS_DATA = [
@@ -15,7 +16,96 @@ SOCIOS_DATA = [
 ]
 
 
-def build_socios() -> ft.Column:
+# ══════════════ Crear acceso a la app (Firebase Auth) ══════════════
+# El socio no se registra solo: acá un empleado le crea la cuenta y
+# después le pasa el email/contraseña en persona o por WhatsApp — la app
+# móvil ya no tiene forma de "crear cuenta" (ver LoginScreen.kt).
+
+def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str) -> ft.AlertDialog:
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("✅ Acceso creado", weight=ft.FontWeight.W_800, font_family="Poppins"),
+        content=ft.Column([
+            ft.Text(f"Pasale estos datos a {nombre} para que entre a la app OlimpΩs:",
+                    size=12.5, color=TEXT_MUTED),
+            ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.Text("Email:", size=12, weight=ft.FontWeight.W_800, color=DARK),
+                        ft.Text(email, size=12, selectable=True, color=DARK),
+                    ], spacing=6),
+                    ft.Row([
+                        ft.Text("Contraseña:", size=12, weight=ft.FontWeight.W_800, color=DARK),
+                        ft.Text(password, size=12, selectable=True, color=DARK),
+                    ], spacing=6),
+                ], spacing=6),
+                bgcolor=CREAM, border_radius=10, padding=14,
+            ),
+            ft.Text(
+                "Guardá esto ahora: por seguridad, Firebase no permite volver a ver "
+                "esta contraseña más adelante.",
+                size=11, color=RED, weight=ft.FontWeight.W_700,
+            ),
+        ], tight=True, spacing=10, width=360),
+        actions=[action_button("Listo", "gold", on_click=lambda e: page.pop_dialog())],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    return dialog
+
+
+def _dialogo_nuevo_socio(page: ft.Page):
+    campo_nombre = ft.TextField(label="Nombre y apellido", width=360, autofocus=True)
+    campo_email = ft.TextField(label="Email", width=360, keyboard_type=ft.KeyboardType.EMAIL)
+    campo_password = ft.TextField(label="Contraseña", width=270, value=auth_repo.generar_password())
+    error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_700, visible=False)
+
+    def _regenerar(e):
+        campo_password.value = auth_repo.generar_password()
+        page.update()
+
+    def _crear(e):
+        nombre = (campo_nombre.value or "").strip()
+        email = (campo_email.value or "").strip()
+        password = (campo_password.value or "").strip()
+        if not nombre or not email or not password:
+            error_text.value = "Completá nombre, email y contraseña."
+            error_text.visible = True
+            page.update()
+            return
+        ok, resultado = auth_repo.crear_acceso_socio(nombre, email, password)
+        if not ok:
+            error_text.value = resultado
+            error_text.visible = True
+            page.update()
+            return
+        page.pop_dialog()
+        page.show_dialog(_dialogo_credenciales(page, nombre, email, password))
+
+    dialog = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("Crear acceso a la app", weight=ft.FontWeight.W_800, font_family="Poppins"),
+        content=ft.Column([
+            ft.Text(
+                "Se crea una cuenta real (Firebase) para que este socio entre a la "
+                "app OlimpΩs. El email y la contraseña se los pasás vos.",
+                size=12, color=TEXT_MUTED,
+            ),
+            campo_nombre,
+            campo_email,
+            ft.Row([campo_password, action_button("🎲 Generar", "outline", on_click=_regenerar)],
+                   spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            error_text,
+        ], tight=True, spacing=12, width=380),
+        actions=[
+            ft.TextButton("Cancelar", on_click=lambda e: page.pop_dialog()),
+            action_button("Crear acceso", "gold", on_click=_crear),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.show_dialog(dialog)
+
+
+def build_socios(page: ft.Page) -> ft.Column:
     stats_row = ft.Row([
         stat_card("Activos",       "219", "▲ +4",       "green", True),
         stat_card("Inactivos",     "18",  "▼ -2",       "red"),
@@ -112,7 +202,7 @@ def build_socios() -> ft.Column:
                     actions=[
                         action_button("🔽 Filtrar", "outline"),
                         action_button("📤 Exportar", "outline"),
-                        action_button("➕ Nuevo Socio", "gold"),
+                        action_button("➕ Nuevo Socio", "gold", on_click=lambda e: _dialogo_nuevo_socio(page)),
                     ]),
         stats_row,
         tabs,

@@ -47,7 +47,7 @@ import com.olimpos.gym.data.EVOLUCION_PESO
 import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.RangoMuscular
-import com.olimpos.gym.data.SOCIO_ACTUAL_ID
+import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.data.SocioRango
 import com.olimpos.gym.data.ZonaMuscular
 import com.olimpos.gym.data.nivelDesdePuntaje
@@ -119,7 +119,7 @@ private fun EscaleraDelOlimpo() {
         Column {
             escalones.forEach { esc ->
                 val otros = remember(rangosSocios, esc) {
-                    rangosSocios.filter { it.nivel == esc && it.verificado && it.socioId != SOCIO_ACTUAL_ID }
+                    rangosSocios.filter { it.nivel == esc && it.verificado && it.socioId != socioActualId() }
                 }
                 FilaEscalon(
                     nivel = esc,

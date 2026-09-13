@@ -16,7 +16,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Cualquier otra colección: denegado por defecto.
+    // Marcas: cualquier socio autenticado puede leer todas (hace falta para
+    // el ranking de Clasificación), pero solo puede crear marcas propias
+    // (socio_id == su uid de Firebase Auth). Verificar/rechazar una marca lo
+    // hace un empleado desde el Admin SDK, que no pasa por estas reglas.
+    match /marcas/{marcaId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Cualquier otra colección: denegado por defecto (incluye "socios_app",
+    // que solo debe tocar el Admin SDK del sistema de empleados).
     match /{document=**} {
       allow read, write: if false;
     }

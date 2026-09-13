@@ -36,13 +36,9 @@ data class MarcaPersonal(
     val verificado: Boolean
 )
 
-/** Identidad del socio actual: la app todavía no tiene login real contra un
- *  backend (ver [LoginScreen], puramente cosmético), así que — igual que el
- *  resto de los datos de ejemplo de este archivo (ranking, pagos) — se usa
- *  un socio fijo. Es el mismo id que debe usarse al guardar/leer "marcas"
- *  en Firestore para que el sistema de empleados pueda verificarlas. */
-const val SOCIO_ACTUAL_ID = "alex_rodriguez"
-const val SOCIO_ACTUAL_NOMBRE = "Alex Rodríguez"
+// La identidad del socio actual sale de Firebase Auth (ver SocioAuth.kt:
+// socioActualId()/socioActualNombre()), no de un valor fijo — cada socio
+// entra con la cuenta que le creó un empleado desde el sistema de gestión.
 
 val MIS_MARCAS = mutableListOf(
     MarcaPersonal(id = "m2", ejercicio = "Press banca", pesoKg = 82f, reps = 2, fecha = "20/08", timestamp = 1L, verificado = true),

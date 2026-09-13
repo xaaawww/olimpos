@@ -43,7 +43,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.SocioAuth
 import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.guardarObjetivoArena
 import com.olimpos.gym.ui.screens.ArenaScreen
@@ -51,7 +54,6 @@ import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
 import com.olimpos.gym.ui.screens.LoginScreen
-import com.olimpos.gym.ui.screens.OnboardingScreen
 import com.olimpos.gym.ui.screens.PerfilScreen
 import com.olimpos.gym.ui.screens.PlanoScreen
 import com.olimpos.gym.ui.theme.Olimpos
@@ -68,8 +70,8 @@ enum class Tab(val label: String, val icon: String) {
     PERFIL("Perfil", "👤")
 }
 
-/** Etapa general de la app: autenticación → onboarding → app principal */
-private enum class Etapa { LOGIN, ONBOARDING, APP }
+/** Etapa general de la app: autenticación → app principal */
+private enum class Etapa { LOGIN, APP }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,7 +100,9 @@ private val ANCHO_CONTENIDO_MAX = 480.dp
 
 @Composable
 fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
-    var etapa by remember { mutableStateOf(Etapa.LOGIN) }
+    // Si ya había una sesión de Firebase Auth activa (el socio no cerró
+    // sesión la última vez), se entra directo sin pasar por el login.
+    var etapa by remember { mutableStateOf(if (Firebase.auth.currentUser != null) Etapa.APP else Etapa.LOGIN) }
 
     Box(
         Modifier
@@ -108,19 +112,22 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
     ) {
         Box(Modifier.fillMaxHeight().widthIn(max = ANCHO_CONTENIDO_MAX)) {
             when (etapa) {
-                Etapa.LOGIN -> LoginScreen(
-                    onIngresar = { etapa = Etapa.APP },
-                    onRegistrarse = { etapa = Etapa.ONBOARDING }
+                Etapa.LOGIN -> LoginScreen(onIngresar = { etapa = Etapa.APP })
+                Etapa.APP -> OlimposAppPrincipal(
+                    themeMode = themeMode,
+                    onThemeMode = onThemeMode,
+                    onCerrarSesion = {
+                        SocioAuth.cerrarSesion()
+                        etapa = Etapa.LOGIN
+                    }
                 )
-                Etapa.ONBOARDING -> OnboardingScreen(onFinalizar = { etapa = Etapa.APP })
-                Etapa.APP -> OlimposAppPrincipal(themeMode, onThemeMode)
             }
         }
     }
 }
 
 @Composable
-private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
+private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit, onCerrarSesion: () -> Unit) {
     var tab by remember { mutableStateOf(Tab.INICIO) }
     // El plano vive fuera de la navegación principal: sector aparte
     var mostrarPlano by remember { mutableStateOf(false) }
@@ -166,7 +173,8 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
                     Tab.PERFIL -> PerfilScreen(
                         onAbrirPlano = { mostrarPlano = true },
                         themeMode = themeMode,
-                        onThemeMode = onThemeMode
+                        onThemeMode = onThemeMode,
+                        onCerrarSesion = onCerrarSesion
                     )
                 }
             }

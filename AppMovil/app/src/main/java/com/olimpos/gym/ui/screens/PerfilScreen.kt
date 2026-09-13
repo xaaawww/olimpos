@@ -31,13 +31,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.SocioAuth
 import com.olimpos.gym.ui.theme.Olimpos
 import com.olimpos.gym.ui.theme.ThemeMode
 
 private enum class PerfilVista { HOME, MEMBRESIA, ACCESO, LOCKERS, PROGRESO, CONFIGURACION }
 
 @Composable
-fun PerfilScreen(onAbrirPlano: () -> Unit, themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
+fun PerfilScreen(
+    onAbrirPlano: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeMode: (ThemeMode) -> Unit,
+    onCerrarSesion: () -> Unit
+) {
     var vista by remember { mutableStateOf(PerfilVista.HOME) }
 
     when (vista) {
@@ -47,7 +53,8 @@ fun PerfilScreen(onAbrirPlano: () -> Unit, themeMode: ThemeMode, onThemeMode: (T
             onAcceso = { vista = PerfilVista.ACCESO },
             onLockers = { vista = PerfilVista.LOCKERS },
             onProgreso = { vista = PerfilVista.PROGRESO },
-            onConfiguracion = { vista = PerfilVista.CONFIGURACION }
+            onConfiguracion = { vista = PerfilVista.CONFIGURACION },
+            onCerrarSesion = onCerrarSesion
         )
         PerfilVista.MEMBRESIA -> MembresiaScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.ACCESO -> AccesoScreen(onVolver = { vista = PerfilVista.HOME })
@@ -68,9 +75,11 @@ private fun PerfilHome(
     onAcceso: () -> Unit,
     onLockers: () -> Unit,
     onProgreso: () -> Unit,
-    onConfiguracion: () -> Unit
+    onConfiguracion: () -> Unit,
+    onCerrarSesion: () -> Unit
 ) {
     var aviso by remember { mutableStateOf<String?>(null) }
+    val nombre = SocioAuth.nombreActual ?: "Socio"
 
     Column(
         Modifier
@@ -88,9 +97,9 @@ private fun PerfilHome(
                     .clip(RoundedCornerShape(26.dp))
                     .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark))),
                 contentAlignment = Alignment.Center
-            ) { Text("A", fontSize = 27.sp, fontWeight = FontWeight.Black, color = Olimpos.Dark) }
+            ) { Text(nombre.take(1).uppercase(), fontSize = 27.sp, fontWeight = FontWeight.Black, color = Olimpos.Dark) }
             Spacer(Modifier.height(12.dp))
-            Text("Alex Rodríguez", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text(nombre, fontSize = 20.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
             Spacer(Modifier.height(8.dp))
             ChipOro("Ω  Socio Oro · Cuota al día")
         }
@@ -117,6 +126,7 @@ private fun PerfilHome(
         ItemMenu("🔔", "Notificaciones") { aviso = "Notificaciones activadas" }
         ItemMenu("⚙️", "Configuración") { onConfiguracion() }
         ItemMenu("ℹ️", "Acerca de OlimpΩs") { aviso = "OlimpΩs App · v1.0 · Proyecto Olimpos" }
+        ItemMenu("🚪", "Cerrar sesión") { onCerrarSesion() }
 
         aviso?.let {
             Spacer(Modifier.height(14.dp))

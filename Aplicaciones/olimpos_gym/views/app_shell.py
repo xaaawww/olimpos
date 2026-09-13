@@ -180,7 +180,7 @@ class AppShell:
     def _build_section(self, section_id: str) -> ft.Control:
         builders = {
             "dashboard":      lambda: build_dashboard(self.role, lambda s: self._navigate(s)),
-            "socios":         build_socios,
+            "socios":         lambda: build_socios(self.page),
             "personal":       build_personal,
             "asistencia":     build_asistencia,
             "rutinas":        build_rutinas,
