@@ -46,6 +46,7 @@ import com.olimpos.gym.data.EjercicioRutina
 import com.olimpos.gym.data.GHOST_MODE_EJEMPLO
 import com.olimpos.gym.data.RUTINA_HOY
 import com.olimpos.gym.data.RutinaDelDia
+import com.olimpos.gym.data.calcular1RM
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
 
@@ -340,14 +341,20 @@ private fun TarjetaGhostMode(pesos: List<Float>, rutina: RutinaDelDia) {
     val pesoHoy = if (indice >= 0) pesos[indice] else g.pesoActual
     val repsHoy = g.repsActual
 
-    val volumenAnterior = g.pesoAnterior * g.repsAnterior
-    val volumenHoy = pesoHoy * repsHoy
-    val diferenciaKg = pesoHoy - g.pesoAnterior
-    val supera = volumenHoy > volumenAnterior
+    // 1RM estimado (fórmula de Epley, la misma que usan Mis marcas y el
+    // Bodygraph) en vez de peso×reps: comparar por volumen bruto llevaba a
+    // mensajes contradictorios (10 reps con menos peso podía dar más
+    // volumen que la marca anterior aunque el 1RM siguiera siendo más
+    // bajo, y el texto mostraba "superaste" con una diferencia en
+    // kilos negativa). El 1RM sí es directamente comparable en kilos.
+    val rmAnterior = calcular1RM(g.pesoAnterior, g.repsAnterior)
+    val rmHoy = calcular1RM(pesoHoy, repsHoy)
+    val diferenciaKg = rmHoy - rmAnterior
+    val supera = diferenciaKg > 0
 
     // Misma escala para las dos barras (con un 15% de margen arriba del
-    // mayor volumen) para que el largo de cada una sea comparable a ojo.
-    val escala = maxOf(volumenAnterior, volumenHoy) * 1.15f
+    // mayor 1RM) para que el largo de cada una sea comparable a ojo.
+    val escala = maxOf(rmAnterior, rmHoy) * 1.15f
 
     TarjetaOro(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -361,7 +368,7 @@ private fun TarjetaGhostMode(pesos: List<Float>, rutina: RutinaDelDia) {
         Text("Última marca validada", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
         Spacer(Modifier.height(4.dp))
         BarraProgreso(
-            fraccion = volumenAnterior / escala, alto = 10, divisiones = 5,
+            fraccion = rmAnterior / escala, alto = 10, divisiones = 5,
             colores = listOf(Olimpos.Muted.copy(alpha = 0.55f), Olimpos.Muted, Olimpos.GrayLight)
         )
         Text(
@@ -371,7 +378,7 @@ private fun TarjetaGhostMode(pesos: List<Float>, rutina: RutinaDelDia) {
         Spacer(Modifier.height(10.dp))
         Text("Hoy", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
         Spacer(Modifier.height(4.dp))
-        BarraProgreso(fraccion = volumenHoy / escala, alto = 10, divisiones = 5)
+        BarraProgreso(fraccion = rmHoy / escala, alto = 10, divisiones = 5)
         Text(
             "${formatoKg(pesoHoy)}kg × $repsHoy", fontSize = 11.5.sp,
             fontWeight = FontWeight.Bold, color = Olimpos.GoldLight, modifier = Modifier.padding(top = 3.dp)
