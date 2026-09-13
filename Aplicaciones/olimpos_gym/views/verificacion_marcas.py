@@ -22,8 +22,10 @@ class VerificacionMarcasView:
         self.error_carga = None
         try:
             self.marcas = repo.cargar_marcas()
+            self.datos_fisicos = repo.datos_fisicos_de_todos()
         except Exception as ex:
             self.marcas = []
+            self.datos_fisicos = {}
             self.error_carga = str(ex)
         self.tab = "pendientes"
         self.root = ft.Column(spacing=16, expand=True)
@@ -84,7 +86,8 @@ class VerificacionMarcasView:
         return ft.Column([self._tarjeta_marca(m) for m in pendientes], spacing=10)
 
     def _tarjeta_marca(self, m: dict) -> ft.Container:
-        rm = repo.calcular_1rm(repo.carga_total(m), m.get("repeticiones", 0))
+        peso_corporal = self.datos_fisicos.get(m.get("socio_id"), {}).get("peso_kg", repo.PESO_CORPORAL_REFERENCIA)
+        rm = repo.calcular_1rm(repo.carga_total(m, peso_corporal), m.get("repeticiones", 0))
         return section_card(
             ft.Row([
                 ft.Column([
@@ -119,7 +122,7 @@ class VerificacionMarcasView:
 
     # ══════════════════════════ RANKING ══════════════════════════
     def _vista_ranking(self) -> ft.Column:
-        resumen = repo.resumen_por_socio(self.marcas)
+        resumen = repo.resumen_por_socio(self.marcas, self.datos_fisicos)
         if not resumen:
             return ft.Column([section_card(ft.Column([
                 ft.Text("📭", size=34),
