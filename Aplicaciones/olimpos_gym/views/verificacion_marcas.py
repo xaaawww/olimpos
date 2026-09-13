@@ -226,7 +226,7 @@ class VerificacionMarcasView:
             return (query in s["nombre"].lower() or query in uid.lower()
                     or query in email.lower() or query in dni.lower())
 
-        def _refrescar_resultados():
+        def _refrescar_resultados(actualizar_en_vivo: bool):
             query = self.busqueda_rango.strip().lower()
             filtrados = [s for s in todos if _coincide(s, query)] if query else todos
             if not filtrados:
@@ -239,14 +239,19 @@ class VerificacionMarcasView:
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)]
             else:
                 resultados_col.controls = [self._fila_miembro_rango(i + 1, s) for i, s in enumerate(filtrados)]
-            if self._montado:
+            # En la construcción inicial resultados_col todavía no está
+            # agregado a la página (recién se agrega cuando _render() termina
+            # y hace self.root.update()) — llamar a su .update() acá tira
+            # "Control must be added to the page first". Solo se actualiza a
+            # sí mismo en vivo, desde el on_change del campo de búsqueda.
+            if actualizar_en_vivo:
                 resultados_col.update()
 
         def _on_buscar(e):
             self.busqueda_rango = e.control.value or ""
-            _refrescar_resultados()
+            _refrescar_resultados(actualizar_en_vivo=True)
 
-        _refrescar_resultados()
+        _refrescar_resultados(actualizar_en_vivo=False)
 
         encabezado = ft.Row([
             ft.Container(
