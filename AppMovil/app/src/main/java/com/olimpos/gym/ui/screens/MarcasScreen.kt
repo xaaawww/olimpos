@@ -39,9 +39,11 @@ import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.EJERCICIOS_FUERZA
 import com.olimpos.gym.data.EjercicioFuerza
 import com.olimpos.gym.data.MarcaPersonal
+import com.olimpos.gym.data.cargaEfectivaDeMarca
 import com.olimpos.gym.data.calcular1RM
 import com.olimpos.gym.data.cargarMarcasDesdeFirebase
 import com.olimpos.gym.data.eliminarMarcaEnFirebase
+import com.olimpos.gym.data.esEjercicioPesoCorporal
 import com.olimpos.gym.data.fechaLegible
 import com.olimpos.gym.data.guardarMarcaEnFirebase
 import com.olimpos.gym.ui.theme.Olimpos
@@ -59,6 +61,7 @@ fun MarcasScreen(onVolver: () -> Unit) {
     var ejercicioViendo by remember { mutableStateOf<String?>(null) }
     var marcaAEliminar by remember { mutableStateOf<MarcaPersonal?>(null) }
     val scope = rememberCoroutineScope()
+    val pesoCorporalKg = DatosRemotos.datosFisicosPropios?.pesoKg ?: 80f
 
     LaunchedEffect(Unit) {
         cargarMarcasDesdeFirebase()?.let { marcas = it }
@@ -82,6 +85,7 @@ fun MarcasScreen(onVolver: () -> Unit) {
             MarcasDeEjercicioScreen(
                 ejercicio = ejercicioActivo,
                 marcas = marcas.filter { it.ejercicio == ejercicioActivo }.sortedByDescending { it.timestamp },
+                pesoCorporalKg = pesoCorporalKg,
                 onVolver = { ejercicioViendo = null },
                 onEliminar = { marcaAEliminar = it }
             )
@@ -107,12 +111,27 @@ fun MarcasScreen(onVolver: () -> Unit) {
                                 ChipSeleccionable("${ej.emoji} ${ej.nombre}", ejercicio == ej.nombre) { ejercicio = ej.nombre }
                             }
                         }
+                        val esPesoCorporal = esEjercicioPesoCorporal(ejercicio)
                         Spacer(Modifier.height(14.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            CampoOro(peso, { peso = it }, "Peso (kg)", Modifier.weight(1f), teclado = KeyboardType.Number)
+                            CampoOro(
+                                peso, { peso = it },
+                                if (esPesoCorporal) "Peso agregado (kg, opcional)" else "Peso (kg)",
+                                Modifier.weight(1f), teclado = KeyboardType.Number
+                            )
                             CampoOro(reps, { reps = it }, "Repeticiones", Modifier.weight(1f), teclado = KeyboardType.Number)
                         }
-                        val pesoF = peso.toFloatOrNull()
+                        if (esPesoCorporal) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "En este ejercicio cuenta tu propio peso corporal — dejá el peso vacío si no sumaste lastre extra.",
+                                fontSize = 11.sp, color = Olimpos.Muted
+                            )
+                        }
+                        // En peso corporal, un campo vacío es "sin lastre extra" (0kg
+                        // agregados), no un dato faltante — por eso el peso pasa a ser
+                        // opcional únicamente para estos ejercicios.
+                        val pesoF = if (esPesoCorporal) (peso.toFloatOrNull() ?: 0f) else peso.toFloatOrNull()
                         val repsI = reps.toIntOrNull()
                         val anomalia = pesoF != null && pesoF > 150f
                         if (anomalia) {
@@ -239,9 +258,11 @@ private fun TarjetaEjercicioMarcas(ejercicio: EjercicioFuerza, cantidad: Int, mo
 private fun MarcasDeEjercicioScreen(
     ejercicio: String,
     marcas: List<MarcaPersonal>,
+    pesoCorporalKg: Float,
     onVolver: () -> Unit,
     onEliminar: (MarcaPersonal) -> Unit
 ) {
+    val esPesoCorporal = esEjercicioPesoCorporal(ejercicio)
     Column(Modifier.fillMaxSize()) {
         EncabezadoVolver(ejercicio, "${marcas.size} marca${if (marcas.size == 1) "" else "s"} registrada${if (marcas.size == 1) "" else "s"}", onVolver)
         Column(
@@ -269,8 +290,16 @@ private fun MarcasDeEjercicioScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("${m.pesoKg.toInt()}kg × ${m.reps}", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
-                            Text("${m.fecha} · 1RM est. ${"%.0f".format(calcular1RM(m.pesoKg, m.reps))}kg", fontSize = 11.5.sp, color = Olimpos.Muted)
+                            Text(
+                                if (esPesoCorporal) {
+                                    if (m.pesoKg > 0f) "Peso corporal +${m.pesoKg.toInt()}kg × ${m.reps}" else "Peso corporal × ${m.reps}"
+                                } else "${m.pesoKg.toInt()}kg × ${m.reps}",
+                                fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream
+                            )
+                            Text(
+                                "${m.fecha} · 1RM est. ${"%.0f".format(calcular1RM(cargaEfectivaDeMarca(m, pesoCorporalKg), m.reps))}kg",
+                                fontSize = 11.5.sp, color = Olimpos.Muted
+                            )
                         }
                         ChipOro(if (m.verificado) "Verificada ✓" else "Pendiente")
                         Spacer(Modifier.width(8.dp))
@@ -308,8 +337,11 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
         ) {
             Text("¿Eliminar esta marca?", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
             Spacer(Modifier.height(8.dp))
+            val pesoTexto = if (esEjercicioPesoCorporal(marca.ejercicio)) {
+                if (marca.pesoKg > 0f) "peso corporal +${marca.pesoKg.toInt()}kg" else "peso corporal"
+            } else "${marca.pesoKg.toInt()}kg"
             Text(
-                "${marca.ejercicio} · ${marca.pesoKg.toInt()}kg × ${marca.reps} (${marca.fecha}). Si era tu única marca de este ejercicio, tu rango general puede bajar.",
+                "${marca.ejercicio} · $pesoTexto × ${marca.reps} (${marca.fecha}). Si era tu única marca de este ejercicio, tu rango general puede bajar.",
                 fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             Spacer(Modifier.height(18.dp))

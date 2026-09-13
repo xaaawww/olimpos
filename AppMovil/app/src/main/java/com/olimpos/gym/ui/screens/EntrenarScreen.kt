@@ -46,7 +46,6 @@ import com.olimpos.gym.data.DETALLES_EJERCICIOS
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.DetalleEjercicio
 import com.olimpos.gym.data.EjercicioRutina
-import com.olimpos.gym.data.RUTINA_HOY
 import com.olimpos.gym.data.SerieEntrenamiento
 import com.olimpos.gym.data.SerieHecha
 import com.olimpos.gym.data.ghostModeDeEjercicio
@@ -80,8 +79,12 @@ fun EntrenarScreen() {
         return
     }
 
-    val rutina = RUTINA_HOY
     val scope = rememberCoroutineScope()
+    val rutina = DatosRemotos.rutinaAsignada
+    if (rutina == null) {
+        SinRutinaAsignada(onActualizar = { scope.launch { DatosRemotos.recargarRutinaAsignada() } })
+        return
+    }
 
     // Peso y reps de trabajo actual por ejercicio (ajustables) y las series
     // ya registradas (con el peso/reps que tenían en el momento de
@@ -183,6 +186,61 @@ fun EntrenarScreen() {
                 Column(Modifier.weight(1f)) {
                     Text("Contactar y reservar sesión", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
                     Text("Pedí una rutina nueva o una sesión 1 a 1", fontSize = 12.sp, color = Olimpos.Muted)
+                }
+                Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            }
+        }
+    }
+}
+
+/** Estado vacío de Entrenar: todavía ningún entrenador armó una rutina real
+ *  para este socio (antes acá se mostraba siempre la misma rutina fija,
+ *  "Empuje pesado", para cualquiera que abriera la app — ver
+ *  cargarRutinaAsignada). */
+@Composable
+private fun SinRutinaAsignada(onActualizar: () -> Unit) {
+    var mostrarEntrenador by remember { mutableStateOf(false) }
+    if (mostrarEntrenador) {
+        EntrenadorScreen(onVolver = { mostrarEntrenador = false })
+        return
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp)
+            .padding(top = 14.dp, bottom = 26.dp)
+    ) {
+        Eyebrow("Entrenar")
+        Spacer(Modifier.height(30.dp))
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("🏋️", fontSize = 44.sp)
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "Todavía no tenés una rutina asignada", fontSize = 17.sp, fontWeight = FontWeight.Black,
+                color = Olimpos.Cream, textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Pedile a tu entrenador que te arme una desde el sistema del gimnasio — en cuanto la guarde, la vas a ver acá.",
+                fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center, lineHeight = 17.sp
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+        BotonSecundario("🔄 Ya me la asignaron, actualizar") { onActualizar() }
+        Spacer(Modifier.height(20.dp))
+        TarjetaOro(
+            Modifier
+                .fillMaxWidth()
+                .clickable { mostrarEntrenador = true }
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconoCuadrado("🧑‍🏫")
+                Spacer(Modifier.width(13.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Contactar y reservar sesión", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                    Text("Pedí tu rutina o una sesión 1 a 1", fontSize = 12.sp, color = Olimpos.Muted)
                 }
                 Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
             }

@@ -53,7 +53,6 @@ import com.olimpos.gym.R
 import com.olimpos.gym.data.CLASES_SEMANA
 import com.olimpos.gym.data.ClaseSemana
 import com.olimpos.gym.data.DatosRemotos
-import com.olimpos.gym.data.RUTINA_HOY
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
 import com.olimpos.gym.data.kgMovidosEsteMes
@@ -136,7 +135,11 @@ fun HomeScreen(
         // ── Accesos rápidos ──
         SeccionLabel("Accesos rápidos")
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            AccesoRapido("🏋️", "Mi rutina", "${RUTINA_HOY.ejercicios.size} ejercicios hoy", Modifier.weight(1f), onIrEntrenar)
+            AccesoRapido(
+                "🏋️", "Mi rutina",
+                DatosRemotos.rutinaAsignada?.let { "${it.ejercicios.size} ejercicios hoy" } ?: "Todavía sin asignar",
+                Modifier.weight(1f), onIrEntrenar
+            )
             AccesoRapido("🥗", "Plato saludable", "Explorá tu dieta", Modifier.weight(1f), onIrDieta)
         }
         Spacer(Modifier.height(12.dp))

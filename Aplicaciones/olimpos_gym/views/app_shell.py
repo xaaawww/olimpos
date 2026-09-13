@@ -12,6 +12,7 @@ from views.personal import (build_personal, build_asistencia, build_rutinas, bui
                              build_camaras, build_stock, build_configuracion, build_mi_perfil)
 from views.editor_dietas import build_editor_dietas
 from views.editor_ejercicios import build_editor_ejercicios
+from views.editor_rutinas import build_editor_rutinas
 from views.verificacion_marcas import build_verificacion_marcas
 
 
@@ -183,7 +184,7 @@ class AppShell:
             "socios":         lambda: build_socios(self.page),
             "personal":       build_personal,
             "asistencia":     build_asistencia,
-            "rutinas":        build_rutinas,
+            "rutinas":        lambda: build_editor_rutinas(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
             "mi-rutina":      build_rutinas,
             "dietas":         build_dietas,
             "editor-dietas":  lambda: build_editor_dietas(self.page),

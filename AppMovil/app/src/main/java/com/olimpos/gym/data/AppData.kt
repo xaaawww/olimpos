@@ -187,12 +187,13 @@ val CLASES_SEMANA = listOf(
     )
 )
 
-/* ═══ Rutina de ejemplo para la pestaña Entrenar ═══
+/* ═══ Rutina asignada por un entrenador, para la pestaña Entrenar ═══
    Serie a serie, con un peso de partida ajustable (ver botones +/- en la
    tarjeta): el socio registra cada serie a medida que la hace, y esa carga
-   es la que se compara contra el Ghost Mode. Series/reps/descanso de cada
-   ejercicio siguen viviendo en DETALLES_EJERCICIOS (SocioData.kt) — no se
-   duplican acá para no tener dos fuentes de verdad. */
+   es la que se compara contra el Ghost Mode. La rutina real de cada socio
+   se arma desde el sistema de empleados y se lee vía
+   cargarRutinaAsignada() (EntrenamientoRepository.kt) — acá solo viven las
+   formas de los datos, no un ejemplo fijo. */
 data class EjercicioRutina(
     val nombre: String,
     val seriesObjetivo: Int,
@@ -203,16 +204,3 @@ data class EjercicioRutina(
 )
 
 data class RutinaDelDia(val nombre: String, val creadaPor: String, val ejercicios: List<EjercicioRutina>)
-
-val RUTINA_HOY = RutinaDelDia(
-    nombre = "Empuje pesado",
-    creadaPor = "Diego A. — entrenador",
-    ejercicios = listOf(
-        EjercicioRutina("Press de banca", seriesObjetivo = 4, pesoBaseKg = 60f),
-        EjercicioRutina("Remo con barra", seriesObjetivo = 4, pesoBaseKg = 45f),
-        EjercicioRutina("Press militar", seriesObjetivo = 3, pesoBaseKg = 30f),
-        EjercicioRutina("Dominadas asistidas", seriesObjetivo = 3, pesoBaseKg = 0f, esPesoCorporal = true),
-        EjercicioRutina("Curl de bíceps", seriesObjetivo = 3, pesoBaseKg = 12f),
-        EjercicioRutina("Fondos en paralelas", seriesObjetivo = 3, pesoBaseKg = 10f, esPesoCorporal = true)
-    )
-)

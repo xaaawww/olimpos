@@ -257,8 +257,19 @@ val CONTRIBUCION_MUSCULAR: Map<String, Map<ZonaMuscular, Float>> = mapOf(
  *  puro) puntuaría como si no se hubiese entrenado nada. */
 private val EJERCICIOS_PESO_CORPORAL = setOf("Dominadas", "Flexiones")
 
+/** Para la Calculadora/Mis marcas: en estos ejercicios el peso no hace
+ *  falta (se puede registrar solo con reps) porque la carga real es el
+ *  propio cuerpo — el campo "Peso (kg)" pasa a ser el agregado opcional
+ *  (lastre, chaleco), no la carga total. */
+fun esEjercicioPesoCorporal(ejercicio: String): Boolean = ejercicio in EJERCICIOS_PESO_CORPORAL
+
 private fun cargaTotal(marca: MarcaPersonal, pesoCorporalKg: Float): Float =
     if (marca.ejercicio in EJERCICIOS_PESO_CORPORAL) pesoCorporalKg + marca.pesoKg else marca.pesoKg
+
+/** Versión pública de [cargaTotal] — para mostrar el 1RM real (con el peso
+ *  corporal ya sumado) en el historial de Mis marcas, en vez del peso
+ *  agregado solo, que en dominadas/flexiones sin lastre queda en 0. */
+fun cargaEfectivaDeMarca(marca: MarcaPersonal, pesoCorporalKg: Float): Float = cargaTotal(marca, pesoCorporalKg)
 
 /* ── Calibración de rangos contra tablas de fuerza reales ──
    Cada ejercicio tiene su propio "piso" (ratio carga/peso-corporal de un

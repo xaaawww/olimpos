@@ -71,3 +71,31 @@ suspend fun cargarSeriesDesdeFirebase(): List<SerieEntrenamiento>? {
         null
     }
 }
+
+/** Rutina real asignada por un entrenador/dueño desde el sistema de
+ *  empleados (colección "rutinas_asignadas", un documento por socio — ver
+ *  rutinas_repo.py). Antes "Entrenar" mostraba siempre la misma rutina fija
+ *  para cualquier socio; ahora cada uno lee la propia. `null` = todavía no
+ *  le asignaron ninguna (o Firebase falló) — la pantalla debe mostrar un
+ *  estado vacío, no una rutina inventada. */
+suspend fun cargarRutinaAsignada(): RutinaDelDia? {
+    return try {
+        val doc = Firebase.firestore.collection("rutinas_asignadas").document(socioActualId()).get().await()
+        if (!doc.exists()) return null
+        val nombre = doc.getString("nombre") ?: return null
+        val creadaPor = doc.getString("creada_por") ?: ""
+        @Suppress("UNCHECKED_CAST")
+        val ejerciciosRaw = doc.get("ejercicios") as? List<Map<String, Any>> ?: emptyList()
+        val ejercicios = ejerciciosRaw.mapNotNull { m ->
+            val nombreEj = m["nombre"] as? String ?: return@mapNotNull null
+            val series = (m["series_objetivo"] as? Long)?.toInt() ?: (m["series_objetivo"] as? Double)?.toInt() ?: 3
+            val peso = (m["peso_base_kg"] as? Double)?.toFloat() ?: (m["peso_base_kg"] as? Long)?.toFloat() ?: 0f
+            val esPesoCorporal = m["es_peso_corporal"] as? Boolean ?: false
+            EjercicioRutina(nombreEj, series, peso, esPesoCorporal)
+        }
+        if (ejercicios.isEmpty()) return null
+        RutinaDelDia(nombre, creadaPor, ejercicios)
+    } catch (e: Exception) {
+        null
+    }
+}

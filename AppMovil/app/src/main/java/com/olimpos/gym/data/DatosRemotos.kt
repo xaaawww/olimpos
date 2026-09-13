@@ -26,6 +26,11 @@ object DatosRemotos {
     var rangosSocios by mutableStateOf<List<SocioRango>?>(null); private set
     var datosFisicosPropios by mutableStateOf<DatosFisicos?>(null); private set
     var seriesEntrenamiento by mutableStateOf<List<SerieEntrenamiento>?>(null); private set
+    /** `null` = todavía no se sabe (recién arrancando) O ya se sabe que no
+     *  hay ninguna asignada — misma ambigüedad que [datosFisicosPropios],
+     *  aceptable porque [precargar] ya corrió antes de que el socio llegue
+     *  a abrir Entrenar (ver MainActivity). */
+    var rutinaAsignada by mutableStateOf<RutinaDelDia?>(null); private set
 
     private var yaPrecargado = false
 
@@ -39,6 +44,7 @@ object DatosRemotos {
             launch { datosFisicosPropios = cargarDatosFisicosPropios() }
             launch { rangosSocios = cargarRangosDeSocios() }
             launch { seriesEntrenamiento = cargarSeriesDesdeFirebase() }
+            launch { rutinaAsignada = cargarRutinaAsignada() }
         }
     }
 
@@ -46,6 +52,12 @@ object DatosRemotos {
      *  "kg movidos este mes" y el Ghost Mode no se queden con la foto vieja. */
     suspend fun recargarSeriesEntrenamiento() {
         seriesEntrenamiento = cargarSeriesDesdeFirebase()
+    }
+
+    /** Botón manual en Entrenar, por si el entrenador asignó o cambió la
+     *  rutina mientras el socio ya tenía la app abierta. */
+    suspend fun recargarRutinaAsignada() {
+        rutinaAsignada = cargarRutinaAsignada()
     }
 
     /** Se llama después de cargar una marca nueva (ver [MarcasScreen]), para

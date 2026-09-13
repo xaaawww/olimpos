@@ -71,6 +71,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Rutinas asignadas: la arma un entrenador/dueño desde el sistema de
+    // empleados (Admin SDK, no pasa por estas reglas — ver rutinas_repo.py),
+    // un documento por socio (id = su uid). El socio solo la lee, nunca la
+    // escribe desde la app móvil.
+    match /rutinas_asignadas/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;
