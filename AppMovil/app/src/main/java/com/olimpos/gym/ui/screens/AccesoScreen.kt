@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +27,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.olimpos.gym.data.HISTORIAL_ACCESOS
+import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.fechaLegible
+import com.olimpos.gym.data.registrarIngresoEnFirebase
+import com.olimpos.gym.data.yaIngresoHoy
 import com.olimpos.gym.ui.theme.Olimpos
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccesoScreen(onVolver: () -> Unit) {
@@ -35,6 +40,9 @@ fun AccesoScreen(onVolver: () -> Unit) {
     var biometricoActivo by remember { mutableStateOf(false) }
     var relojVinculado by remember { mutableStateOf(false) }
     var aviso by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val ingresos = DatosRemotos.ingresos ?: emptyList()
+    val yaMarcado = yaIngresoHoy(ingresos)
 
     Column(
         Modifier
@@ -50,6 +58,29 @@ fun AccesoScreen(onVolver: () -> Unit) {
                 BarraProgreso(0.58f)
                 Spacer(Modifier.height(6.dp))
                 Text("70 de 120 personas en el club", fontSize = 11.5.sp, color = Olimpos.Muted)
+            }
+
+            SeccionLabel("Marcar ingreso")
+            TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                Text(
+                    if (yaMarcado) "Ya marcaste tu ingreso de hoy ✓" else "¿Llegaste al club? Marcalo acá.",
+                    fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Todavía no hay lector conectado a la app — este botón es tu propio registro de asistencia, la base de tu racha y tus visitas del mes.",
+                    fontSize = 11.sp, color = Olimpos.Muted
+                )
+                Spacer(Modifier.height(12.dp))
+                BotonPrincipal(
+                    if (yaMarcado) "Ingreso de hoy ya registrado" else "✅ Marcar mi ingreso de hoy",
+                    habilitado = !yaMarcado
+                ) {
+                    scope.launch {
+                        registrarIngresoEnFirebase()
+                        DatosRemotos.recargarIngresos()
+                    }
+                }
             }
 
             SeccionLabel("Métodos de acceso")
@@ -79,11 +110,11 @@ fun AccesoScreen(onVolver: () -> Unit) {
                 }
             }
 
-            SeccionLabel("Historial de accesos")
-            if (HISTORIAL_ACCESOS.isEmpty()) {
+            SeccionLabel("Historial de ingresos")
+            if (ingresos.isEmpty()) {
                 Text("Todavía no hay ingresos registrados.", fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 12.dp))
             }
-            HISTORIAL_ACCESOS.forEach { e ->
+            ingresos.sortedDescending().forEach { timestamp ->
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -94,8 +125,8 @@ fun AccesoScreen(onVolver: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("${e.fecha} · ${e.hora}", fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Olimpos.Cream)
-                        Text("${e.tipo} · ${e.resultado}", fontSize = 11.sp, color = Olimpos.Muted)
+                        Text(fechaLegible(timestamp), fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Olimpos.Cream)
+                        Text("Ingreso registrado", fontSize = 11.sp, color = Olimpos.Muted)
                     }
                 }
             }

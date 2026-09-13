@@ -464,11 +464,13 @@ data class Logro(
     val secreto: Boolean = false
 )
 
-// Todos arrancan en 0f/false a propósito: hoy ninguno se calcula contra
-// una métrica real (rachas, conteo de marcas verificadas, visitas al
-// Bodygraph, etc. — nada de eso se registra todavía en Firestore), así
-// que mostrarlos parcialmente desbloqueados sería mostrar un progreso
-// inventado. Falta construir el seguimiento real detrás de cada uno.
+// Los 53 arrancan en 0f/false acá porque esto es solo la DEFINICIÓN (emoji,
+// nombre, descripción) — el progreso/desbloqueo real de cada socio lo
+// calcula calcularLogros() a partir de sus propios datos (marcas, series,
+// ingresos, rangos musculares). Los que todavía no tienen una fuente de
+// datos real detrás (fotos de progreso, objetivos, nutrición, reservas de
+// lockers/máquinas, red de amigos, navegación por la app) se quedan en
+// 0f/false ahí también — ver el comentario en calcularLogros.
 
 val LOGROS = listOf(
     // ── Constancia y racha ──
@@ -499,7 +501,7 @@ val LOGROS = listOf(
     Logro("🦵", "Piernas de Titán", "Cuádriceps en rango Titán o superior", 0f, false),
     Logro("🔺", "Espalda de Coloso", "Dorsales en rango Coloso o superior", 0f, false),
     Logro("🫀", "Pecho Olímpico", "Pecho en rango Olímpico", 0f, false),
-    Logro("⚖️", "Cuerpo equilibrado", "Los 14 músculos en rango Hoplita o superior", 0f, false),
+    Logro("⚖️", "Cuerpo equilibrado", "Las 19 zonas musculares en rango Hoplita o superior", 0f, false),
     Logro("👁️", "Ojo en el progreso", "Revisá tu Bodygraph 20 veces", 0f, false),
     // ── Exploración de la app ──
     Logro("🧭", "Explorador", "Visitá las 6 secciones de la Arena", 0f, false),
@@ -531,9 +533,200 @@ val LOGROS = listOf(
     Logro("🎓", "Graduado", "Completá el onboarding completo de OlimpΩs", 0f, false),
     // ── Secretos: no aparecen en la grilla hasta desbloquearse ──
     Logro("🦉", "El ojo de Atenea", "Entrená pasada la medianoche 5 veces", 0f, false, secreto = true),
-    Logro("🌟", "Ascensión completa", "Los 14 músculos alcanzaron rango Dios", 0f, false, secreto = true),
+    Logro("🌟", "Ascensión completa", "Las 19 zonas musculares alcanzaron rango Dios", 0f, false, secreto = true),
     Logro("🗿", "Corazón de Esparta", "Cargá una marca en los 5 ejercicios de la Calculadora el mismo día", 0f, false, secreto = true)
 )
+
+/** Todo lo que hace falta para calcular los logros de un socio — cada
+ *  campo sale de una fuente ya real (Firestore), nada inventado. */
+data class ContextoLogros(
+    val socioId: String,
+    val marcas: List<MarcaPersonal>,
+    val series: List<SerieEntrenamiento>,
+    val ingresos: List<Long>,
+    val pesoCorporalKg: Float,
+    val sexo: SexoBiologico?,
+    val rangosSocios: List<SocioRango>,
+    val onboardingCompleto: Boolean
+)
+
+private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
+
+/** Día de la semana de un "día-epoch" (0=domingo..6=sábado) — el 1/1/1970
+ *  (día-epoch 0) fue jueves, de ahí el +4. Aproximado a UTC, no al huso
+ *  horario local: suficiente para un logro, no para nada que dependa de
+ *  precisión al minuto. */
+private fun diaSemana(diaEpoch: Long): Int = ((diaEpoch + 4) % 7).toInt()
+
+private fun horaLocal(timestampMs: Long): Int =
+    java.util.Calendar.getInstance().apply { timeInMillis = timestampMs }.get(java.util.Calendar.HOUR_OF_DAY)
+
+/** Racha consecutiva más larga entre los días (en "día-epoch") dados —
+ *  se usa la más larga de toda la historia, no la actual: un logro de
+ *  racha ya ganado no debería "perderse" si después se corta la racha. */
+private fun rachaMasLarga(dias: Set<Long>): Int {
+    if (dias.isEmpty()) return 0
+    var mejor = 0
+    dias.forEach { dia ->
+        if (dia - 1 !in dias) {
+            var largo = 1
+            var actual = dia
+            while (actual + 1 in dias) { actual++; largo++ }
+            if (largo > mejor) mejor = largo
+        }
+    }
+    return mejor
+}
+
+/** Racha ACTUAL de días seguidos yendo al gimnasio, contando desde hoy (o
+ *  desde ayer, si todavía no marcaste el ingreso de hoy — un día de
+ *  gracia para no cortar la racha por no haber abierto la app todavía).
+ *  A diferencia de [rachaMasLarga] (que se usa para los logros y nunca
+ *  "retrocede"), esta es la que se muestra en Perfil y sí baja a 0 si se
+ *  corta. */
+fun rachaActualDeDias(ingresos: List<Long>): Int {
+    val dias = ingresos.map(::diaEpoch).toSet()
+    if (dias.isEmpty()) return 0
+    val hoy = System.currentTimeMillis() / 86_400_000L
+    var cursor = when {
+        hoy in dias -> hoy
+        (hoy - 1) in dias -> hoy - 1
+        else -> return 0
+    }
+    var racha = 0
+    while (cursor in dias) { racha++; cursor-- }
+    return racha
+}
+
+/** Cuántos días distintos hubo al menos un ingreso en el mes calendario
+ *  actual — para "Visitas mes" en Perfil y "Constancia de hierro". */
+fun visitasEnElMesActual(ingresos: List<Long>): Int {
+    val hoyCal = java.util.Calendar.getInstance()
+    return ingresos.map(::diaEpoch).toSet().count { dia ->
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = dia * 86_400_000L }
+        cal.get(java.util.Calendar.MONTH) == hoyCal.get(java.util.Calendar.MONTH) &&
+            cal.get(java.util.Calendar.YEAR) == hoyCal.get(java.util.Calendar.YEAR)
+    }
+}
+
+private fun mejorMesKg(marcas: List<MarcaPersonal>, series: List<SerieEntrenamiento>, pesoCorporalKg: Float): Float {
+    val porMes = mutableMapOf<Pair<Int, Int>, Float>()
+    fun sumar(timestamp: Long, kg: Float) {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+        val clave = cal.get(java.util.Calendar.YEAR) to cal.get(java.util.Calendar.MONTH)
+        porMes[clave] = (porMes[clave] ?: 0f) + kg
+    }
+    marcas.forEach { sumar(it.timestamp, cargaTotal(it, pesoCorporalKg) * it.reps) }
+    series.forEach { sumar(it.timestamp, (if (it.esPesoCorporal) pesoCorporalKg + it.pesoKg else it.pesoKg) * it.reps) }
+    return porMes.values.maxOrNull() ?: 0f
+}
+
+/** Posición (1 = primero) en la Escalera del Olimpo completa, ordenando
+ *  por rango+nivel y de ahí por kg totales — `null` si el socio no
+ *  aparece en la lista compartida (por ejemplo, si se ocultó de la
+ *  Clasificación). */
+private fun posicionEnRanking(socioId: String, rangosSocios: List<SocioRango>): Int? {
+    val orden = rangosSocios.sortedWith(
+        compareByDescending<SocioRango> { it.nivel.rango.ordinal }
+            .thenByDescending { it.nivel.nivel }
+            .thenByDescending { it.kgTotales }
+    )
+    val indice = orden.indexOfFirst { it.socioId == socioId }
+    return if (indice >= 0) indice + 1 else null
+}
+
+/** Calcula el progreso/desbloqueo real de cada logro a partir de los datos
+ *  del socio. Los que no tienen todavía una fuente de datos real detrás
+ *  (fotos de progreso, objetivos de la Arena, cumplimiento nutricional,
+ *  reservas de lockers/máquinas, red de amigos, feriados, navegación por
+ *  la app, conteo de visitas al Bodygraph, o el método exacto de acceso
+ *  QR/biométrico) se dejan tal cual vienen en [LOGROS] — 0%, bloqueados —
+ *  en vez de inventar un progreso. */
+fun calcularLogros(ctx: ContextoLogros): List<Logro> {
+    val diasIngreso = ctx.ingresos.map(::diaEpoch).toSet()
+    val racha = rachaMasLarga(diasIngreso)
+    val visitasEsteMes = visitasEnElMesActual(ctx.ingresos)
+    val finDeSemanaCompleto = diasIngreso.any { dia -> diaSemana(dia) == 6 && (dia + 1) in diasIngreso }
+    val dosVecesElMismoDia = ctx.series.groupBy { diaEpoch(it.timestamp) }
+        .any { (_, ss) -> ss.size >= 2 && (ss.maxOf { it.timestamp } - ss.minOf { it.timestamp }) >= 4 * 60 * 60 * 1000L }
+    val pausaLargaYVolvio = diasIngreso.sorted().zipWithNext().any { (a, b) -> b - a >= 30 }
+
+    fun vigente(ejercicio: String) = ctx.marcas.filter { it.ejercicio == ejercicio }.maxByOrNull { it.timestamp }
+
+    val resumen = resumenMuscular(ctx.marcas, ctx.pesoCorporalKg, ctx.sexo)
+    val nivelesPorZona = ZonaMuscular.entries.associateWith { z -> resumen.puntajes[z]?.let(::nivelDesdePuntaje) }
+    fun rangoDe(z: ZonaMuscular) = nivelesPorZona[z]?.rango
+    fun alMenos(z: ZonaMuscular, minimo: RangoMuscular) = (rangoDe(z)?.ordinal ?: -1) >= minimo.ordinal
+
+    val posicion = posicionEnRanking(ctx.socioId, ctx.rangosSocios)
+
+    val marcasPorDia = ctx.marcas.groupBy { diaEpoch(it.timestamp) }
+    val diasCorazonEsparta = marcasPorDia.any { (_, ms) -> ms.map { it.ejercicio }.distinct().size >= 5 }
+
+    val diasMadrugonExtremo = ctx.series.filter { horaLocal(it.timestamp) in 0..4 }
+        .map { diaEpoch(it.timestamp) }.distinct().size
+
+    val resultados = mutableMapOf<String, Pair<Float, Boolean>>()
+    resultados["Racha de fuego"] = (racha / 7f).coerceIn(0f, 1f) to (racha >= 7)
+    resultados["Racha de titanio"] = (racha / 30f).coerceIn(0f, 1f) to (racha >= 30)
+    resultados["Racha eterna"] = (racha / 100f).coerceIn(0f, 1f) to (racha >= 100)
+    resultados["Constancia de hierro"] = (visitasEsteMes / 30f).coerceIn(0f, 1f) to (visitasEsteMes >= 30)
+    resultados["Primer paso"] = (if (ctx.series.isNotEmpty()) 1f else 0f) to ctx.series.isNotEmpty()
+    resultados["Madrugador"] = (if (ctx.series.any { horaLocal(it.timestamp) < 7 }) 1f else 0f) to ctx.series.any { horaLocal(it.timestamp) < 7 }
+    resultados["Búho nocturno"] = (if (ctx.series.any { horaLocal(it.timestamp) >= 22 }) 1f else 0f) to ctx.series.any { horaLocal(it.timestamp) >= 22 }
+    resultados["Guerrero de fin de semana"] = (if (finDeSemanaCompleto) 1f else 0f) to finDeSemanaCompleto
+    resultados["Doble turno"] = (if (dosVecesElMismoDia) 1f else 0f) to dosVecesElMismoDia
+    resultados["Ave fénix"] = (if (pausaLargaYVolvio) 1f else 0f) to pausaLargaYVolvio
+
+    val verificadas = ctx.marcas.count { it.verificado }
+    resultados["Cazador de PRs"] = (verificadas / 5f).coerceIn(0f, 1f) to (verificadas >= 5)
+    val mejorMes = mejorMesKg(ctx.marcas, ctx.series, ctx.pesoCorporalKg)
+    resultados["Levantador de elefantes"] = (mejorMes / 6000f).coerceIn(0f, 1f) to (mejorMes >= 6000f)
+    val sentadilla = vigente("Sentadilla")?.pesoKg ?: 0f
+    resultados["Club de los 100kg"] = (sentadilla / 100f).coerceIn(0f, 1f) to (sentadilla >= 100f)
+    val pressBanca = vigente("Press banca")?.pesoKg ?: 0f
+    resultados["Club de los 120kg"] = (pressBanca / 120f).coerceIn(0f, 1f) to (pressBanca >= 120f)
+    val pesoMuerto = vigente("Peso muerto")?.pesoKg ?: 0f
+    resultados["Club de los 150kg"] = (pesoMuerto / 150f).coerceIn(0f, 1f) to (pesoMuerto >= 150f)
+    val repsDominadas = vigente("Dominadas")?.reps ?: 0
+    resultados["Dominador"] = (repsDominadas / 10f).coerceIn(0f, 1f) to (repsDominadas >= 10)
+    val repsFlexiones = vigente("Flexiones")?.reps ?: 0
+    resultados["Máquina de flexiones"] = (repsFlexiones / 50f).coerceIn(0f, 1f) to (repsFlexiones >= 50)
+    resultados["Verificado"] = (if (verificadas > 0) 1f else 0f) to (verificadas > 0)
+    val ultimasDiez = ctx.marcas.sortedByDescending { it.timestamp }.take(10)
+    resultados["Sin trampas"] = (ultimasDiez.count { it.verificado } / 10f).coerceIn(0f, 1f) to
+        (ultimasDiez.size == 10 && ultimasDiez.all { it.verificado })
+    resultados["Calculadora en mano"] = (ctx.marcas.size / 10f).coerceIn(0f, 1f) to (ctx.marcas.size >= 10)
+
+    resultados["Bíceps de acero"] = (if (alMenos(ZonaMuscular.BICEPS, RangoMuscular.HEROE)) 1f else 0f) to alMenos(ZonaMuscular.BICEPS, RangoMuscular.HEROE)
+    resultados["Piernas de Titán"] = (if (alMenos(ZonaMuscular.CUADRICEPS, RangoMuscular.TITAN)) 1f else 0f) to alMenos(ZonaMuscular.CUADRICEPS, RangoMuscular.TITAN)
+    resultados["Espalda de Coloso"] = (if (alMenos(ZonaMuscular.DORSALES, RangoMuscular.COLOSO)) 1f else 0f) to alMenos(ZonaMuscular.DORSALES, RangoMuscular.COLOSO)
+    val pechoOlimpico = alMenos(ZonaMuscular.PECHO_SUPERIOR, RangoMuscular.OLIMPICO) && alMenos(ZonaMuscular.PECHO_INFERIOR, RangoMuscular.OLIMPICO)
+    resultados["Pecho Olímpico"] = (if (pechoOlimpico) 1f else 0f) to pechoOlimpico
+    val zonasHoplitaOMas = ZonaMuscular.entries.count { alMenos(it, RangoMuscular.HOPLITA) }
+    resultados["Cuerpo equilibrado"] = (zonasHoplitaOMas / ZonaMuscular.entries.size.toFloat()) to (zonasHoplitaOMas == ZonaMuscular.entries.size)
+
+    resultados["Rey del ranking"] = (if (posicion != null && posicion <= 3) 1f else 0f) to (posicion != null && posicion <= 3)
+    resultados["Corona de laurel"] = (if (posicion == 1) 1f else 0f) to (posicion == 1)
+
+    resultados["Graduado"] = (if (ctx.onboardingCompleto) 1f else 0f) to ctx.onboardingCompleto
+
+    resultados["El ojo de Atenea"] = (diasMadrugonExtremo / 5f).coerceIn(0f, 1f) to (diasMadrugonExtremo >= 5)
+    resultados["Ascensión completa"] = (ZonaMuscular.entries.count { alMenos(it, RangoMuscular.DIOS) } / ZonaMuscular.entries.size.toFloat()) to
+        (ZonaMuscular.entries.all { alMenos(it, RangoMuscular.DIOS) })
+    resultados["Corazón de Esparta"] = (if (diasCorazonEsparta) 1f else 0f) to diasCorazonEsparta
+
+    // Coleccionista/Casi leyenda dependen del resto ya calculado, así que
+    // se agregan al final contando cuántos quedaron desbloqueados arriba.
+    val desbloqueadosHastaAhora = LOGROS.count { resultados[it.nombre]?.second == true }
+    resultados["Coleccionista"] = (desbloqueadosHastaAhora / 25f).coerceIn(0f, 1f) to (desbloqueadosHastaAhora >= 25)
+    resultados["Casi leyenda"] = (desbloqueadosHastaAhora / 40f).coerceIn(0f, 1f) to (desbloqueadosHastaAhora >= 40)
+
+    return LOGROS.map { logro ->
+        val (progreso, desbloqueado) = resultados[logro.nombre] ?: (logro.progreso to logro.desbloqueado)
+        logro.copy(progreso = progreso, desbloqueado = desbloqueado)
+    }
+}
 
 /* ── Equivalencia visual de carga ── */
 data class Equivalencia(val umbralKg: Int, val texto: String, val emoji: String)

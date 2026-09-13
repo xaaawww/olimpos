@@ -31,8 +31,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.olimpos.gym.data.LOGROS
+import com.olimpos.gym.data.ContextoLogros
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.Logro
+import com.olimpos.gym.data.calcularLogros
+import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.ui.theme.Olimpos
 
 /** Logros: grilla de 5 columnas solo con el ícono — tocar uno abre el
@@ -41,11 +44,32 @@ import com.olimpos.gym.ui.theme.Olimpos
  *  que se desbloquean — son un bonus raro, no parte del 100% normal. */
 @Composable
 fun LogrosScreen(onVolver: () -> Unit) {
-    // remember: sin esto las 53 medallas se recorrían tres veces en cada
-    // recomposición (por ejemplo, cada vez que se abre o cierra un detalle).
-    val publicos = remember { LOGROS.filter { !it.secreto } }
-    val desbloqueados = remember { publicos.count { it.desbloqueado } }
-    val visibles = remember { LOGROS.filter { !it.secreto || it.desbloqueado } }
+    // remember con estas claves: los logros se recalculan si cambia
+    // alguna de las fuentes reales detrás (una marca nueva, una serie
+    // registrada, un ingreso marcado, etc.), pero no en cada recomposición
+    // suelta (por ejemplo, al abrir o cerrar el detalle de una medalla).
+    val marcas = DatosRemotos.marcas ?: emptyList()
+    val series = DatosRemotos.seriesEntrenamiento ?: emptyList()
+    val ingresos = DatosRemotos.ingresos ?: emptyList()
+    val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
+    val datosFisicos = DatosRemotos.datosFisicosPropios
+    val logros = remember(marcas, series, ingresos, rangosSocios, datosFisicos) {
+        calcularLogros(
+            ContextoLogros(
+                socioId = socioActualId(),
+                marcas = marcas,
+                series = series,
+                ingresos = ingresos,
+                pesoCorporalKg = datosFisicos?.pesoKg ?: 80f,
+                sexo = datosFisicos?.sexo,
+                rangosSocios = rangosSocios,
+                onboardingCompleto = datosFisicos != null
+            )
+        )
+    }
+    val publicos = remember(logros) { logros.filter { !it.secreto } }
+    val desbloqueados = remember(logros) { publicos.count { it.desbloqueado } }
+    val visibles = remember(logros) { logros.filter { !it.secreto || it.desbloqueado } }
     var seleccionado by remember { mutableStateOf<Logro?>(null) }
 
     Box(Modifier.fillMaxSize()) {

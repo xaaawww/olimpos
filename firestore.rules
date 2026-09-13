@@ -71,6 +71,16 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Ingresos: el propio socio marca su asistencia (no hay lector físico
+    // conectado todavía — ver IngresoRepository.kt). Solo lee/crea los
+    // propios; no se puede editar ni borrar un ingreso ya marcado.
+    match /ingresos/{ingresoId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Rutinas asignadas: la arma un entrenador/dueño desde el sistema de
     // empleados (Admin SDK, no pasa por estas reglas — ver rutinas_repo.py),
     // un documento por socio (id = su uid). El socio solo la lee, nunca la

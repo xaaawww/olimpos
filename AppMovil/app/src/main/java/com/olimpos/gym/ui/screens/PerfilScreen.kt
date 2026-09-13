@@ -31,7 +31,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.SocioAuth
+import com.olimpos.gym.data.rachaActualDeDias
+import com.olimpos.gym.data.visitasEnElMesActual
 import com.olimpos.gym.ui.theme.Olimpos
 import com.olimpos.gym.ui.theme.ThemeMode
 
@@ -107,12 +110,15 @@ private fun PerfilHome(
         Spacer(Modifier.height(18.dp))
 
         // ── Estadísticas ──
-        // En 0 a propósito: todavía no existe un seguimiento real de
-        // racha, visitas ni clases — mostrar un número fijo acá sería
-        // inventar actividad que el socio nunca hizo.
+        // Racha y visitas ya salen de los ingresos reales marcados en
+        // Accesos (ver rachaActualDeDias/visitasEnElMesActual). "Clases
+        // sem." se queda en 0 a propósito: todavía no existe un registro
+        // real de asistencia a clases (reservar una solo muestra un aviso
+        // local, no queda guardado en ningún lado).
+        val ingresos = DatosRemotos.ingresos ?: emptyList()
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Estadistica("0", "Días racha", Modifier.weight(1f))
-            Estadistica("0", "Visitas mes", Modifier.weight(1f))
+            Estadistica("${rachaActualDeDias(ingresos)}", "Días racha", Modifier.weight(1f))
+            Estadistica("${visitasEnElMesActual(ingresos)}", "Visitas mes", Modifier.weight(1f))
             Estadistica("0", "Clases sem.", Modifier.weight(1f))
         }
 

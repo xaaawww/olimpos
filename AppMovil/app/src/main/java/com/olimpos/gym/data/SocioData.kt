@@ -31,13 +31,6 @@ data class PagoHistorial(val periodo: String, val monto: String, val estado: Str
 // cuota de verdad.
 val HISTORIAL_PAGOS = emptyList<PagoHistorial>()
 
-/* ── Accesos: QR / biométrico / reloj / historial ── */
-data class EventoAcceso(val fecha: String, val hora: String, val tipo: String, val resultado: String)
-
-// Sin accesos de ejemplo: todavía no existe un registro real de ingresos
-// por QR/biométrico en este proyecto.
-val HISTORIAL_ACCESOS = emptyList<EventoAcceso>()
-
 /* ── Lockers ── */
 enum class EstadoLocker { LIBRE, OCUPADO, RESERVADO_POR_MI }
 

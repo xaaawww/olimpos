@@ -31,6 +31,7 @@ object DatosRemotos {
      *  aceptable porque [precargar] ya corrió antes de que el socio llegue
      *  a abrir Entrenar (ver MainActivity). */
     var rutinaAsignada by mutableStateOf<RutinaDelDia?>(null); private set
+    var ingresos by mutableStateOf<List<Long>?>(null); private set
 
     private var yaPrecargado = false
 
@@ -45,7 +46,13 @@ object DatosRemotos {
             launch { rangosSocios = cargarRangosDeSocios() }
             launch { seriesEntrenamiento = cargarSeriesDesdeFirebase() }
             launch { rutinaAsignada = cargarRutinaAsignada() }
+            launch { ingresos = cargarIngresosDesdeFirebase() }
         }
+    }
+
+    /** Se llama al tocar "Marcar mi ingreso de hoy" en Accesos. */
+    suspend fun recargarIngresos() {
+        ingresos = cargarIngresosDesdeFirebase()
     }
 
     /** Se llama después de registrar una serie nueva en Entrenar, para que
