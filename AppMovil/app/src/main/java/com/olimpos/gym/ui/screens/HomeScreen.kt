@@ -217,15 +217,13 @@ private fun CarnetMedalla() {
             Spacer(Modifier.width(17.dp))
             Column {
                 Text(socioActualNombre(), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Olimpos.Cream)
+                // Sin número de socio ni vencimiento de ejemplo: todavía no
+                // existe una asignación real de plan/membresía por socio.
                 Text(
-                    "SOCIO OLÍMPICO · ORO",
+                    "CARNET DIGITAL OLIMPΩS",
                     fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.4.sp, color = Olimpos.GoldLight,
                     modifier = Modifier.padding(top = 2.dp, bottom = 9.dp)
-                )
-                Text(
-                    "Nº 0322 · VIGENTE HASTA 08/26",
-                    fontSize = 10.5.sp, letterSpacing = 1.2.sp, color = Olimpos.Muted
                 )
             }
         }
@@ -303,6 +301,19 @@ private fun OcupacionEnVivo() {
 /* ───────────────────── Equivalencia de carga movida (kg) ───────────────────── */
 @Composable
 private fun EquivalenciaCarga() {
+    // Sin total mensual de ejemplo: todavía no hay forma de saber qué
+    // marcas son "de este mes" (se guardan con fecha "hoy", no una fecha
+    // real) — mientras no exista eso, se muestra vacío en vez de un
+    // número inventado.
+    if (EQUIVALENCIA_MENSUAL_KG <= 0) {
+        TarjetaOro(Modifier.fillMaxWidth()) {
+            Text(
+                "Todavía no registraste kilos movidos este mes.",
+                fontSize = 12.5.sp, color = Olimpos.Muted
+            )
+        }
+        return
+    }
     val eq = equivalenciaDeCarga(EQUIVALENCIA_MENSUAL_KG)
     val cantidad = cantidadEquivalencia(EQUIVALENCIA_MENSUAL_KG, eq.umbralKg)
 

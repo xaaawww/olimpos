@@ -8,8 +8,8 @@ import kotlinx.coroutines.tasks.await
  * Marcas personales del socio (colección "marcas" en Firestore). El socio
  * las carga desde la Calculadora/Mis marcas; el sistema de empleados las
  * lee para que un entrenador o el dueño las verifique (ver sección
- * "Verificación de Marcas"). Devuelve `null` si Firebase falla, para que
- * quien llama use [MIS_MARCAS] de ejemplo como respaldo.
+ * "Verificación de Marcas"). Devuelve `null` si Firebase falla — quien
+ * llama debe tratarlo como "todavía no se sabe", no mostrar datos falsos.
  */
 suspend fun cargarMarcasDesdeFirebase(): List<MarcaPersonal>? {
     return try {

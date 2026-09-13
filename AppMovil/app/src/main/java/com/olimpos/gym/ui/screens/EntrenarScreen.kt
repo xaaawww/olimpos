@@ -125,7 +125,7 @@ fun EntrenarScreen() {
         }
 
         SeccionLabel("Ghost Mode")
-        TarjetaGhostMode(pesos, rutina)
+        TarjetaGhostMode(rutina)
 
         Spacer(Modifier.height(6.dp))
         BotonPrincipal("Terminar y enviar a validación") {
@@ -329,66 +329,25 @@ private fun CampoPesoCompacto(
 }
 
 /** Ghost Mode: compara la última marca validada de un ejercicio contra el
- *  peso que se está cargando hoy en la rutina — antes vivía en "Mis
- *  marcas", ahora está acá para verlo mientras se entrena, no después. El
- *  peso de "Hoy" es real (el mismo que ajustan los botones +/- de la
- *  tarjeta); las repeticiones siguen siendo el dato de ejemplo de
- *  [GHOST_MODE_EJEMPLO], porque una serie acá solo guarda el peso usado. */
+ *  peso que se está cargando hoy en la rutina. Sin dato de ejemplo: el
+ *  seguimiento de esta rutina vive solo en memoria durante la sesión (ver
+ *  aviso al pie de pantalla) y todavía no se guarda un historial de
+ *  sesiones anteriores en Firestore, así que hoy no hay de dónde sacar
+ *  una "última marca validada" real — se avisa eso en vez de inventar
+ *  una comparación. */
 @Composable
-private fun TarjetaGhostMode(pesos: List<Float>, rutina: RutinaDelDia) {
-    val g = GHOST_MODE_EJEMPLO
-    val indice = rutina.ejercicios.indexOfFirst { it.nombre == g.ejercicio }
-    val pesoHoy = if (indice >= 0) pesos[indice] else g.pesoActual
-    val repsHoy = g.repsActual
-
-    // 1RM estimado (fórmula de Epley, la misma que usan Mis marcas y el
-    // Bodygraph) en vez de peso×reps: comparar por volumen bruto llevaba a
-    // mensajes contradictorios (10 reps con menos peso podía dar más
-    // volumen que la marca anterior aunque el 1RM siguiera siendo más
-    // bajo, y el texto mostraba "superaste" con una diferencia en
-    // kilos negativa). El 1RM sí es directamente comparable en kilos.
-    val rmAnterior = calcular1RM(g.pesoAnterior, g.repsAnterior)
-    val rmHoy = calcular1RM(pesoHoy, repsHoy)
-    val diferenciaKg = rmHoy - rmAnterior
-    val supera = diferenciaKg > 0
-
-    // Misma escala para las dos barras (con un 15% de margen arriba del
-    // mayor 1RM) para que el largo de cada una sea comparable a ojo.
-    val escala = maxOf(rmAnterior, rmHoy) * 1.15f
-
+private fun TarjetaGhostMode(rutina: RutinaDelDia) {
+    val ejercicio = rutina.ejercicios.firstOrNull()?.nombre ?: "este ejercicio"
     TarjetaOro(Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "GHOST MODE · ${g.ejercicio.uppercase()}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.sp, color = Olimpos.Muted, modifier = Modifier.weight(1f)
-            )
-            ChipOro("ACTIVO")
-        }
+        Text(
+            "GHOST MODE · ${ejercicio.uppercase()}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.sp, color = Olimpos.Muted
+        )
         Spacer(Modifier.height(12.dp))
-        Text("Última marca validada", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
-        Spacer(Modifier.height(4.dp))
-        BarraProgreso(
-            fraccion = rmAnterior / escala, alto = 10, divisiones = 5,
-            colores = listOf(Olimpos.Muted.copy(alpha = 0.55f), Olimpos.Muted, Olimpos.GrayLight)
-        )
         Text(
-            "${formatoKg(g.pesoAnterior)}kg × ${g.repsAnterior}", fontSize = 11.5.sp,
-            fontWeight = FontWeight.Bold, color = Olimpos.Cream, modifier = Modifier.padding(top = 3.dp)
-        )
-        Spacer(Modifier.height(10.dp))
-        Text("Hoy", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
-        Spacer(Modifier.height(4.dp))
-        BarraProgreso(fraccion = rmHoy / escala, alto = 10, divisiones = 5)
-        Text(
-            "${formatoKg(pesoHoy)}kg × $repsHoy", fontSize = 11.5.sp,
-            fontWeight = FontWeight.Bold, color = Olimpos.GoldLight, modifier = Modifier.padding(top = 3.dp)
-        )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            if (supera) "Superaste a tu fantasma por ${formatoKg(diferenciaKg)}kg 🔥 — quedará a revisión de tu entrenador cuando valide el PR."
-            else "Todavía no superaste tu marca anterior — te faltan ${formatoKg(-diferenciaKg)}kg para empatarla.",
-            fontSize = 11.5.sp, fontWeight = FontWeight.Bold,
-            color = if (supera) Olimpos.Green else Olimpos.Muted, lineHeight = 15.sp
+            "Todavía no tenés una marca validada de $ejercicio para comparar. A medida que tu entrenador " +
+                "valide tus PRs, vas a poder ver acá cuánto superás tu marca anterior.",
+            fontSize = 12.sp, color = Olimpos.Muted, lineHeight = 16.sp
         )
     }
 }

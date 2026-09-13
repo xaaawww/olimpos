@@ -101,16 +101,19 @@ private fun PerfilHome(
             Spacer(Modifier.height(12.dp))
             Text(nombre, fontSize = 20.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
             Spacer(Modifier.height(8.dp))
-            ChipOro("Ω  Socio Oro · Cuota al día")
+            ChipOro("Ω  Socio OlimpΩs")
         }
 
         Spacer(Modifier.height(18.dp))
 
         // ── Estadísticas ──
+        // En 0 a propósito: todavía no existe un seguimiento real de
+        // racha, visitas ni clases — mostrar un número fijo acá sería
+        // inventar actividad que el socio nunca hizo.
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Estadistica("12", "Días racha", Modifier.weight(1f))
-            Estadistica("38", "Visitas mes", Modifier.weight(1f))
-            Estadistica("4", "Clases sem.", Modifier.weight(1f))
+            Estadistica("0", "Días racha", Modifier.weight(1f))
+            Estadistica("0", "Visitas mes", Modifier.weight(1f))
+            Estadistica("0", "Clases sem.", Modifier.weight(1f))
         }
 
         SeccionLabel("Mi club")

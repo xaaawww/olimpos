@@ -40,17 +40,8 @@ data class MarcaPersonal(
 // La identidad del socio actual sale de Firebase Auth (ver SocioAuth.kt:
 // socioActualId()/socioActualNombre()), no de un valor fijo — cada socio
 // entra con la cuenta que le creó un empleado desde el sistema de gestión.
-
-val MIS_MARCAS = mutableListOf(
-    MarcaPersonal(id = "m2", ejercicio = "Press banca", pesoKg = 82f, reps = 2, fecha = "20/08", timestamp = 1L, verificado = true),
-    MarcaPersonal(id = "m1", ejercicio = "Sentadilla", pesoKg = 110f, reps = 3, fecha = "28/08", timestamp = 2L, verificado = true),
-    MarcaPersonal(id = "m5", ejercicio = "Flexiones", pesoKg = 0f, reps = 32, fecha = "30/08", timestamp = 3L, verificado = false),
-    MarcaPersonal(id = "m4", ejercicio = "Dominadas", pesoKg = 15f, reps = 6, fecha = "02/09", timestamp = 4L, verificado = true),
-    MarcaPersonal(id = "m3", ejercicio = "Peso muerto", pesoKg = 140f, reps = 1, fecha = "05/09", timestamp = 5L, verificado = false),
-    MarcaPersonal(id = "m6", ejercicio = "Elevaciones laterales", pesoKg = 12f, reps = 12, fecha = "06/09", timestamp = 6L, verificado = true),
-    MarcaPersonal(id = "m7", ejercicio = "Pájaros", pesoKg = 8f, reps = 15, fecha = "07/09", timestamp = 7L, verificado = false),
-    MarcaPersonal(id = "m8", ejercicio = "Elevación de talones", pesoKg = 60f, reps = 15, fecha = "08/09", timestamp = 8L, verificado = true)
-)
+// Tampoco hay marcas de ejemplo: un socio nuevo arranca sin marcas
+// cargadas, hasta que registre las suyas en la Calculadora.
 
 /** Estimación de 1RM con fórmula de Epley: peso × (1 + reps/30) */
 fun calcular1RM(pesoKg: Float, reps: Int): Float = pesoKg * (1f + reps / 30f)
@@ -428,65 +419,71 @@ data class Logro(
     val secreto: Boolean = false
 )
 
+// Todos arrancan en 0f/false a propósito: hoy ninguno se calcula contra
+// una métrica real (rachas, conteo de marcas verificadas, visitas al
+// Bodygraph, etc. — nada de eso se registra todavía en Firestore), así
+// que mostrarlos parcialmente desbloqueados sería mostrar un progreso
+// inventado. Falta construir el seguimiento real detrás de cada uno.
+
 val LOGROS = listOf(
     // ── Constancia y racha ──
-    Logro("🔥", "Racha de fuego", "7 días seguidos entrenando", 1f, true),
-    Logro("🎯", "Constancia de hierro", "30 días de asistencia en el mes", 0.4f, false),
-    Logro("🛡️", "Racha de titanio", "30 días seguidos entrenando sin cortar la racha", 0.23f, false),
-    Logro("♾️", "Racha eterna", "100 días seguidos entrenando", 0.07f, false),
-    Logro("🐣", "Primer paso", "Completá tu primer entrenamiento", 1f, true),
-    Logro("🌅", "Madrugador", "Entrená antes de las 7 de la mañana", 1f, true),
-    Logro("🦉", "Búho nocturno", "Entrená después de las 22h", 0.5f, false),
-    Logro("🎉", "Sin excusas", "Entrená un feriado", 0.5f, false),
-    Logro("🏖️", "Guerrero de fin de semana", "Entrená sábado y domingo la misma semana", 0.5f, false),
+    Logro("🔥", "Racha de fuego", "7 días seguidos entrenando", 0f, false),
+    Logro("🎯", "Constancia de hierro", "30 días de asistencia en el mes", 0f, false),
+    Logro("🛡️", "Racha de titanio", "30 días seguidos entrenando sin cortar la racha", 0f, false),
+    Logro("♾️", "Racha eterna", "100 días seguidos entrenando", 0f, false),
+    Logro("🐣", "Primer paso", "Completá tu primer entrenamiento", 0f, false),
+    Logro("🌅", "Madrugador", "Entrená antes de las 7 de la mañana", 0f, false),
+    Logro("🦉", "Búho nocturno", "Entrená después de las 22h", 0f, false),
+    Logro("🎉", "Sin excusas", "Entrená un feriado", 0f, false),
+    Logro("🏖️", "Guerrero de fin de semana", "Entrená sábado y domingo la misma semana", 0f, false),
     Logro("🔁", "Doble turno", "Entrená dos veces el mismo día", 0f, false),
     Logro("🐦‍🔥", "Ave fénix", "Volvé a entrenar después de 30 días de pausa", 0f, false),
     // ── Fuerza y marcas ──
-    Logro("⚡", "Cazador de PRs", "5 marcas personales verificadas", 0.6f, false),
-    Logro("🐘", "Levantador de elefantes", "Acumulá 6.000kg movidos en un mes", 0.74f, false),
-    Logro("🏋️", "Club de los 100kg", "Sentadilla ≥ 100kg", 1f, true),
-    Logro("🛏️", "Club de los 120kg", "Press de banca ≥ 120kg", 0.34f, false),
-    Logro("⚙️", "Club de los 150kg", "Peso muerto ≥ 150kg", 0.55f, false),
-    Logro("🧗", "Dominador", "10 dominadas seguidas sin soltar la barra", 0.3f, false),
-    Logro("🤸", "Máquina de flexiones", "50 flexiones seguidas", 0.4f, false),
-    Logro("✅", "Verificado", "Tu primera marca confirmada por un entrenador", 1f, true),
-    Logro("🔒", "Sin trampas", "10 marcas verificadas seguidas", 0.2f, false),
-    Logro("🧮", "Calculadora en mano", "Usá la Calculadora 10 veces", 0.7f, false),
+    Logro("⚡", "Cazador de PRs", "5 marcas personales verificadas", 0f, false),
+    Logro("🐘", "Levantador de elefantes", "Acumulá 6.000kg movidos en un mes", 0f, false),
+    Logro("🏋️", "Club de los 100kg", "Sentadilla ≥ 100kg", 0f, false),
+    Logro("🛏️", "Club de los 120kg", "Press de banca ≥ 120kg", 0f, false),
+    Logro("⚙️", "Club de los 150kg", "Peso muerto ≥ 150kg", 0f, false),
+    Logro("🧗", "Dominador", "10 dominadas seguidas sin soltar la barra", 0f, false),
+    Logro("🤸", "Máquina de flexiones", "50 flexiones seguidas", 0f, false),
+    Logro("✅", "Verificado", "Tu primera marca confirmada por un entrenador", 0f, false),
+    Logro("🔒", "Sin trampas", "10 marcas verificadas seguidas", 0f, false),
+    Logro("🧮", "Calculadora en mano", "Usá la Calculadora 10 veces", 0f, false),
     // ── Bodygraph y rangos ──
-    Logro("💪", "Bíceps de acero", "Bíceps en rango Héroe o superior", 0.5f, false),
-    Logro("🦵", "Piernas de Titán", "Cuádriceps en rango Titán o superior", 0.2f, false),
-    Logro("🔺", "Espalda de Coloso", "Dorsales en rango Coloso o superior", 0.1f, false),
-    Logro("🫀", "Pecho Olímpico", "Pecho en rango Olímpico", 0.15f, false),
-    Logro("⚖️", "Cuerpo equilibrado", "Los 14 músculos en rango Hoplita o superior", 0.35f, false),
-    Logro("👁️", "Ojo en el progreso", "Revisá tu Bodygraph 20 veces", 0.65f, false),
+    Logro("💪", "Bíceps de acero", "Bíceps en rango Héroe o superior", 0f, false),
+    Logro("🦵", "Piernas de Titán", "Cuádriceps en rango Titán o superior", 0f, false),
+    Logro("🔺", "Espalda de Coloso", "Dorsales en rango Coloso o superior", 0f, false),
+    Logro("🫀", "Pecho Olímpico", "Pecho en rango Olímpico", 0f, false),
+    Logro("⚖️", "Cuerpo equilibrado", "Los 14 músculos en rango Hoplita o superior", 0f, false),
+    Logro("👁️", "Ojo en el progreso", "Revisá tu Bodygraph 20 veces", 0f, false),
     // ── Exploración de la app ──
-    Logro("🧭", "Explorador", "Visitá las 6 secciones de la Arena", 1f, true),
-    Logro("🗺️", "Cartógrafo", "Mirá el Plano del gimnasio", 1f, true),
-    Logro("🎚️", "Cambio de look", "Cambiá tu objetivo de la Arena", 1f, true),
-    Logro("🏆", "Coleccionista", "Desbloqueá 25 logros", 0.5f, false),
-    Logro("👑", "Casi leyenda", "Desbloqueá 40 logros", 0.28f, false),
+    Logro("🧭", "Explorador", "Visitá las 6 secciones de la Arena", 0f, false),
+    Logro("🗺️", "Cartógrafo", "Mirá el Plano del gimnasio", 0f, false),
+    Logro("🎚️", "Cambio de look", "Cambiá tu objetivo de la Arena", 0f, false),
+    Logro("🏆", "Coleccionista", "Desbloqueá 25 logros", 0f, false),
+    Logro("👑", "Casi leyenda", "Desbloqueá 40 logros", 0f, false),
     // ── Ranking y comunidad ──
-    Logro("📈", "Rey del ranking", "Llegá al top 3 en Clasificación", 0.3f, false),
-    Logro("🥇", "Corona de laurel", "Llegá al puesto #1 en Clasificación", 0.1f, false),
+    Logro("📈", "Rey del ranking", "Llegá al top 3 en Clasificación", 0f, false),
+    Logro("🥇", "Corona de laurel", "Llegá al puesto #1 en Clasificación", 0f, false),
     Logro("🤝", "Mentor", "Agregá a tu primer compañero de entrenamiento", 0f, false),
-    Logro("👥", "Espíritu de equipo", "Entrená junto a un amigo 5 veces", 0.2f, false),
+    Logro("👥", "Espíritu de equipo", "Entrená junto a un amigo 5 veces", 0f, false),
     // ── Nutrición ──
-    Logro("🥗", "Plato consciente", "Completá tu perfil nutricional", 1f, true),
-    Logro("🍽️", "Sibarita", "Probá 10 platos distintos del catálogo", 0.6f, false),
-    Logro("📅", "Nutricionista amateur", "Completá 7 días seguidos tu plan de dieta", 0.43f, false),
-    Logro("💧", "Hidratado", "Registrá tu consumo de agua 7 días seguidos", 0.86f, false),
+    Logro("🥗", "Plato consciente", "Completá tu perfil nutricional", 0f, false),
+    Logro("🍽️", "Sibarita", "Probá 10 platos distintos del catálogo", 0f, false),
+    Logro("📅", "Nutricionista amateur", "Completá 7 días seguidos tu plan de dieta", 0f, false),
+    Logro("💧", "Hidratado", "Registrá tu consumo de agua 7 días seguidos", 0f, false),
     // ── Objetivos de la Arena ──
-    Logro("🎖️", "Meta cumplida", "Alcanzá el objetivo de fuerza que elegiste", 0.5f, false),
-    Logro("💪", "Meta de hipertrofia", "Alcanzá tu objetivo de hipertrofia", 0.4f, false),
-    Logro("❤️", "Salud ante todo", "Alcanzá tu objetivo de salud general", 0.6f, false),
+    Logro("🎖️", "Meta cumplida", "Alcanzá el objetivo de fuerza que elegiste", 0f, false),
+    Logro("💪", "Meta de hipertrofia", "Alcanzá tu objetivo de hipertrofia", 0f, false),
+    Logro("❤️", "Salud ante todo", "Alcanzá tu objetivo de salud general", 0f, false),
     // ── Gimnasio físico ──
-    Logro("📲", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0.8f, false),
-    Logro("🖐️", "Biométrico", "Ingresá al gimnasio con huella 10 veces", 0.5f, false),
-    Logro("🗄️", "Casillero propio", "Reservá tu primer locker", 1f, true),
-    Logro("🔧", "Bien equipado", "Reservá una máquina desde el Plano", 1f, true),
-    Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0.5f, false),
+    Logro("📲", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0f, false),
+    Logro("🖐️", "Biométrico", "Ingresá al gimnasio con huella 10 veces", 0f, false),
+    Logro("🗄️", "Casillero propio", "Reservá tu primer locker", 0f, false),
+    Logro("🔧", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
+    Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0f, false),
     Logro("📸", "Antes y después", "Subí tu primera foto de progreso", 0f, false),
-    Logro("🎓", "Graduado", "Completá el onboarding completo de OlimpΩs", 1f, true),
+    Logro("🎓", "Graduado", "Completá el onboarding completo de OlimpΩs", 0f, false),
     // ── Secretos: no aparecen en la grilla hasta desbloquearse ──
     Logro("🦉", "El ojo de Atenea", "Entrená pasada la medianoche 5 veces", 0f, false, secreto = true),
     Logro("🌟", "Ascensión completa", "Los 14 músculos alcanzaron rango Dios", 0f, false, secreto = true),
@@ -505,8 +502,11 @@ private val EQUIVALENCIAS = listOf(
     Equivalencia(Int.MAX_VALUE, "una ballena beluga", "🐳")
 )
 
-/** Total de ejemplo movido este mes (kg), usado en la tarjeta de equivalencia de Inicio */
-const val EQUIVALENCIA_MENSUAL_KG = 16_750
+/** Kg movidos este mes, para la tarjeta de equivalencia de Inicio. En 0 a
+ *  propósito: todavía no hay forma real de saber qué marcas son de este
+ *  mes (se guardan con fecha "hoy", no una fecha real) — ver
+ *  HomeScreen.kt/EquivalenciaCarga. */
+const val EQUIVALENCIA_MENSUAL_KG = 0
 
 fun equivalenciaDeCarga(kg: Int): Equivalencia = EQUIVALENCIAS.first { kg <= it.umbralKg }
 fun cantidadEquivalencia(kg: Int, umbral: Int): Int = (kg / umbral.toFloat()).let { if (it < 1) 1 else it.toInt() }

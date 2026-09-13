@@ -21,30 +21,22 @@ val PLANES_MEMBRESIA = listOf(
 
 data class MetodoPago(val tipo: String, val detalle: String, val emoji: String)
 
-val METODOS_PAGO = listOf(
-    MetodoPago("Tarjeta de crédito", "•••• 4821", "💳"),
-    MetodoPago("Débito automático", "Banco Nación", "🏦"),
-    MetodoPago("Mercado Pago", "alex.rodriguez", "📲")
-)
+// Sin métodos de pago de ejemplo: un socio nuevo todavía no cargó
+// ninguno — "+ Agregar método de pago" en Membresía es el camino real.
+val METODOS_PAGO = emptyList<MetodoPago>()
 
 data class PagoHistorial(val periodo: String, val monto: String, val estado: String)
 
-val HISTORIAL_PAGOS = listOf(
-    PagoHistorial("Septiembre 2026", "$28.000", "Pendiente"),
-    PagoHistorial("Agosto 2026", "$28.000", "Pagado"),
-    PagoHistorial("Julio 2026", "$28.000", "Pagado"),
-    PagoHistorial("Junio 2026", "$26.500", "Pagado")
-)
+// Sin pagos de ejemplo: recién se ve algo acá cuando el socio paga una
+// cuota de verdad.
+val HISTORIAL_PAGOS = emptyList<PagoHistorial>()
 
 /* ── Accesos: QR / biométrico / reloj / historial ── */
 data class EventoAcceso(val fecha: String, val hora: String, val tipo: String, val resultado: String)
 
-val HISTORIAL_ACCESOS = listOf(
-    EventoAcceso("08/09", "07:12", "QR", "Ingreso correcto"),
-    EventoAcceso("06/09", "19:03", "Biométrico", "Ingreso correcto"),
-    EventoAcceso("05/09", "18:40", "QR", "Ingreso correcto"),
-    EventoAcceso("03/09", "07:05", "Biométrico", "Ingreso correcto")
-)
+// Sin accesos de ejemplo: todavía no existe un registro real de ingresos
+// por QR/biométrico en este proyecto.
+val HISTORIAL_ACCESOS = emptyList<EventoAcceso>()
 
 /* ── Lockers ── */
 enum class EstadoLocker { LIBRE, OCUPADO, RESERVADO_POR_MI }
@@ -52,7 +44,9 @@ enum class EstadoLocker { LIBRE, OCUPADO, RESERVADO_POR_MI }
 data class Locker(val numero: Int, val zona: String, var estado: EstadoLocker)
 
 val LOCKERS_EJEMPLO = mutableListOf(
-    Locker(12, "Vestidor Hombres", EstadoLocker.RESERVADO_POR_MI),
+    // Ninguno reservado por el socio todavía a propósito — antes el
+    // locker 12 arrancaba marcado como "mío" sin que nadie lo reservara.
+    Locker(12, "Vestidor Hombres", EstadoLocker.LIBRE),
     Locker(1, "Vestidor Hombres", EstadoLocker.LIBRE),
     Locker(2, "Vestidor Hombres", EstadoLocker.OCUPADO),
     Locker(3, "Vestidor Hombres", EstadoLocker.LIBRE),
@@ -166,9 +160,9 @@ val ENTRENADORES = listOf(
 
 data class SesionEntrenador(val entrenador: String, val fecha: String, val hora: String, var estado: String)
 
-val SESIONES_EJEMPLO = mutableListOf(
-    SesionEntrenador("Facundo López", "Vie 12/09", "18:00", "Confirmada")
-)
+// Sin sesión de ejemplo: recién aparece algo acá cuando el socio reserva
+// una sesión de verdad (la pantalla ya tiene su propio estado vacío).
+val SESIONES_EJEMPLO = mutableListOf<SesionEntrenador>()
 
 /* ── Nutrición ── */
 val PREFERENCIAS_ALIMENTARIAS = listOf("Vegetariano", "Vegano", "Sin gluten", "Sin lactosa", "Keto", "Alto en proteína")
@@ -184,33 +178,26 @@ val RECOMENDACIONES_NUTRICIONALES = listOf(
 
 data class HistorialNutricional(val fecha: String, val resumen: String)
 
-val HISTORIAL_ALIMENTARIO = listOf(
-    HistorialNutricional("07/09", "Plan cumplido al 90% · 2.100 kcal"),
-    HistorialNutricional("06/09", "Plan cumplido al 100% · 2.250 kcal"),
-    HistorialNutricional("05/09", "Plan cumplido al 70% · 1.850 kcal")
-)
+// Sin historial de ejemplo: todavía no existe un seguimiento diario real
+// del cumplimiento del plan de dieta.
+val HISTORIAL_ALIMENTARIO = emptyList<HistorialNutricional>()
 
 /* ── Progreso: historial de entrenamientos y evolución ── */
 data class PuntoEvolucion(val etiqueta: String, val valor: Float)
 
-val EVOLUCION_FUERZA = listOf(
-    PuntoEvolucion("May", 92f), PuntoEvolucion("Jun", 98f), PuntoEvolucion("Jul", 102f),
-    PuntoEvolucion("Ago", 106f), PuntoEvolucion("Sep", 110f)
-)
+// Sin evolución de ejemplo: todavía no existe un registro real de fuerza
+// ni de peso corporal mes a mes (ver ProgresoScreen: se muestra un
+// estado vacío en vez de intentar graficar sin puntos).
+val EVOLUCION_FUERZA = emptyList<PuntoEvolucion>()
 
-val EVOLUCION_PESO = listOf(
-    PuntoEvolucion("May", 84.2f), PuntoEvolucion("Jun", 83.1f), PuntoEvolucion("Jul", 82.4f),
-    PuntoEvolucion("Ago", 81.8f), PuntoEvolucion("Sep", 81.0f)
-)
+val EVOLUCION_PESO = emptyList<PuntoEvolucion>()
 
 data class SesionHistorial(val fecha: String, val tipo: String, val duracion: String, val volumenKg: Int)
 
-val HISTORIAL_ENTRENAMIENTOS = listOf(
-    SesionHistorial("07/09", "Tren superior", "48 min", 3120),
-    SesionHistorial("05/09", "Tren inferior", "55 min", 4380),
-    SesionHistorial("03/09", "Full body", "62 min", 3860),
-    SesionHistorial("01/09", "Tren superior", "44 min", 2950)
-)
+// Sin sesiones de ejemplo: todavía no existe un registro real de
+// entrenamientos pasados (el seguimiento de rutina de hoy vive solo en
+// memoria durante la sesión, ver EntrenarScreen.kt).
+val HISTORIAL_ENTRENAMIENTOS = emptyList<SesionHistorial>()
 
 /* ── Onboarding: días y franjas horarias ── */
 val DIAS_SEMANA = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")

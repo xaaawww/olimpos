@@ -80,6 +80,9 @@ fun AccesoScreen(onVolver: () -> Unit) {
             }
 
             SeccionLabel("Historial de accesos")
+            if (HISTORIAL_ACCESOS.isEmpty()) {
+                Text("Todavía no hay ingresos registrados.", fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 12.dp))
+            }
             HISTORIAL_ACCESOS.forEach { e ->
                 Row(
                     Modifier

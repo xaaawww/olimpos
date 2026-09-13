@@ -35,7 +35,10 @@ import com.olimpos.gym.ui.theme.Olimpos
 
 @Composable
 fun MembresiaScreen(onVolver: () -> Unit) {
-    var planActual by remember { mutableStateOf("Oro") }
+    // null = todavía no eligió ningún plan (no hay asignación real de
+    // membresía por socio hoy) — antes arrancaba directo en "Oro" con un
+    // vencimiento inventado.
+    var planActual by remember { mutableStateOf<String?>(null) }
     var aviso by remember { mutableStateOf<String?>(null) }
     var mostrarCancelar by remember { mutableStateOf(false) }
 
@@ -51,10 +54,16 @@ fun MembresiaScreen(onVolver: () -> Unit) {
                 TarjetaOro(Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Plan $planActual", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Olimpos.Cream)
-                            Text("Próximo vencimiento: 05/10/2026", fontSize = 12.sp, color = Olimpos.Muted)
+                            Text(
+                                planActual?.let { "Plan $it" } ?: "Sin plan asignado",
+                                fontWeight = FontWeight.Black, fontSize = 18.sp, color = Olimpos.Cream
+                            )
+                            Text(
+                                if (planActual != null) "Próximo vencimiento a confirmar con el gimnasio" else "Elegí un plan de la lista de abajo",
+                                fontSize = 12.sp, color = Olimpos.Muted
+                            )
                         }
-                        ChipOro("Vigente")
+                        if (planActual != null) ChipOro("Vigente")
                     }
                 }
                 SeccionLabel("Planes disponibles")
@@ -75,7 +84,12 @@ fun MembresiaScreen(onVolver: () -> Unit) {
         }
 
         item(key = "label-pagos") {
-            Column(Modifier.padding(horizontal = 20.dp)) { SeccionLabel("Métodos de pago") }
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                SeccionLabel("Métodos de pago")
+                if (METODOS_PAGO.isEmpty()) {
+                    Text("Todavía no agregaste un método de pago.", fontSize = 12.sp, color = Olimpos.Muted)
+                }
+            }
         }
 
         items(METODOS_PAGO, key = { "${it.tipo}-${it.detalle}" }) { m ->
@@ -104,12 +118,18 @@ fun MembresiaScreen(onVolver: () -> Unit) {
                 BotonSecundario("+ Agregar método de pago") {
                     aviso = "Método de pago agregado correctamente."
                 }
-                Spacer(Modifier.height(6.dp))
-                SeccionLabel("Pagar cuota de este mes")
-                BotonPrincipal("Pagar $28.000 ahora") {
-                    aviso = "Pago procesado ✓ Comprobante enviado a tu email."
+                planActual?.let { plan ->
+                    val precio = PLANES_MEMBRESIA.firstOrNull { it.nombre == plan }?.precio ?: ""
+                    Spacer(Modifier.height(6.dp))
+                    SeccionLabel("Pagar cuota de este mes")
+                    BotonPrincipal("Pagar $precio ahora") {
+                        aviso = "Pago procesado ✓ Comprobante enviado a tu email."
+                    }
                 }
                 SeccionLabel("Historial de pagos")
+                if (HISTORIAL_PAGOS.isEmpty()) {
+                    Text("Todavía no hay pagos registrados.", fontSize = 12.sp, color = Olimpos.Muted)
+                }
             }
         }
 

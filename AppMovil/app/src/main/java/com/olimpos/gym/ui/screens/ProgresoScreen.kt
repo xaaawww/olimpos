@@ -50,6 +50,12 @@ fun ProgresoScreen(onVolver: () -> Unit) {
             }
 
             SeccionLabel("Historial de entrenamientos")
+            if (HISTORIAL_ENTRENAMIENTOS.isEmpty()) {
+                Text(
+                    "Todavía no tenés sesiones registradas.",
+                    fontSize = 12.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
             HISTORIAL_ENTRENAMIENTOS.forEach { s ->
                 Row(
                     Modifier
@@ -73,6 +79,13 @@ fun ProgresoScreen(onVolver: () -> Unit) {
 
 @Composable
 private fun GraficoLinea(datos: List<PuntoEvolucion>, color: androidx.compose.ui.graphics.Color) {
+    if (datos.isEmpty()) {
+        Text(
+            "Todavía no hay suficientes datos para graficar.",
+            fontSize = 12.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(vertical = 30.dp)
+        )
+        return
+    }
     val maxV = datos.maxOf { it.valor }
     val minV = datos.minOf { it.valor }
     val rango = (maxV - minV).let { if (it == 0f) 1f else it }

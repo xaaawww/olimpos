@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.GrupoMuscular
 import com.olimpos.gym.data.MINIMO_EJERCICIOS_PARA_CLASIFICACION
-import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.ZonaMuscular
 import com.olimpos.gym.data.cantidadEjerciciosVigentes
@@ -52,9 +51,10 @@ import com.olimpos.gym.ui.theme.Olimpos
 @Composable
 fun BodygraphScreen(onVolver: () -> Unit) {
     // DatosRemotos ya arrancó la carga apenas se entró a la app (ver
-    // MainActivity) — acá solo se lee lo que haya, sin volver a pedirlo ni
-    // mostrar primero el catálogo de ejemplo para reemplazarlo después.
-    val marcas = DatosRemotos.marcas?.takeIf { it.isNotEmpty() } ?: MIS_MARCAS
+    // MainActivity) — acá solo se lee lo que haya. Sin datos de ejemplo de
+    // respaldo a propósito: un socio nuevo debe ver el cuerpo en gris, no
+    // rangos que nunca ganó.
+    val marcas = DatosRemotos.marcas ?: emptyList()
 
     val datosFisicos = DatosRemotos.datosFisicosPropios
     val pesoCorporal = datosFisicos?.pesoKg ?: 80f

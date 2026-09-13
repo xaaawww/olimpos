@@ -89,6 +89,9 @@ fun NutricionScreen(onVolver: () -> Unit) {
             }
 
             SeccionLabel("Historial y progreso nutricional")
+            if (HISTORIAL_ALIMENTARIO.isEmpty()) {
+                Text("Todavía no hay historial nutricional.", fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 12.dp))
+            }
             HISTORIAL_ALIMENTARIO.forEach { h ->
                 Row(
                     Modifier

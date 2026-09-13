@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DESCRIPCION_RANGO
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.MINIMO_EJERCICIOS_PARA_CLASIFICACION
-import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.RangoMuscular
 import com.olimpos.gym.data.SexoBiologico
@@ -226,7 +225,9 @@ private val ALTO_ESCALON = 108.dp
 @Composable
 private fun EscaleraDelOlimpo(onVerMiembros: (NivelMuscular) -> Unit) {
     // Precargado desde que se entró a la app (ver DatosRemotos/MainActivity).
-    val marcas = DatosRemotos.marcas?.takeIf { it.isNotEmpty() } ?: MIS_MARCAS
+    // Sin datos de ejemplo de respaldo a propósito: un socio nuevo debe
+    // empezar en cero, no ver marcas que nunca cargó.
+    val marcas = DatosRemotos.marcas ?: emptyList()
     val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
     val datosFisicos = DatosRemotos.datosFisicosPropios
     val pesoCorporal = datosFisicos?.pesoKg ?: 80f

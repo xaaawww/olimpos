@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.EJERCICIOS_FUERZA
 import com.olimpos.gym.data.EjercicioFuerza
-import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.MarcaPersonal
 import com.olimpos.gym.data.calcular1RM
 import com.olimpos.gym.data.cargarMarcasDesdeFirebase
@@ -53,13 +52,15 @@ fun MarcasScreen(onVolver: () -> Unit) {
     var peso by remember { mutableStateOf("") }
     var reps by remember { mutableStateOf("") }
     var aviso by remember { mutableStateOf<String?>(null) }
-    var marcas by remember { mutableStateOf<List<MarcaPersonal>>(MIS_MARCAS) }
+    // Sin datos de ejemplo de respaldo a propósito: un socio nuevo debe
+    // empezar en cero, no ver marcas que nunca cargó.
+    var marcas by remember { mutableStateOf<List<MarcaPersonal>>(emptyList()) }
     var ejercicioViendo by remember { mutableStateOf<String?>(null) }
     var marcaAEliminar by remember { mutableStateOf<MarcaPersonal?>(null) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        cargarMarcasDesdeFirebase()?.takeIf { it.isNotEmpty() }?.let { marcas = it }
+        cargarMarcasDesdeFirebase()?.let { marcas = it }
     }
 
     fun eliminarMarca(marca: MarcaPersonal) {
