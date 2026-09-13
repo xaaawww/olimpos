@@ -56,6 +56,7 @@ import com.olimpos.gym.data.EQUIVALENCIA_MENSUAL_KG
 import com.olimpos.gym.data.RUTINA_HOY
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
+import com.olimpos.gym.data.socioActualNombre
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -66,6 +67,8 @@ fun HomeScreen(
     onIrEntrenar: () -> Unit,
     onIrDieta: () -> Unit
 ) {
+    val nombreSocio = socioActualNombre()
+    val primerNombre = nombreSocio.substringBefore(" ")
     Column(
         Modifier
             .fillMaxSize()
@@ -95,7 +98,7 @@ fun HomeScreen(
                 Eyebrow("Lunes 6 · Julio")
                 Row {
                     Text("Hola, ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
-                    Text("Alex", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
+                    Text(primerNombre, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
                     Text(" 👋", fontSize = 24.sp)
                 }
             }
@@ -106,7 +109,7 @@ fun HomeScreen(
                     .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark))),
                 contentAlignment = Alignment.Center
             ) {
-                Text("A", fontWeight = FontWeight.Black, color = Olimpos.Dark, fontSize = 17.sp)
+                Text(primerNombre.take(1).uppercase(), fontWeight = FontWeight.Black, color = Olimpos.Dark, fontSize = 17.sp)
             }
         }
 
@@ -213,7 +216,7 @@ private fun CarnetMedalla() {
             }
             Spacer(Modifier.width(17.dp))
             Column {
-                Text("Alex Rodríguez", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Olimpos.Cream)
+                Text(socioActualNombre(), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Olimpos.Cream)
                 Text(
                     "SOCIO OLÍMPICO · ORO",
                     fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,

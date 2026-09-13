@@ -304,6 +304,31 @@ fun resumenMuscular(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): Resumen
     )
 }
 
+/** Suma de la carga vigente (mismo criterio que [resumenMuscular]: solo la
+ *  marca más reciente de cada ejercicio) de todos los ejercicios del socio —
+ *  el "kg levantados" que se muestra en la Escalera del Olimpo. */
+fun kgTotalesVigentes(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): Float {
+    val vigentePorEjercicio = marcas.groupBy { it.ejercicio }
+        .mapNotNull { (_, ms) -> ms.maxByOrNull { it.timestamp } }
+    return vigentePorEjercicio.sumOf { cargaTotal(it, pesoCorporalKg).toDouble() }.toFloat()
+}
+
+/** Texto de antigüedad ("Socio hace 3 meses") a partir de la fecha de alta
+ *  de su acceso a la app (ver auth_repo.py: "creado_ms" en Firestore) — es
+ *  la única fecha real que existe hoy por socio, así que se usa como
+ *  aproximación de cuánto hace que forma parte del club. */
+fun formatearAntiguedad(creadoMs: Long?): String {
+    if (creadoMs == null) return "Fecha de alta no disponible"
+    val dias = ((System.currentTimeMillis() - creadoMs) / 86_400_000L).coerceAtLeast(0)
+    return when {
+        dias < 1 -> "Se unió hoy"
+        dias < 7 -> "Socio hace $dias día${if (dias == 1L) "" else "s"}"
+        dias < 30 -> (dias / 7).let { "Socio hace $it semana${if (it == 1L) "" else "s"}" }
+        dias < 365 -> (dias / 30).let { "Socio hace $it mes${if (it == 1L) "" else "es"}" }
+        else -> (dias / 365).let { "Socio hace $it año${if (it == 1L) "" else "s"}" }
+    }
+}
+
 /* ── Logros / medallas ── */
 data class Logro(
     val emoji: String,

@@ -13,6 +13,7 @@
 
 import random
 import string
+import time
 
 from firebase_admin import auth as fb_auth
 
@@ -55,6 +56,9 @@ def crear_acceso_socio(nombre: str, email: str, password: str) -> tuple[bool, st
         "nombre": nombre.strip(),
         "email": email.strip(),
         "activo": True,
+        # Fecha de alta en milisegundos (no un string ISO): así la app móvil
+        # la lee directo como epoch sin tener que parsear formatos de fecha.
+        "creado_ms": int(time.time() * 1000),
     })
     return True, user.uid
 

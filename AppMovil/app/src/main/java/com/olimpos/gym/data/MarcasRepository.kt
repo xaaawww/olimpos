@@ -38,8 +38,19 @@ suspend fun cargarMarcasDesdeFirebase(): List<MarcaPersonal>? {
 }
 
 /** Rango general de un socio (promedio de sus 19 zonas), para la Escalera
- *  del Olimpo — quién más del club llegó a cada nivel. */
-data class SocioRango(val socioId: String, val nombre: String, val nivel: NivelMuscular, val verificado: Boolean)
+ *  del Olimpo — quién más del club llegó a cada nivel. [creadoMs] sale del
+ *  alta de su acceso a la app (colección "socios_app", ver auth_repo.py) —
+ *  es la única fecha real que existe por socio hoy. */
+data class SocioRango(
+    val socioId: String,
+    val nombre: String,
+    val nivel: NivelMuscular,
+    val verificado: Boolean,
+    val kgTotales: Float,
+    val creadoMs: Long? = null
+)
+
+private const val PESO_CORPORAL_REFERENCIA = 80f
 
 /** Trae el rango general de TODOS los socios con marcas cargadas (no solo
  *  el actual), agrupando por socio_id. Sin perfil de socios todavía no hay
@@ -48,8 +59,17 @@ data class SocioRango(val socioId: String, val nombre: String, val nivel: NivelM
  *  sistema de empleados (marcas_repo.py) para su ranking general. */
 suspend fun cargarRangosDeSocios(): List<SocioRango>? {
     return try {
-        val snapshot = Firebase.firestore.collection("marcas").get().await()
-        snapshot.documents
+        val snapshotMarcas = Firebase.firestore.collection("marcas").get().await()
+        // "socios_app": lo crea un empleado al darle acceso al socio (ver
+        // auth_repo.py) — de ahí sale cuándo se unió cada uno.
+        val creadoPorUid = try {
+            Firebase.firestore.collection("socios_app").get().await()
+                .documents.associate { it.id to it.getLong("creado_ms") }
+        } catch (e: Exception) {
+            emptyMap()
+        }
+
+        snapshotMarcas.documents
             .groupBy { it.getString("socio_id") ?: "?" }
             .mapNotNull { (socioId, docs) ->
                 val nombre = docs.firstOrNull()?.getString("socio_nombre") ?: socioId
@@ -63,10 +83,17 @@ suspend fun cargarRangosDeSocios(): List<SocioRango>? {
                         verificado = doc.getBoolean("verificado") ?: false
                     )
                 }
-                val resumen = resumenMuscular(marcas, pesoCorporalKg = 80f)
+                val resumen = resumenMuscular(marcas, pesoCorporalKg = PESO_CORPORAL_REFERENCIA)
                 if (!resumen.tieneMarcas) return@mapNotNull null
                 val promedio = ZonaMuscular.entries.sumOf { (resumen.puntajes[it] ?: 0f).toDouble() } / ZonaMuscular.entries.size
-                SocioRango(socioId, nombre, nivelDesdePuntaje(promedio.toFloat()), resumen.verificado)
+                SocioRango(
+                    socioId = socioId,
+                    nombre = nombre,
+                    nivel = nivelDesdePuntaje(promedio.toFloat()),
+                    verificado = resumen.verificado,
+                    kgTotales = kgTotalesVigentes(marcas, PESO_CORPORAL_REFERENCIA),
+                    creadoMs = creadoPorUid[socioId]
+                )
             }
     } catch (e: Exception) {
         null

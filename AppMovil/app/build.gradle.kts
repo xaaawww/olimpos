@@ -18,16 +18,21 @@ android {
     }
 
     buildTypes {
-        release {
-            isMinifyEnabled = false
-        }
-        // Build para medir rendimiento de verdad. Un build de debug es mucho
+        // "release" ahora tiene el mismo perfil de rendimiento que "prueba"
+        // (que fue la que se probó y anduvo bien): no depurable y firmada
+        // con la clave de debug, para poder instalarla en cualquier celular
+        // sin generar un keystore de producción. Un build de debug es mucho
         // más lento con Compose: la app queda marcada como depurable (ART no
         // puede optimizarla del todo) y se le agregan las herramientas de
-        // inspección, que instrumentan cada composición. Este tipo de build
-        // apaga las dos cosas, pero va firmado con la clave de debug para
-        // poder instalarlo sin generar un keystore aparte.
-        // Uso:  ./gradlew installPrueba     (o assemblePrueba para el APK)
+        // inspección, que instrumentan cada composición.
+        // Uso:  ./gradlew installRelease     (o assembleRelease para el APK)
+        release {
+            isDebuggable = false
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        // Se mantiene como alias de "release" (mismo perfil) por si ya tenían
+        // el comando ./gradlew installPrueba guardado en algún lado.
         create("prueba") {
             isDebuggable = false
             isMinifyEnabled = false

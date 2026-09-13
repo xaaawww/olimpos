@@ -1,10 +1,13 @@
 package com.olimpos.gym.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +24,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +45,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DESCRIPCION_RANGO
@@ -47,30 +54,113 @@ import com.olimpos.gym.data.EVOLUCION_PESO
 import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.RangoMuscular
-import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.data.SocioRango
 import com.olimpos.gym.data.ZonaMuscular
+import com.olimpos.gym.data.formatearAntiguedad
 import com.olimpos.gym.data.nivelDesdePuntaje
 import com.olimpos.gym.data.resumenMuscular
+import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.ui.theme.Olimpos
 
 /** Clasificación: la Escalera del Olimpo — los 25 niveles del Bodygraph
  *  desde Mortal (al pie) hasta Dios (en la cima). Los estandartes flotan
  *  centrados sobre la montaña, sin nombre a la vista — tocar uno lo
- *  despliega con su nombre, su mini-descripción y quién más del club
- *  (solo verificados) llegó a ese rango exacto. */
+ *  despliega con su título, descripción y un botón para ver a todos los
+ *  socios de ese rango exacto en otra pantalla (con muchos socios usando
+ *  la app a la vez, listarlos ahí adentro es mucho más cómodo que una
+ *  lista larga metida en el medio de la montaña). También hay un buscador
+ *  por nombre arriba de todo, para encontrar a alguien sin tener que bajar
+ *  escalón por escalón. */
 @Composable
 fun ClasificacionScreen(onVolver: () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        EncabezadoVolver("Clasificación", "La Escalera del Olimpo: quién llegó a cada rango", onVolver)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 26.dp)
-        ) {
-            EscaleraDelOlimpo()
+    val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
+    var nivelMiembros by remember { mutableStateOf<NivelMuscular?>(null) }
+    var perfilSeleccionado by remember { mutableStateOf<SocioRango?>(null) }
+
+    Box(Modifier.fillMaxSize()) {
+        val nivelActivo = nivelMiembros
+        if (nivelActivo != null) {
+            MiembrosRangoScreen(
+                nivel = nivelActivo,
+                socios = remember(rangosSocios, nivelActivo) {
+                    rangosSocios.filter { it.nivel == nivelActivo && it.verificado }
+                        .sortedByDescending { it.kgTotales }
+                },
+                onVolver = { nivelMiembros = null },
+                onSeleccionar = { perfilSeleccionado = it }
+            )
+        } else {
+            Column(Modifier.fillMaxSize()) {
+                EncabezadoVolver("Clasificación", "La Escalera del Olimpo: quién llegó a cada rango", onVolver)
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp)
+                        .padding(bottom = 26.dp)
+                ) {
+                    BuscadorSocios(rangosSocios, onSeleccionar = { perfilSeleccionado = it })
+                    EscaleraDelOlimpo(onVerMiembros = { nivelMiembros = it })
+                }
+            }
+        }
+
+        AnimatedVisibility(visible = perfilSeleccionado != null, enter = fadeIn(), exit = fadeOut()) {
+            perfilSeleccionado?.let { DetallePerfilSocio(it, onCerrar = { perfilSeleccionado = null }) }
+        }
+    }
+}
+
+/** Buscador por nombre: no navega solo — muestra hasta 8 coincidencias con
+ *  su rango, y tocar una abre directo el mismo detalle de perfil que se ve
+ *  desde la lista de miembros de un rango (no hace falta pasar por ahí). */
+@Composable
+private fun BuscadorSocios(rangosSocios: List<SocioRango>, onSeleccionar: (SocioRango) -> Unit) {
+    var busqueda by remember { mutableStateOf("") }
+
+    Column(Modifier.padding(bottom = 16.dp)) {
+        CampoBusqueda(busqueda, { busqueda = it }, "Buscar a un socio por nombre…")
+
+        if (busqueda.isNotBlank()) {
+            val resultados = remember(busqueda, rangosSocios) {
+                rangosSocios.filter { it.nombre.contains(busqueda, ignoreCase = true) }
+                    .sortedBy { it.nombre }
+                    .take(8)
+            }
+            Spacer(Modifier.height(8.dp))
+            if (resultados.isEmpty()) {
+                Text(
+                    "Nadie con ese nombre todavía.",
+                    fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(vertical = 4.dp)
+                )
+            } else {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Olimpos.Card)
+                        .border(1.dp, Olimpos.Line, RoundedCornerShape(14.dp))
+                ) {
+                    resultados.forEachIndexed { i, s ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { onSeleccionar(s) }
+                                .padding(horizontal = 14.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(s.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
+                                Text(s.nivel.etiquetaCompleta, fontSize = 11.sp, color = Olimpos.Gold)
+                            }
+                            Text("→", color = Olimpos.Muted, fontWeight = FontWeight.Black)
+                        }
+                        if (i < resultados.lastIndex) {
+                            Box(Modifier.fillMaxWidth().height(1.dp).background(Olimpos.Line))
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -78,12 +168,12 @@ fun ClasificacionScreen(onVolver: () -> Unit) {
 /* ── Escalera del Olimpo: los 25 niveles del Bodygraph (ver
    RangoMuscular/NivelMuscular en GamificacionData.kt), de Mortal al pie de
    la montaña a Dios en la cima — mismos estandartes que ya se usan en el
-   Bodygraph, sin personas ni fotos dibujadas (la gente aparece como lista
-   de texto al tocar un escalón). ── */
+   Bodygraph, sin personas ni fotos dibujadas (la gente aparece en la
+   pantalla de miembros, al tocar "ver miembros" de un escalón). ── */
 private val ALTO_ESCALON = 108.dp
 
 @Composable
-private fun EscaleraDelOlimpo() {
+private fun EscaleraDelOlimpo(onVerMiembros: (NivelMuscular) -> Unit) {
     // Precargado desde que se entró a la app (ver DatosRemotos/MainActivity).
     val marcas = DatosRemotos.marcas?.takeIf { it.isNotEmpty() } ?: MIS_MARCAS
     val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
@@ -105,7 +195,7 @@ private fun EscaleraDelOlimpo() {
         modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
     )
     Text(
-        "De Mortal, al pie de la montaña, a Dios en la cima. Tocá un escalón para ver quién más del club llegó ahí.",
+        "De Mortal, al pie de la montaña, a Dios en la cima. Tocá un escalón para ver quién llegó ahí.",
         fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 14.dp)
     )
 
@@ -118,15 +208,16 @@ private fun EscaleraDelOlimpo() {
     ) {
         Column {
             escalones.forEach { esc ->
-                val otros = remember(rangosSocios, esc) {
-                    rangosSocios.filter { it.nivel == esc && it.verificado && it.socioId != socioActualId() }
+                val cantidad = remember(rangosSocios, esc) {
+                    rangosSocios.count { it.nivel == esc && it.verificado }
                 }
                 FilaEscalon(
                     nivel = esc,
                     esActual = esc == rangoActual,
-                    otrosSocios = otros,
+                    cantidadEnRango = cantidad,
                     expandido = expandido == esc,
-                    onToggle = { expandido = if (expandido == esc) null else esc }
+                    onToggle = { expandido = if (expandido == esc) null else esc },
+                    onVerMiembros = { onVerMiembros(esc) }
                 )
             }
         }
@@ -250,9 +341,10 @@ private fun Modifier.montanaFondo(): Modifier = this.drawBehind {
 private fun FilaEscalon(
     nivel: NivelMuscular,
     esActual: Boolean,
-    otrosSocios: List<SocioRango>,
+    cantidadEnRango: Int,
     expandido: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onVerMiembros: () -> Unit
 ) {
     Column {
         Box(
@@ -270,14 +362,14 @@ private fun FilaEscalon(
                 )
             }
         }
-        androidx.compose.animation.AnimatedVisibility(visible = expandido) {
-            DetalleEscalon(nivel, esActual, otrosSocios)
+        AnimatedVisibility(visible = expandido) {
+            DetalleEscalon(nivel, esActual, cantidadEnRango, onVerMiembros)
         }
     }
 }
 
 @Composable
-private fun DetalleEscalon(nivel: NivelMuscular, esActual: Boolean, otrosSocios: List<SocioRango>) {
+private fun DetalleEscalon(nivel: NivelMuscular, esActual: Boolean, cantidadEnRango: Int, onVerMiembros: () -> Unit) {
     val desc = DESCRIPCION_RANGO[nivel]
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)) {
         if (esActual) {
@@ -301,8 +393,18 @@ private fun DetalleEscalon(nivel: NivelMuscular, esActual: Boolean, otrosSocios:
                 modifier = Modifier.padding(top = 6.dp)
             )
         }
-        Spacer(Modifier.height(12.dp))
-        ListaSociosDeRango(otrosSocios)
+        Spacer(Modifier.height(14.dp))
+        if (cantidadEnRango > 0) {
+            BotonSecundario("Ver ${if (cantidadEnRango == 1) "el socio" else "los $cantidadEnRango socios"} en este rango") {
+                onVerMiembros()
+            }
+        } else {
+            Text(
+                "Todavía nadie llegó a este rango (verificado).",
+                fontSize = 11.5.sp, color = Olimpos.Muted
+            )
+        }
+        Spacer(Modifier.height(10.dp))
     }
 }
 
@@ -354,32 +456,120 @@ private fun IconoConBrillo(nivel: NivelMuscular) {
     }
 }
 
+/* ── Pantalla de miembros de un rango: se abre desde el botón "Ver
+   miembros" de un escalón, o desde el buscador de arriba. Lista completa
+   (te incluye a vos, marcado "Vos") en vez de un preview corto — pensada
+   para rangos con muchos socios adentro. ── */
 @Composable
-private fun ListaSociosDeRango(socios: List<SocioRango>) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
+private fun MiembrosRangoScreen(
+    nivel: NivelMuscular,
+    socios: List<SocioRango>,
+    onVolver: () -> Unit,
+    onSeleccionar: (SocioRango) -> Unit
+) {
+    val desc = DESCRIPCION_RANGO[nivel]
+    Column(Modifier.fillMaxSize()) {
+        EncabezadoVolver(
+            nivel.etiquetaCompleta,
+            desc?.apodo?.let { "$it · ${socios.size} en el club" } ?: "${socios.size} en el club",
+            onVolver
+        )
         if (socios.isEmpty()) {
-            Text(
-                "Todavía nadie más del club llegó a este rango (verificado).",
-                fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(vertical = 8.dp)
-            )
+            Column(
+                Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(50.dp))
+                Text(
+                    "Todavía nadie llegó a este rango.",
+                    fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream
+                )
+            }
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                socios.forEach { s ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Olimpos.Card)
-                            .border(1.dp, Olimpos.Line, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("✓", color = Olimpos.Green, fontWeight = FontWeight.Black, fontSize = 12.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(s.nombre, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
-                    }
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                items(socios, key = { it.socioId }) { s ->
+                    FilaMiembro(s, esYo = s.socioId == socioActualId()) { onSeleccionar(s) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FilaMiembro(socio: SocioRango, esYo: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, if (esYo) Olimpos.Gold.copy(alpha = 0.5f) else Olimpos.Line, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 15.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(socio.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                if (esYo) {
+                    Spacer(Modifier.width(6.dp))
+                    ChipOro("Vos")
+                }
+            }
+            Text(
+                "${socio.kgTotales.toInt()} kg totales · ${formatearAntiguedad(socio.creadoMs)}",
+                fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 2.dp)
+            )
+        }
+        Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black)
+    }
+}
+
+/** Detalle de un perfil: nombre como título grande y una descripción con
+ *  su rango, kg totales y antigüedad — se abre tanto desde la lista de
+ *  miembros de un rango como directo desde el buscador. */
+@Composable
+private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Olimpos.Dark.copy(alpha = 0.72f))
+            .clickable(onClick = onCerrar),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier
+                .padding(horizontal = 36.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Olimpos.Card)
+                .border(1.dp, Olimpos.Gold.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                .clickable(enabled = false) {}
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Image(
+                painter = painterResource(iconoDeRango(socio.nivel)),
+                contentDescription = socio.nivel.etiquetaCompleta,
+                modifier = Modifier.size(60.dp)
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                socio.nombre, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            ChipOro(socio.nivel.etiquetaCompleta)
+            Spacer(Modifier.height(14.dp))
+            Text(
+                "Lleva un total estimado de ${socio.kgTotales.toInt()} kg levantados en sus marcas" +
+                    (if (socio.verificado) " verificadas" else " (todavía sin verificar)") +
+                    ", y forma parte de OlimpΩs desde hace " +
+                    formatearAntiguedad(socio.creadoMs).removePrefix("Socio hace ").removePrefix("Se unió ") + ".",
+                fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center
+            )
         }
     }
 }
