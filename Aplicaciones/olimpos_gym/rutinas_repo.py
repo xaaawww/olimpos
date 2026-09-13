@@ -54,7 +54,11 @@ def nueva_rutina(socio_id: str, creada_por: str) -> dict:
 
 
 def nuevo_ejercicio_rutina() -> dict:
-    return {"nombre": "", "series_objetivo": 3, "peso_base_kg": 0.0, "es_peso_corporal": False}
+    # "ejercicio_id" es None hasta que el entrenador elige uno real del
+    # catálogo (ver editor_rutinas.py) — no se permite un nombre suelto sin
+    # referencia, así la rutina siempre usa ejercicios que ya existen (con
+    # su técnica y zonas musculares reales), nunca uno inventado al vuelo.
+    return {"ejercicio_id": None, "nombre": "", "series_objetivo": 3, "peso_base_kg": 0.0, "es_peso_corporal": False}
 
 
 def guardar_rutina(rutina: dict) -> dict[str, dict]:
