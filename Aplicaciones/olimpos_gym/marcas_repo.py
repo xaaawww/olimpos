@@ -36,7 +36,7 @@ CONTRIBUCION_MUSCULAR = {
 
 # Espejo de RangoMuscular en GamificacionData.kt: 9 rangos, 3 niveles cada
 # uno salvo el último (Dios).
-RANGOS = ["Mortal", "Espartano", "Hoplita", "Héroe", "Semidiós", "Titán", "Coloso", "Olímpico", "Dios"]
+RANGOS = ["Mortal", "Hoplita", "Espartano", "Héroe", "Semidiós", "Titán", "Coloso", "Olímpico", "Dios"]
 NIVELES_MAX = {r: (1 if r == "Dios" else 3) for r in RANGOS}
 TOTAL_NIVELES = sum(NIVELES_MAX.values())
 PUNTOS_POR_NIVEL = 0.14

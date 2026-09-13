@@ -27,11 +27,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,6 +49,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.SocioAuth
+import com.olimpos.gym.data.cargarDatosFisicosPropios
 import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.guardarObjetivoArena
 import com.olimpos.gym.ui.screens.ArenaScreen
@@ -54,6 +57,7 @@ import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
 import com.olimpos.gym.ui.screens.LoginScreen
+import com.olimpos.gym.ui.screens.OnboardingScreen
 import com.olimpos.gym.ui.screens.PerfilScreen
 import com.olimpos.gym.ui.screens.PlanoScreen
 import com.olimpos.gym.ui.theme.Olimpos
@@ -70,8 +74,10 @@ enum class Tab(val label: String, val icon: String) {
     PERFIL("Perfil", "👤")
 }
 
-/** Etapa general de la app: autenticación → app principal */
-private enum class Etapa { LOGIN, APP }
+/** Etapa general de la app: verificación (arranque/post-login) →
+ *  autenticación → onboarding obligatorio (solo si todavía no cargó sus
+ *  datos físicos, ver [cargarDatosFisicosPropios]) → app principal. */
+private enum class Etapa { VERIFICANDO, LOGIN, ONBOARDING, APP }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,9 +106,20 @@ private val ANCHO_CONTENIDO_MAX = 480.dp
 
 @Composable
 fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
-    // Si ya había una sesión de Firebase Auth activa (el socio no cerró
-    // sesión la última vez), se entra directo sin pasar por el login.
-    var etapa by remember { mutableStateOf(if (Firebase.auth.currentUser != null) Etapa.APP else Etapa.LOGIN) }
+    var etapa by remember { mutableStateOf(Etapa.VERIFICANDO) }
+    // Se incrementa para forzar una nueva verificación (arranque de la app
+    // y cada login exitoso) sin duplicar la lógica en dos lados.
+    var verificacion by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(verificacion) {
+        etapa = when {
+            Firebase.auth.currentUser == null -> Etapa.LOGIN
+            // Sin datos físicos todavía (cuenta recién creada por un
+            // empleado) → onboarding obligatorio antes de dejarlo entrar.
+            cargarDatosFisicosPropios() == null -> Etapa.ONBOARDING
+            else -> Etapa.APP
+        }
+    }
 
     Box(
         Modifier
@@ -112,7 +129,11 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
     ) {
         Box(Modifier.fillMaxHeight().widthIn(max = ANCHO_CONTENIDO_MAX)) {
             when (etapa) {
-                Etapa.LOGIN -> LoginScreen(onIngresar = { etapa = Etapa.APP })
+                Etapa.VERIFICANDO -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Olimpos.Gold)
+                }
+                Etapa.LOGIN -> LoginScreen(onIngresar = { verificacion++ })
+                Etapa.ONBOARDING -> OnboardingScreen(onFinalizar = { etapa = Etapa.APP })
                 Etapa.APP -> OlimposAppPrincipal(
                     themeMode = themeMode,
                     onThemeMode = onThemeMode,

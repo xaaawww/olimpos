@@ -1,6 +1,7 @@
 package com.olimpos.gym.data
 
 import android.content.Context
+import kotlin.math.ln
 
 /* ═══════════════════════════════════════════════════════
    GAMIFICACIÓN — niveles/estándares de fuerza, PRs, logros,
@@ -59,8 +60,8 @@ fun calcular1RM(pesoKg: Float, reps: Int): Float = pesoKg * (1f + reps / 30f)
    3 niveles salvo el último (Dios), que es el techo del sistema. */
 enum class RangoMuscular(val etiqueta: String) {
     MORTAL("Mortal"),
-    ESPARTANO("Espartano"),
     HOPLITA("Hoplita"),
+    ESPARTANO("Espartano"),
     HEROE("Héroe"),
     SEMIDIOS("Semidiós"),
     TITAN("Titán"),
@@ -126,18 +127,6 @@ val DESCRIPCION_RANGO: Map<NivelMuscular, DescripcionRango> = mapOf(
         "El fuerte",
         "Ya estás por encima de una persona promedio. En una prueba de fuerza, resistencia o velocidad, podrías sorprender a más de uno."
     ),
-    NivelMuscular(RangoMuscular.ESPARTANO, 1) to DescripcionRango(
-        "El disciplinado",
-        "Tu entrenamiento empieza a convertirse en una rutina seria. Tu cuerpo se adapta al esfuerzo y recuperás fuerzas más rápido."
-    ),
-    NivelMuscular(RangoMuscular.ESPARTANO, 2) to DescripcionRango(
-        "El guerrero",
-        "Tenés una condición física notable. Podés sostener un entrenamiento exigente durante bastante tiempo sin perder la técnica ni la concentración."
-    ),
-    NivelMuscular(RangoMuscular.ESPARTANO, 3) to DescripcionRango(
-        "El preparado",
-        "Fuerza, resistencia y disciplina empiezan a trabajar juntas. Estás preparado para afrontar pruebas físicas que dejarían agotada a la mayoría."
-    ),
     NivelMuscular(RangoMuscular.HOPLITA, 1) to DescripcionRango(
         "El firme",
         "Tu cuerpo soporta entrenamientos exigentes con una buena base de fuerza y resistencia. Ya no entrenás solo para verte fuerte, sino para rendir."
@@ -149,6 +138,18 @@ val DESCRIPCION_RANGO: Map<NivelMuscular, DescripcionRango> = mapOf(
     NivelMuscular(RangoMuscular.HOPLITA, 3) to DescripcionRango(
         "El incansable",
         "Tu resistencia empieza a ser una de tus mayores fortalezas. Incluso después de un entrenamiento duro, todavía podés seguir adelante."
+    ),
+    NivelMuscular(RangoMuscular.ESPARTANO, 1) to DescripcionRango(
+        "El disciplinado",
+        "Tu entrenamiento empieza a convertirse en una rutina seria. Tu cuerpo se adapta al esfuerzo y recuperás fuerzas más rápido."
+    ),
+    NivelMuscular(RangoMuscular.ESPARTANO, 2) to DescripcionRango(
+        "El guerrero",
+        "Tenés una condición física notable. Podés sostener un entrenamiento exigente durante bastante tiempo sin perder la técnica ni la concentración."
+    ),
+    NivelMuscular(RangoMuscular.ESPARTANO, 3) to DescripcionRango(
+        "El preparado",
+        "Fuerza, resistencia y disciplina empiezan a trabajar juntas. Estás preparado para afrontar pruebas físicas que dejarían agotada a la mayoría."
     ),
     NivelMuscular(RangoMuscular.HEROE, 1) to DescripcionRango(
         "El destacado",
@@ -268,6 +269,66 @@ private val EJERCICIOS_PESO_CORPORAL = setOf("Dominadas", "Flexiones")
 private fun cargaTotal(marca: MarcaPersonal, pesoCorporalKg: Float): Float =
     if (marca.ejercicio in EJERCICIOS_PESO_CORPORAL) pesoCorporalKg + marca.pesoKg else marca.pesoKg
 
+/* ── Calibración de rangos contra tablas de fuerza reales ──
+   Cada ejercicio tiene su propio "piso" (ratio carga/peso-corporal de un
+   principiante — cae en Mortal 1) y "techo" (ratio de Dios, ~15% por
+   encima del nivel "Elite" publicado, para que sea de verdad excepcional:
+   el 0,1% más fuerte, no solo "avanzado"). No es lo mismo levantar 150kg
+   en press banca que en peso muerto, así que cada ejercicio se mide contra
+   su propia vara, no una sola tabla genérica.
+   Sentadilla/Press banca/Peso muerto/Dominadas: pisos y techos basados en
+   tablas de fuerza publicadas (StrongerMobile, FORMA, strengthcalculator.org
+   — beginner/elite en múltiplos del peso corporal; ratio mujer/hombre según
+   la guía de esas mismas fuentes: ~80% en tren inferior, ~65% en tren
+   superior, y el dato específico de dominadas con carga total).
+   Flexiones/Pájaros/Elevación de talones: sin tabla pública consolidada —
+   estimados por analogía con el movimiento comparable (flexiones ~ press
+   banca con otra palanca; pájaros ~ una fracción de elevaciones laterales;
+   elevación de talones ~ sentadilla, más accesible). */
+private data class AnclaFuerza(val beginnerM: Float, val diosM: Float, val beginnerF: Float, val diosF: Float)
+
+private val ANCLAS_FUERZA: Map<String, AnclaFuerza> = mapOf(
+    "Sentadilla" to AnclaFuerza(beginnerM = 0.75f, diosM = 2.90f, beginnerF = 0.60f, diosF = 2.32f),
+    "Press banca" to AnclaFuerza(beginnerM = 0.50f, diosM = 2.30f, beginnerF = 0.33f, diosF = 1.50f),
+    "Peso muerto" to AnclaFuerza(beginnerM = 1.00f, diosM = 3.15f, beginnerF = 0.80f, diosF = 2.52f),
+    "Dominadas" to AnclaFuerza(beginnerM = 1.00f, diosM = 2.90f, beginnerF = 1.00f, diosF = 2.65f),
+    "Flexiones" to AnclaFuerza(beginnerM = 0.65f, diosM = 2.20f, beginnerF = 0.42f, diosF = 1.43f),
+    "Elevaciones laterales" to AnclaFuerza(beginnerM = 0.07f, diosM = 0.33f, beginnerF = 0.053f, diosF = 0.25f),
+    "Pájaros" to AnclaFuerza(beginnerM = 0.056f, diosM = 0.264f, beginnerF = 0.042f, diosF = 0.20f),
+    "Elevación de talones" to AnclaFuerza(beginnerM = 0.60f, diosM = 2.75f, beginnerF = 0.48f, diosF = 2.20f)
+)
+
+/** Puntaje (misma escala 0f.. que usa [nivelDesdePuntaje]) de UNA marca
+ *  puntual, calibrado contra su ancla de fuerza. La progresión es
+ *  logarítmica a propósito: en la vida real cuesta mucho menos pasar de
+ *  principiante a novato que de avanzado a elite, así que un ratio a mitad
+ *  de camino entre el piso y el techo NO debería dar la mitad del puntaje. */
+fun puntajeDeMarca(marca: MarcaPersonal, pesoCorporalKg: Float, sexo: SexoBiologico?): Float {
+    if (pesoCorporalKg <= 0f) return 0f
+    val ancla = ANCLAS_FUERZA[marca.ejercicio] ?: return 0f
+    val (piso, techo) = when (sexo) {
+        SexoBiologico.MASCULINO -> ancla.beginnerM to ancla.diosM
+        SexoBiologico.FEMENINO -> ancla.beginnerF to ancla.diosF
+        else -> (ancla.beginnerM + ancla.beginnerF) / 2f to (ancla.diosM + ancla.diosF) / 2f
+    }
+    val ratio = cargaTotal(marca, pesoCorporalKg) / pesoCorporalKg
+    if (ratio <= 0f) return 0f
+    val progreso = (ln(ratio / piso) / ln(techo / piso)).coerceIn(0f, 1f)
+    return progreso * TOTAL_NIVELES * PUNTOS_POR_NIVEL
+}
+
+/** Cuántos ejercicios distintos hay que tener registrados (con marca
+ *  vigente) para entrar en la Escalera del Olimpo — sin este piso, alguien
+ *  con una sola marca cargada (buena o mala) tendría un rango "general"
+ *  tan válido como alguien entrenado de verdad. 3 de los 8 ejercicios de la
+ *  Calculadora: más de un tercio, para que el promedio no dependa de un
+ *  único levantamiento. */
+const val MINIMO_EJERCICIOS_PARA_CLASIFICACION = 3
+
+/** Cuántos ejercicios distintos tiene registrados (con o sin verificar) —
+ *  para avisarle al socio cuántos le faltan para entrar en la Escalera. */
+fun cantidadEjerciciosVigentes(marcas: List<MarcaPersonal>): Int = marcas.map { it.ejercicio }.distinct().size
+
 /** Resumen muscular calculado a partir de las marcas del socio: puntaje por
  *  zona + si ese resultado está respaldado por marcas ya verificadas. */
 data class ResumenMuscular(
@@ -281,19 +342,22 @@ data class ResumenMuscular(
  *  anterior para el cálculo, no se acumulan puntos. Así el rango baja si
  *  la marca nueva es más floja, en vez de quedar pegado arriba por una
  *  marca vieja (aunque siga visible en el historial de "Mis marcas"). El
- *  1RM se relativiza al peso corporal para que el puntaje sea comparable
- *  entre socios de distinto tamaño. El estado "verificado" del Bodygraph
- *  depende de si esas marcas vigentes ya fueron confirmadas por un
- *  entrenador. */
-fun resumenMuscular(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): ResumenMuscular {
+ *  estado "verificado" del Bodygraph depende de si esas marcas vigentes ya
+ *  fueron confirmadas por un entrenador. Esto arma el detalle POR ZONA del
+ *  Bodygraph — para el rango GENERAL de la Escalera del Olimpo usar
+ *  [puntajeGeneralDeSocio], que promedia por ejercicio en vez de por zona
+ *  (si no, un socio que solo hace los 3 grandes levantamientos queda con
+ *  deltoides medio/posterior y pantorrillas en cero para siempre, porque
+ *  hoy son zonas que solo entrenan las 3 isolaciones de la Calculadora). */
+fun resumenMuscular(marcas: List<MarcaPersonal>, pesoCorporalKg: Float, sexo: SexoBiologico? = null): ResumenMuscular {
     val vigentePorEjercicio = marcas.groupBy { it.ejercicio }
         .mapNotNull { (_, ms) -> ms.maxByOrNull { it.timestamp } }
 
     val puntajes = mutableMapOf<ZonaMuscular, Float>()
     vigentePorEjercicio.forEach { marca ->
-        val relativo = calcular1RM(cargaTotal(marca, pesoCorporalKg), marca.reps) / pesoCorporalKg
+        val puntajeEjercicio = puntajeDeMarca(marca, pesoCorporalKg, sexo)
         CONTRIBUCION_MUSCULAR[marca.ejercicio]?.forEach { (zona, peso) ->
-            puntajes[zona] = (puntajes[zona] ?: 0f) + relativo * peso
+            puntajes[zona] = (puntajes[zona] ?: 0f) + puntajeEjercicio * peso
         }
     }
 
@@ -302,6 +366,29 @@ fun resumenMuscular(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): Resumen
         verificado = vigentePorEjercicio.isNotEmpty() && vigentePorEjercicio.all { it.verificado },
         tieneMarcas = vigentePorEjercicio.isNotEmpty()
     )
+}
+
+/** Rango GENERAL para la Escalera del Olimpo: promedio del puntaje
+ *  calibrado de cada ejercicio vigente (no por zona muscular — ver el
+ *  comentario en [resumenMuscular]). `null` si no llega al mínimo de
+ *  [MINIMO_EJERCICIOS_PARA_CLASIFICACION] ejercicios distintos. */
+fun puntajeGeneralDeSocio(marcas: List<MarcaPersonal>, pesoCorporalKg: Float, sexo: SexoBiologico?): Float? {
+    val vigentePorEjercicio = marcas.groupBy { it.ejercicio }
+        .mapNotNull { (_, ms) -> ms.maxByOrNull { it.timestamp } }
+    if (vigentePorEjercicio.size < MINIMO_EJERCICIOS_PARA_CLASIFICACION) return null
+    return vigentePorEjercicio.map { puntajeDeMarca(it, pesoCorporalKg, sexo) }.average().toFloat()
+}
+
+/** Ejercicio en el que el socio levanta más veces su propio peso —
+ *  el dato detrás de "{nombre} levanta X veces su peso" en Clasificación. */
+data class MejorLevantamiento(val ejercicio: String, val vecesPesoCorporal: Float)
+
+fun mejorLevantamientoVigente(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): MejorLevantamiento? {
+    if (pesoCorporalKg <= 0f) return null
+    return marcas.groupBy { it.ejercicio }
+        .mapNotNull { (_, ms) -> ms.maxByOrNull { it.timestamp } }
+        .maxByOrNull { cargaTotal(it, pesoCorporalKg) / pesoCorporalKg }
+        ?.let { MejorLevantamiento(it.ejercicio, cargaTotal(it, pesoCorporalKg) / pesoCorporalKg) }
 }
 
 /** Suma de la carga vigente (mismo criterio que [resumenMuscular]: solo la

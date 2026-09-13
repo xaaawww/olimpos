@@ -35,6 +35,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Datos físicos: a diferencia de socios_app, esto SÍ lo escribe el
+    // propio socio (peso/edad/sexo/experiencia del onboarding obligatorio)
+    // — solo sobre su propio documento. Se puede leer en general porque los
+    // rangos de la Escalera del Olimpo se calculan contra el peso de cada
+    // uno, y el perfil de un socio en Clasificación muestra ese dato.
+    match /datos_fisicos/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;

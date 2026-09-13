@@ -24,6 +24,7 @@ object DatosRemotos {
     var platos by mutableStateOf<List<Plato>?>(null); private set
     var ejercicios by mutableStateOf<List<EjercicioCatalogo>?>(null); private set
     var rangosSocios by mutableStateOf<List<SocioRango>?>(null); private set
+    var datosFisicosPropios by mutableStateOf<DatosFisicos?>(null); private set
 
     private var yaPrecargado = false
 
@@ -34,6 +35,7 @@ object DatosRemotos {
             launch { marcas = cargarMarcasDesdeFirebase() }
             launch { platos = cargarPlatosDesdeFirebase() }
             launch { ejercicios = cargarEjerciciosDesdeFirebase() }
+            launch { datosFisicosPropios = cargarDatosFisicosPropios() }
             launch { rangosSocios = cargarRangosDeSocios() }
         }
     }
@@ -47,5 +49,11 @@ object DatosRemotos {
 
     suspend fun recargarRangosSocios() {
         rangosSocios = cargarRangosDeSocios()
+    }
+
+    /** Se llama apenas termina el onboarding (ver MainActivity), para que
+     *  el peso recién cargado ya esté disponible sin reiniciar la app. */
+    suspend fun recargarDatosFisicosPropios() {
+        datosFisicosPropios = cargarDatosFisicosPropios()
     }
 }

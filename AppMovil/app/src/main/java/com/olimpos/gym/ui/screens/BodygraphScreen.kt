@@ -33,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
-import com.olimpos.gym.data.EVOLUCION_PESO
 import com.olimpos.gym.data.GrupoMuscular
 import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
@@ -54,8 +53,9 @@ fun BodygraphScreen(onVolver: () -> Unit) {
     // mostrar primero el catálogo de ejemplo para reemplazarlo después.
     val marcas = DatosRemotos.marcas?.takeIf { it.isNotEmpty() } ?: MIS_MARCAS
 
-    val pesoCorporal = EVOLUCION_PESO.lastOrNull()?.valor ?: 80f
-    val resumen = remember(marcas) { resumenMuscular(marcas, pesoCorporal) }
+    val datosFisicos = DatosRemotos.datosFisicosPropios
+    val pesoCorporal = datosFisicos?.pesoKg ?: 80f
+    val resumen = remember(marcas, datosFisicos) { resumenMuscular(marcas, pesoCorporal, datosFisicos?.sexo) }
     val nivelesPorZona = remember(resumen) {
         ZonaMuscular.entries.associateWith { zona -> resumen.puntajes[zona]?.let(::nivelDesdePuntaje) }
     }

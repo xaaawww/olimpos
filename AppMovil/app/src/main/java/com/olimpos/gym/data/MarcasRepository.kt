@@ -37,26 +37,36 @@ suspend fun cargarMarcasDesdeFirebase(): List<MarcaPersonal>? {
     }
 }
 
-/** Rango general de un socio (promedio de sus 19 zonas), para la Escalera
- *  del Olimpo — quién más del club llegó a cada nivel. [creadoMs] sale del
- *  alta de su acceso a la app (colección "socios_app", ver auth_repo.py) —
- *  es la única fecha real que existe por socio hoy. */
+/** Rango general de un socio (promedio calibrado por ejercicio — ver
+ *  [puntajeGeneralDeSocio]), para la Escalera del Olimpo — quién más del
+ *  club llegó a cada nivel. [creadoMs] sale del alta de su acceso a la app
+ *  (colección "socios_app", ver auth_repo.py); [pesoKg]/[sexo]/[edad] del
+ *  onboarding (colección "datos_fisicos") — es la base real del cálculo,
+ *  ya no una referencia fija compartida por todos. */
 data class SocioRango(
     val socioId: String,
     val nombre: String,
     val nivel: NivelMuscular,
     val verificado: Boolean,
     val kgTotales: Float,
+    val pesoKg: Float,
+    val edad: Int?,
+    val sexo: SexoBiologico?,
+    val mejorLevantamiento: MejorLevantamiento?,
     val creadoMs: Long? = null
 )
 
+/** Referencia SOLO para el caso borde de una cuenta sin datos físicos
+ *  todavía (no debería pasar: el onboarding es obligatorio desde el primer
+ *  login — ver MainActivity — pero una cuenta de prueba vieja podría no
+ *  tenerlos). */
 private const val PESO_CORPORAL_REFERENCIA = 80f
 
 /** Trae el rango general de TODOS los socios con marcas cargadas (no solo
- *  el actual), agrupando por socio_id. Sin perfil de socios todavía no hay
- *  forma de saber el peso corporal real de cada uno, así que se usa una
- *  referencia fija de 80kg para este cálculo — mismo criterio que usa el
- *  sistema de empleados (marcas_repo.py) para su ranking general. */
+ *  el actual), agrupando por socio_id, y cruzando contra sus datos físicos
+ *  reales. Solo entran a la Escalera del Olimpo los que tengan marcas en
+ *  al menos [MINIMO_EJERCICIOS_PARA_CLASIFICACION] ejercicios distintos —
+ *  ver [puntajeGeneralDeSocio]. */
 suspend fun cargarRangosDeSocios(): List<SocioRango>? {
     return try {
         val snapshotMarcas = Firebase.firestore.collection("marcas").get().await()
@@ -68,6 +78,7 @@ suspend fun cargarRangosDeSocios(): List<SocioRango>? {
         } catch (e: Exception) {
             emptyMap()
         }
+        val datosFisicosPorUid = cargarDatosFisicosDeTodos()
 
         snapshotMarcas.documents
             .groupBy { it.getString("socio_id") ?: "?" }
@@ -83,15 +94,20 @@ suspend fun cargarRangosDeSocios(): List<SocioRango>? {
                         verificado = doc.getBoolean("verificado") ?: false
                     )
                 }
-                val resumen = resumenMuscular(marcas, pesoCorporalKg = PESO_CORPORAL_REFERENCIA)
-                if (!resumen.tieneMarcas) return@mapNotNull null
-                val promedio = ZonaMuscular.entries.sumOf { (resumen.puntajes[it] ?: 0f).toDouble() } / ZonaMuscular.entries.size
+                val datosFisicos = datosFisicosPorUid[socioId]
+                val pesoCorporal = datosFisicos?.pesoKg ?: PESO_CORPORAL_REFERENCIA
+                val puntajeGeneral = puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo) ?: return@mapNotNull null
+                val resumen = resumenMuscular(marcas, pesoCorporal, datosFisicos?.sexo)
                 SocioRango(
                     socioId = socioId,
                     nombre = nombre,
-                    nivel = nivelDesdePuntaje(promedio.toFloat()),
+                    nivel = nivelDesdePuntaje(puntajeGeneral),
                     verificado = resumen.verificado,
-                    kgTotales = kgTotalesVigentes(marcas, PESO_CORPORAL_REFERENCIA),
+                    kgTotales = kgTotalesVigentes(marcas, pesoCorporal),
+                    pesoKg = pesoCorporal,
+                    edad = datosFisicos?.edad,
+                    sexo = datosFisicos?.sexo,
+                    mejorLevantamiento = mejorLevantamientoVigente(marcas, pesoCorporal),
                     creadoMs = creadoPorUid[socioId]
                 )
             }

@@ -50,15 +50,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DESCRIPCION_RANGO
 import com.olimpos.gym.data.DatosRemotos
-import com.olimpos.gym.data.EVOLUCION_PESO
+import com.olimpos.gym.data.MINIMO_EJERCICIOS_PARA_CLASIFICACION
 import com.olimpos.gym.data.MIS_MARCAS
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.RangoMuscular
+import com.olimpos.gym.data.SexoBiologico
 import com.olimpos.gym.data.SocioRango
-import com.olimpos.gym.data.ZonaMuscular
+import com.olimpos.gym.data.cantidadEjerciciosVigentes
 import com.olimpos.gym.data.formatearAntiguedad
 import com.olimpos.gym.data.nivelDesdePuntaje
-import com.olimpos.gym.data.resumenMuscular
+import com.olimpos.gym.data.puntajeGeneralDeSocio
 import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.ui.theme.Olimpos
 
@@ -177,14 +178,12 @@ private fun EscaleraDelOlimpo(onVerMiembros: (NivelMuscular) -> Unit) {
     // Precargado desde que se entró a la app (ver DatosRemotos/MainActivity).
     val marcas = DatosRemotos.marcas?.takeIf { it.isNotEmpty() } ?: MIS_MARCAS
     val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
-    val pesoCorporal = EVOLUCION_PESO.lastOrNull()?.valor ?: 80f
-    val rangoActual = remember(marcas) {
-        val resumen = resumenMuscular(marcas, pesoCorporal)
-        if (!resumen.tieneMarcas) null else {
-            val promedio = ZonaMuscular.entries.sumOf { (resumen.puntajes[it] ?: 0f).toDouble() } / ZonaMuscular.entries.size
-            nivelDesdePuntaje(promedio.toFloat())
-        }
+    val datosFisicos = DatosRemotos.datosFisicosPropios
+    val pesoCorporal = datosFisicos?.pesoKg ?: 80f
+    val rangoActual = remember(marcas, datosFisicos) {
+        puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo)?.let { nivelDesdePuntaje(it) }
     }
+    val ejerciciosRegistrados = remember(marcas) { cantidadEjerciciosVigentes(marcas) }
     val escalones = remember {
         RangoMuscular.entries.reversed().flatMap { rango -> (rango.nivelesMax downTo 1).map { NivelMuscular(rango, it) } }
     }
@@ -198,6 +197,27 @@ private fun EscaleraDelOlimpo(onVerMiembros: (NivelMuscular) -> Unit) {
         "De Mortal, al pie de la montaña, a Dios en la cima. Tocá un escalón para ver quién llegó ahí.",
         fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 14.dp)
     )
+
+    if (rangoActual == null) {
+        val faltan = (MINIMO_EJERCICIOS_PARA_CLASIFICACION - ejerciciosRegistrados).coerceAtLeast(0)
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Olimpos.Card)
+                .border(1.dp, Olimpos.Line, RoundedCornerShape(16.dp))
+                .padding(14.dp)
+        ) {
+            Text(
+                if (faltan > 0)
+                    "Todavía no aparecés en la Escalera del Olimpo: cargá marcas en $faltan ejercicio${if (faltan == 1) "" else "s"} más de la Calculadora (mínimo $MINIMO_EJERCICIOS_PARA_CLASIFICACION en total) para entrar al ranking."
+                else
+                    "Todavía no aparecés en la Escalera del Olimpo: te faltan datos personales (peso) para calcular tu rango.",
+                fontSize = 12.sp, color = Olimpos.Muted
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+    }
 
     Box(
         Modifier
@@ -528,9 +548,14 @@ private fun FilaMiembro(socio: SocioRango, esYo: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Detalle de un perfil: nombre como título grande y una descripción con
- *  su rango, kg totales y antigüedad — se abre tanto desde la lista de
- *  miembros de un rango como directo desde el buscador. */
+/** Detalle de un perfil: nombre como título grande, datos personales (los
+ *  rangos se calculan contra el peso de cada uno, así que se muestran acá),
+ *  la frase de cuántas veces su peso levanta y un recuadro al costado
+ *  reservado para su Bodygraph personal — todavía no se puede ver el de
+ *  otro socio (hoy el Bodygraph solo calcula el propio a partir de las
+ *  marcas ya precargadas), así que por ahora queda como adelanto. Se abre
+ *  tanto desde la lista de miembros de un rango como directo desde el
+ *  buscador. */
 @Composable
 private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
     Box(
@@ -542,7 +567,7 @@ private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
     ) {
         Column(
             Modifier
-                .padding(horizontal = 36.dp)
+                .padding(horizontal = 30.dp)
                 .clip(RoundedCornerShape(24.dp))
                 .background(Olimpos.Card)
                 .border(1.dp, Olimpos.Gold.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
@@ -562,14 +587,53 @@ private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             ChipOro(socio.nivel.etiquetaCompleta)
-            Spacer(Modifier.height(14.dp))
+
+            Spacer(Modifier.height(10.dp))
             Text(
-                "Lleva un total estimado de ${socio.kgTotales.toInt()} kg levantados en sus marcas" +
-                    (if (socio.verificado) " verificadas" else " (todavía sin verificar)") +
-                    ", y forma parte de OlimpΩs desde hace " +
-                    formatearAntiguedad(socio.creadoMs).removePrefix("Socio hace ").removePrefix("Se unió ") + ".",
-                fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center
+                listOfNotNull(
+                    "${socio.pesoKg.toInt()} kg",
+                    socio.edad?.let { "$it años" },
+                    socio.sexo?.takeIf { it != SexoBiologico.PREFIERO_NO_DECIRLO }?.etiqueta
+                ).joinToString(" · "),
+                fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Gold
             )
+
+            Spacer(Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        buildString {
+                            socio.mejorLevantamiento?.let { m ->
+                                append("${socio.nombre} levanta ${"%.1f".format(m.vecesPesoCorporal)} veces su peso corporal (en ${m.ejercicio}). ")
+                            }
+                            append("Lleva un total estimado de ${socio.kgTotales.toInt()} kg levantados en sus marcas")
+                            append(if (socio.verificado) " verificadas" else " (todavía sin verificar)")
+                            append(", y forma parte de OlimpΩs desde hace ")
+                            append(formatearAntiguedad(socio.creadoMs).removePrefix("Socio hace ").removePrefix("Se unió "))
+                            append(".")
+                        },
+                        fontSize = 12.5.sp, color = Olimpos.Muted
+                    )
+                }
+                // Recuadro reservado para el Bodygraph personal de este socio
+                // — el detalle por músculo llega en una próxima entrega.
+                Column(
+                    Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Olimpos.Superficie2)
+                        .border(1.dp, Olimpos.Line, RoundedCornerShape(14.dp))
+                        .padding(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("🫁", fontSize = 18.sp)
+                    Text(
+                        "Bodygraph\npróx.", fontSize = 8.sp, color = Olimpos.Muted,
+                        textAlign = TextAlign.Center, lineHeight = 9.sp
+                    )
+                }
+            }
         }
     }
 }
