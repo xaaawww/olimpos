@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,16 +43,28 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DETALLES_EJERCICIOS
+import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.DetalleEjercicio
 import com.olimpos.gym.data.EjercicioRutina
 import com.olimpos.gym.data.RUTINA_HOY
-import com.olimpos.gym.data.RutinaDelDia
-import com.olimpos.gym.data.calcular1RM
+import com.olimpos.gym.data.SerieEntrenamiento
+import com.olimpos.gym.data.SerieHecha
+import com.olimpos.gym.data.ghostModeDeEjercicio
+import com.olimpos.gym.data.guardarSerieEnFirebase
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private const val PASO_KG = 2.5f
 
 private fun formatoKg(kg: Float): String = "%.1f".format(kg).replace('.', ',')
+
+/** Reps sugeridas para arrancar el campo editable de una serie: el primer
+ *  número del rango prescrito por el entrenador (ej. "8-10" → 8). Es solo
+ *  un punto de partida — el socio ajusta a lo que realmente hizo antes de
+ *  tocar "Registrar serie". */
+private fun repsSugeridas(detalle: DetalleEjercicio?): Int =
+    detalle?.reps?.let { Regex("\\d+").find(it)?.value?.toIntOrNull() } ?: 8
 
 @Composable
 fun EntrenarScreen() {
@@ -68,14 +81,20 @@ fun EntrenarScreen() {
     }
 
     val rutina = RUTINA_HOY
+    val scope = rememberCoroutineScope()
 
-    // Peso de trabajo actual por ejercicio (ajustable con +/-) y las series
-    // ya registradas (con el peso que tenían en el momento de registrarlas)
-    // — todo en memoria mientras dura la sesión, ver aviso al pie.
+    // Peso y reps de trabajo actual por ejercicio (ajustables) y las series
+    // ya registradas (con el peso/reps que tenían en el momento de
+    // registrarlas) — en memoria mientras dura la sesión, pero cada serie
+    // se guarda en Firestore al tocar "Registrar serie" (ver
+    // guardarSerieEnFirebase), así el Ghost Mode y "kg movidos este mes"
+    // de Inicio la ven sin esperar a que termine la sesión.
     val pesos = remember { mutableStateListOf(*rutina.ejercicios.map { it.pesoBaseKg }.toTypedArray()) }
-    val seriesHechas = remember { rutina.ejercicios.map { mutableStateListOf<Float>() } }
+    val reps = remember { mutableStateListOf(*rutina.ejercicios.map { repsSugeridas(DETALLES_EJERCICIOS[it.nombre]) }.toTypedArray()) }
+    val seriesHechas = remember { rutina.ejercicios.map { mutableStateListOf<SerieHecha>() } }
     val totalObjetivo = remember { rutina.ejercicios.sumOf { it.seriesObjetivo } }
     val totalHechas = seriesHechas.sumOf { it.size }
+    val historialSeries = DatosRemotos.seriesEntrenamiento ?: emptyList()
 
     // Column + verticalScroll a propósito, NO LazyColumn: son pocas tarjetas
     // y cada una tiene un campo de texto (el peso editable). En una lista
@@ -116,25 +135,38 @@ fun EntrenarScreen() {
                 ejercicio = ej,
                 pesoActual = pesos[i],
                 onPeso = { pesos[i] = it.coerceAtLeast(0f) },
+                repsActual = reps[i],
+                onReps = { reps[i] = it.coerceAtLeast(1) },
                 seriesHechas = seriesHechas[i],
-                onRegistrarSerie = { seriesHechas[i].add(pesos[i]) },
+                onRegistrarSerie = {
+                    val serie = SerieHecha(pesoKg = pesos[i], reps = reps[i])
+                    seriesHechas[i].add(serie)
+                    scope.launch {
+                        guardarSerieEnFirebase(ej.nombre, serie.pesoKg, serie.reps, System.currentTimeMillis(), ej.esPesoCorporal)
+                        DatosRemotos.recargarSeriesEntrenamiento()
+                    }
+                },
                 onTecnica = { detalleEjercicio = ej.nombre },
                 modifier = Modifier.padding(bottom = 10.dp)
             )
         }
 
         SeccionLabel("Ghost Mode")
-        TarjetaGhostMode(rutina)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            rutina.ejercicios.forEachIndexed { i, ej ->
+                TarjetaGhostMode(ej.nombre, seriesHechas[i], historialSeries)
+            }
+        }
 
         Spacer(Modifier.height(6.dp))
         BotonPrincipal("Terminar y enviar a validación") {
-            // Sin backend de sesiones todavía: cada serie ya se guarda en
-            // Firestore individualmente al tocar "Registrar serie" (ver
-            // guardarMarcaEnFirebase en MarcasScreen) — este botón es el
-            // cierre visual de la sesión, no dispara un envío aparte.
+            // Cada serie ya se guarda en Firestore al instante al tocar
+            // "Registrar serie" (ver guardarSerieEnFirebase más arriba) —
+            // este botón es el cierre visual de la sesión, no dispara un
+            // envío aparte.
         }
         Text(
-            "Las series quedan registradas al instante; tu entrenador valida la marca cuando termine la sesión.",
+            "Cada serie queda registrada al instante en tu historial de entrenamiento.",
             fontSize = 10.5.sp, color = Olimpos.Muted, lineHeight = 14.sp,
             modifier = Modifier.padding(top = 8.dp)
         )
@@ -183,7 +215,9 @@ private fun TarjetaEjercicioRutina(
     ejercicio: EjercicioRutina,
     pesoActual: Float,
     onPeso: (Float) -> Unit,
-    seriesHechas: List<Float>,
+    repsActual: Int,
+    onReps: (Int) -> Unit,
+    seriesHechas: List<SerieHecha>,
     onRegistrarSerie: () -> Unit,
     onTecnica: () -> Unit,
     modifier: Modifier = Modifier
@@ -192,21 +226,31 @@ private fun TarjetaEjercicioRutina(
     val completo = seriesHechas.size >= ejercicio.seriesObjetivo
 
     TarjetaOro(modifier.fillMaxWidth()) {
+        Text(ejercicio.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream)
+        Text(
+            "${ejercicio.seriesObjetivo} x ${detalle?.reps ?: "-"}" +
+                (detalle?.let { " · descanso ${Math.round(it.descansoSeg / 60f).coerceAtLeast(1)}min" } ?: ""),
+            fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted
+        )
+
+        Spacer(Modifier.height(10.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(ejercicio.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream)
-                Text(
-                    "${ejercicio.seriesObjetivo} x ${detalle?.reps ?: "-"}" +
-                        (detalle?.let { " · descanso ${Math.round(it.descansoSeg / 60f).coerceAtLeast(1)}min" } ?: ""),
-                    fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted
-                )
-            }
+            Text("Peso", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
+            Spacer(Modifier.weight(1f))
             BotonPasoPeso("－", habilitado = pesoActual > 0f, onClick = { onPeso((pesoActual - PASO_KG).coerceAtLeast(0f)) })
             CampoPesoCompacto(
                 valor = pesoActual, onValor = onPeso, prefijoMas = ejercicio.esPesoCorporal,
                 modifier = Modifier.padding(horizontal = 6.dp)
             )
             BotonPasoPeso("＋", habilitado = true, onClick = { onPeso(pesoActual + PASO_KG) })
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Repeticiones", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
+            Spacer(Modifier.weight(1f))
+            BotonPasoPeso("－", habilitado = repsActual > 1, onClick = { onReps((repsActual - 1).coerceAtLeast(1)) })
+            CampoRepsCompacto(valor = repsActual, onValor = onReps, modifier = Modifier.padding(horizontal = 6.dp))
+            BotonPasoPeso("＋", habilitado = true, onClick = { onReps(repsActual + 1) })
         }
 
         Spacer(Modifier.height(12.dp))
@@ -227,8 +271,8 @@ private fun TarjetaEjercicioRutina(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (hecha) formatoKg(seriesHechas[i]) else "S${i + 1}",
-                        fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
+                        if (hecha) "${formatoKg(seriesHechas[i].pesoKg)}×${seriesHechas[i].reps}" else "S${i + 1}",
+                        fontSize = 10.sp, fontWeight = FontWeight.ExtraBold,
                         color = if (hecha) Olimpos.GoldLight else Olimpos.Muted
                     )
                 }
@@ -327,26 +371,80 @@ private fun CampoPesoCompacto(
     }
 }
 
-/** Ghost Mode: compara la última marca validada de un ejercicio contra el
- *  peso que se está cargando hoy en la rutina. Sin dato de ejemplo: el
- *  seguimiento de esta rutina vive solo en memoria durante la sesión (ver
- *  aviso al pie de pantalla) y todavía no se guarda un historial de
- *  sesiones anteriores en Firestore, así que hoy no hay de dónde sacar
- *  una "última marca validada" real — se avisa eso en vez de inventar
- *  una comparación. */
+/** Igual que [CampoPesoCompacto] pero para un entero (repeticiones) — sin
+ *  decimales ni sufijo de unidad. */
 @Composable
-private fun TarjetaGhostMode(rutina: RutinaDelDia) {
-    val ejercicio = rutina.ejercicios.firstOrNull()?.nombre ?: "este ejercicio"
+private fun CampoRepsCompacto(valor: Int, onValor: (Int) -> Unit, modifier: Modifier = Modifier) {
+    var enfocado by remember { mutableStateOf(false) }
+    var texto by remember { mutableStateOf(valor.toString()) }
+    LaunchedEffect(valor) {
+        if (!enfocado) texto = valor.toString()
+    }
+
+    Row(
+        modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Olimpos.GoldSoft)
+            .border(1.dp, Olimpos.Gold.copy(alpha = if (enfocado) 0.7f else 0.3f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = texto,
+            onValueChange = { nuevo ->
+                texto = nuevo
+                nuevo.toIntOrNull()?.let { if (it >= 1) onValor(it) }
+            },
+            modifier = Modifier
+                .width(24.dp)
+                .onFocusChanged { estado ->
+                    enfocado = estado.isFocused
+                    if (!estado.isFocused) texto = valor.toString()
+                },
+            singleLine = true,
+            textStyle = TextStyle(
+                fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight,
+                textAlign = TextAlign.Center
+            ),
+            cursorBrush = SolidColor(Olimpos.Gold),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+        )
+        Text(" reps", fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
+    }
+}
+
+/** Ghost Mode real: compara la mejor serie de HOY (si ya se registró
+ *  alguna de este ejercicio) contra la mejor serie de la sesión anterior
+ *  en Firestore — ver [ghostModeDeEjercicio]. Antes esto comparaba contra
+ *  un ejemplo fijo ("80kg × 8"), lo que producía mensajes contradictorios
+ *  ("superaste" con una diferencia negativa); ahora, sin sesión anterior
+ *  real con la que comparar, se avisa eso en vez de inventar un resultado. */
+@Composable
+private fun TarjetaGhostMode(ejercicio: String, seriesHoy: List<SerieHecha>, historial: List<SerieEntrenamiento>) {
+    val comparacion = remember(seriesHoy.size, historial) { ghostModeDeEjercicio(ejercicio, seriesHoy, historial) }
     TarjetaOro(Modifier.fillMaxWidth()) {
         Text(
             "GHOST MODE · ${ejercicio.uppercase()}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.sp, color = Olimpos.Muted
         )
         Spacer(Modifier.height(12.dp))
+        if (comparacion == null) {
+            Text(
+                if (seriesHoy.isEmpty())
+                    "Registrá una serie de $ejercicio para activar la comparación."
+                else
+                    "Todavía no tenés una sesión anterior de $ejercicio para comparar. La próxima vez que lo entrenes, vas a ver acá cuánto superás hoy.",
+                fontSize = 12.sp, color = Olimpos.Muted, lineHeight = 16.sp
+            )
+            return@TarjetaOro
+        }
+        val color = if (comparacion.supera) Olimpos.Green else Olimpos.Red
         Text(
-            "Todavía no tenés una marca validada de $ejercicio para comparar. A medida que tu entrenador " +
-                "valide tus PRs, vas a poder ver acá cuánto superás tu marca anterior.",
-            fontSize = 12.sp, color = Olimpos.Muted, lineHeight = 16.sp
+            "${if (comparacion.supera) "Superaste" else "Todavía no superaste"} tu sesión anterior " +
+                "(${formatoKg(comparacion.pesoAnterior)}kg × ${comparacion.repsAnterior}) por " +
+                "${formatoKg(kotlin.math.abs(comparacion.diferenciaKg))}kg de 1RM estimado, con " +
+                "${formatoKg(comparacion.pesoHoy)}kg × ${comparacion.repsHoy} hoy.",
+            fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color, lineHeight = 16.sp
         )
     }
 }

@@ -25,6 +25,7 @@ object DatosRemotos {
     var ejercicios by mutableStateOf<List<EjercicioCatalogo>?>(null); private set
     var rangosSocios by mutableStateOf<List<SocioRango>?>(null); private set
     var datosFisicosPropios by mutableStateOf<DatosFisicos?>(null); private set
+    var seriesEntrenamiento by mutableStateOf<List<SerieEntrenamiento>?>(null); private set
 
     private var yaPrecargado = false
 
@@ -37,7 +38,14 @@ object DatosRemotos {
             launch { ejercicios = cargarEjerciciosDesdeFirebase() }
             launch { datosFisicosPropios = cargarDatosFisicosPropios() }
             launch { rangosSocios = cargarRangosDeSocios() }
+            launch { seriesEntrenamiento = cargarSeriesDesdeFirebase() }
         }
+    }
+
+    /** Se llama después de registrar una serie nueva en Entrenar, para que
+     *  "kg movidos este mes" y el Ghost Mode no se queden con la foto vieja. */
+    suspend fun recargarSeriesEntrenamiento() {
+        seriesEntrenamiento = cargarSeriesDesdeFirebase()
     }
 
     /** Se llama después de cargar una marca nueva (ver [MarcasScreen]), para

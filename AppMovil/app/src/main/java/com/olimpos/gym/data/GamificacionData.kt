@@ -536,27 +536,75 @@ private val EQUIVALENCIAS = listOf(
     Equivalencia(Int.MAX_VALUE, "una ballena beluga", "🐳")
 )
 
-/** Kg movidos en el mes calendario actual, para la tarjeta de equivalencia
- *  de Inicio: suma peso×repeticiones de CADA marca cargada este mes (no
- *  solo la vigente por ejercicio, como el ranking — acá interesa el
- *  volumen real entrenado, no un PR puntual). El timestamp de cada marca
- *  siempre fue real (epoch ms); lo que faltaba era filtrar por mes en vez
- *  de mostrar un 0 fijo. */
-fun kgMovidosEsteMes(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): Int {
+private fun esDeEsteMes(timestampMs: Long): Boolean {
     val ahora = java.util.Calendar.getInstance()
-    val mesActual = ahora.get(java.util.Calendar.MONTH)
-    val anioActual = ahora.get(java.util.Calendar.YEAR)
-    return marcas
-        .filter { marca ->
-            val cal = java.util.Calendar.getInstance().apply { timeInMillis = marca.timestamp }
-            cal.get(java.util.Calendar.MONTH) == mesActual && cal.get(java.util.Calendar.YEAR) == anioActual
-        }
+    val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestampMs }
+    return cal.get(java.util.Calendar.MONTH) == ahora.get(java.util.Calendar.MONTH) &&
+        cal.get(java.util.Calendar.YEAR) == ahora.get(java.util.Calendar.YEAR)
+}
+
+/** Kg movidos en el mes calendario actual, para la tarjeta de equivalencia
+ *  de Inicio: suma peso×repeticiones de CADA marca de la Calculadora Y
+ *  CADA serie de rutina registrada este mes (no solo la vigente por
+ *  ejercicio, como el ranking — acá interesa el volumen real entrenado, no
+ *  un PR puntual). El timestamp de cada una siempre fue real (epoch ms);
+ *  lo que faltaba era filtrar por mes en vez de mostrar un 0 fijo. */
+fun kgMovidosEsteMes(marcas: List<MarcaPersonal>, series: List<SerieEntrenamiento>, pesoCorporalKg: Float): Int {
+    val deMarcas = marcas
+        .filter { esDeEsteMes(it.timestamp) }
         .sumOf { (cargaTotal(it, pesoCorporalKg) * it.reps).toDouble() }
-        .toInt()
+    val deSeries = series
+        .filter { esDeEsteMes(it.timestamp) }
+        .sumOf { ((if (it.esPesoCorporal) pesoCorporalKg + it.pesoKg else it.pesoKg) * it.reps).toDouble() }
+    return (deMarcas + deSeries).toInt()
 }
 
 fun equivalenciaDeCarga(kg: Int): Equivalencia = EQUIVALENCIAS.first { kg <= it.umbralKg }
 fun cantidadEquivalencia(kg: Int, umbral: Int): Int = (kg / umbral.toFloat()).let { if (it < 1) 1 else it.toInt() }
+
+/* ── Ghost Mode: hoy vs. tu sesión anterior de este mismo ejercicio ── */
+
+/** Una serie ya registrada en la sesión de HOY (en memoria, ver
+ *  EntrenarScreen) — antes de guardarse en Firestore como
+ *  [SerieEntrenamiento]. */
+data class SerieHecha(val pesoKg: Float, val reps: Int)
+
+private fun esMismoDia(timestampMs: Long, referencia: java.util.Calendar): Boolean {
+    val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestampMs }
+    return cal.get(java.util.Calendar.DAY_OF_YEAR) == referencia.get(java.util.Calendar.DAY_OF_YEAR) &&
+        cal.get(java.util.Calendar.YEAR) == referencia.get(java.util.Calendar.YEAR)
+}
+
+/** Comparación real de Ghost Mode: la mejor serie (por 1RM estimado) de
+ *  HOY contra la mejor serie de la última sesión anterior en que se
+ *  entrenó este mismo ejercicio (se excluye lo ya registrado hoy, así una
+ *  serie de hoy no se compara contra sí misma). */
+data class ComparacionGhostMode(
+    val ejercicio: String,
+    val pesoAnterior: Float,
+    val repsAnterior: Int,
+    val pesoHoy: Float,
+    val repsHoy: Int
+) {
+    val supera: Boolean get() = calcular1RM(pesoHoy, repsHoy) > calcular1RM(pesoAnterior, repsAnterior)
+    val diferenciaKg: Float get() = calcular1RM(pesoHoy, repsHoy) - calcular1RM(pesoAnterior, repsAnterior)
+}
+
+/** `null` si hoy todavía no se registró ninguna serie de este ejercicio, o
+ *  si no hay ninguna sesión anterior (de otro día) para comparar. */
+fun ghostModeDeEjercicio(ejercicio: String, seriesHoy: List<SerieHecha>, historial: List<SerieEntrenamiento>): ComparacionGhostMode? {
+    if (seriesHoy.isEmpty()) return null
+    val mejorHoy = seriesHoy.maxByOrNull { calcular1RM(it.pesoKg, it.reps) } ?: return null
+    val hoyCal = java.util.Calendar.getInstance()
+    val mejorAnterior = historial
+        .filter { it.ejercicio == ejercicio && !esMismoDia(it.timestamp, hoyCal) }
+        .maxByOrNull { calcular1RM(it.pesoKg, it.reps) } ?: return null
+    return ComparacionGhostMode(
+        ejercicio = ejercicio,
+        pesoAnterior = mejorAnterior.pesoKg, repsAnterior = mejorAnterior.reps,
+        pesoHoy = mejorHoy.pesoKg, repsHoy = mejorHoy.reps
+    )
+}
 
 /* ── Objetivo de la Arena ── */
 enum class ObjetivoCompetencia(val etiqueta: String, val emoji: String) {

@@ -306,8 +306,9 @@ private fun EquivalenciaCarga() {
     // kgMovidosEsteMes) — antes esto era un 0 fijo porque no había forma
     // de filtrar por mes, ahora el timestamp real de cada marca alcanza.
     val marcas = DatosRemotos.marcas ?: emptyList()
+    val series = DatosRemotos.seriesEntrenamiento ?: emptyList()
     val pesoCorporal = DatosRemotos.datosFisicosPropios?.pesoKg ?: 80f
-    val kgDelMes = remember(marcas, pesoCorporal) { kgMovidosEsteMes(marcas, pesoCorporal) }
+    val kgDelMes = remember(marcas, series, pesoCorporal) { kgMovidosEsteMes(marcas, series, pesoCorporal) }
 
     if (kgDelMes <= 0) {
         TarjetaOro(Modifier.fillMaxWidth()) {

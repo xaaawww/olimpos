@@ -59,6 +59,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Series de entrenamiento: cada serie que un socio registra en una
+    // rutina de Entrenar (no una marca de la Calculadora — ver marcas_repo
+    // y EntrenamientoRepository.kt). A diferencia de "marcas", nadie las
+    // verifica: alimentan "kg movidos este mes" y el Ghost Mode, no el
+    // ranking de Clasificación. Cada socio solo lee/crea las propias.
+    match /series_entrenamiento/{serieId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;
