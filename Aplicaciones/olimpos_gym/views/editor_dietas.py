@@ -115,7 +115,7 @@ class EditorDietasView:
             )
         estado = status_pill("Publicado", "active") if p.get("publicado") else status_pill("Borrador", "pending")
 
-        return section_card(
+        tarjeta = section_card(
             ft.Column([
                 ft.Stack([
                     # El nombre solo aparece al pasar el mouse (tooltip
@@ -132,8 +132,13 @@ class EditorDietasView:
                     self._boton_texto("🗑️", RED, lambda e, pid=p["id"]: self._eliminar_plato(pid)),
                 ], spacing=6, alignment=ft.MainAxisAlignment.CENTER),
             ], spacing=10),
-            padding=14, width=ANCHO_TARJETA + 28,
+            padding=14,
         )
+        # section_card() (components.py, compartido con otras pantallas) no
+        # tiene parámetro "width" — se lo pone acá encima, en vez de tocar
+        # ese helper para no afectar a quien más lo use.
+        tarjeta.width = ANCHO_TARJETA + 28
+        return tarjeta
 
     def _refrescar(self, e):
         """Fuerza una relectura real de Firestore — la lista se cachea en
