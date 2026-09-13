@@ -32,6 +32,7 @@ object DatosRemotos {
      *  a abrir Entrenar (ver MainActivity). */
     var rutinaAsignada by mutableStateOf<RutinaDelDia?>(null); private set
     var ingresos by mutableStateOf<List<Long>?>(null); private set
+    var reservasClase by mutableStateOf<List<ReservaClase>?>(null); private set
 
     private var yaPrecargado = false
 
@@ -47,12 +48,18 @@ object DatosRemotos {
             launch { seriesEntrenamiento = cargarSeriesDesdeFirebase() }
             launch { rutinaAsignada = cargarRutinaAsignada() }
             launch { ingresos = cargarIngresosDesdeFirebase() }
+            launch { reservasClase = cargarReservasClaseDesdeFirebase() }
         }
     }
 
     /** Se llama al tocar "Marcar mi ingreso de hoy" en Accesos. */
     suspend fun recargarIngresos() {
         ingresos = cargarIngresosDesdeFirebase()
+    }
+
+    /** Se llama al tocar "Reservar" en una clase de Inicio. */
+    suspend fun recargarReservasClase() {
+        reservasClase = cargarReservasClaseDesdeFirebase()
     }
 
     /** Se llama después de registrar una serie nueva en Entrenar, para que

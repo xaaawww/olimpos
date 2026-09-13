@@ -67,11 +67,11 @@ private fun repsSugeridas(detalle: DetalleEjercicio?): Int =
 
 @Composable
 fun EntrenarScreen() {
-    var detalleEjercicio by remember { mutableStateOf<String?>(null) }
+    var detalleEjercicio by remember { mutableStateOf<EjercicioRutina?>(null) }
     var mostrarEntrenador by remember { mutableStateOf(false) }
 
-    if (detalleEjercicio != null) {
-        EjercicioDetalleScreen(detalleEjercicio!!, onVolver = { detalleEjercicio = null })
+    detalleEjercicio?.let { ej ->
+        DetalleTecnicaRutina(ej, onVolver = { detalleEjercicio = null })
         return
     }
     if (mostrarEntrenador) {
@@ -149,7 +149,7 @@ fun EntrenarScreen() {
                         DatosRemotos.recargarSeriesEntrenamiento()
                     }
                 },
-                onTecnica = { detalleEjercicio = ej.nombre },
+                onTecnica = { detalleEjercicio = ej },
                 modifier = Modifier.padding(bottom = 10.dp)
             )
         }
@@ -245,6 +245,32 @@ private fun SinRutinaAsignada(onActualizar: () -> Unit) {
                 Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
             }
         }
+    }
+}
+
+/** Botón "Técnica" de un ejercicio de la rutina: busca el ejercicio real en
+ *  el catálogo (por id, o por nombre si viene de una rutina vieja sin id
+ *  guardado) y reusa la misma pantalla de detalle que la Galería —
+ *  descripción y zonas musculares reales, nunca algo que el entrenador
+ *  tenga que tipear a mano. Antes esto leía de DETALLES_EJERCICIOS, un
+ *  mapa fijo con 6 ejercicios de ejemplo que no tenía forma de conocer un
+ *  ejercicio real armado desde Asignación de Rutinas. */
+@Composable
+private fun DetalleTecnicaRutina(ejercicio: EjercicioRutina, onVolver: () -> Unit) {
+    val catalogo = DatosRemotos.ejercicios ?: emptyList()
+    val real = catalogo.firstOrNull { it.id == ejercicio.ejercicioId }
+        ?: catalogo.firstOrNull { it.nombre == ejercicio.nombre }
+
+    if (real != null) {
+        EjercicioCatalogoDetalleScreen(real, onVolver)
+        return
+    }
+    Column(Modifier.fillMaxSize()) {
+        EncabezadoVolver(ejercicio.nombre, "Técnica y detalle del ejercicio", onVolver)
+        Text(
+            "Todavía no hay detalle cargado para este ejercicio en la Galería.",
+            fontSize = 13.sp, color = Olimpos.Muted, modifier = Modifier.padding(horizontal = 20.dp)
+        )
     }
 }
 

@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,12 +54,16 @@ import com.olimpos.gym.R
 import com.olimpos.gym.data.CLASES_SEMANA
 import com.olimpos.gym.data.ClaseSemana
 import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.ReservaClase
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
+import com.olimpos.gym.data.guardarReservaClaseEnFirebase
 import com.olimpos.gym.data.kgMovidosEsteMes
 import com.olimpos.gym.data.socioActualNombre
+import com.olimpos.gym.data.yaReservadaEstaSemana
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 @Composable
@@ -124,8 +129,9 @@ fun HomeScreen(
 
         // ── Clases de la semana (antes vivían en Entrenar) ──
         SeccionLabel("Clases de la semana")
+        val reservasClase = DatosRemotos.reservasClase ?: emptyList()
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase) }
+            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase, reservasClase) }
         }
 
         // ── Equivalencia de carga movida ──
@@ -344,9 +350,11 @@ private fun EquivalenciaCarga() {
    Tocar la fila (fuera del botón de reservar) despliega la descripción de
    la clase, para saber de qué se trata antes de anotarse. */
 @Composable
-fun TarjetaClase(clase: ClaseSemana) {
-    var reservado by remember { mutableStateOf(false) }
+fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>) {
     var expandida by remember { mutableStateOf(false) }
+    var reservando by remember { mutableStateOf(false) }
+    val reservado = reservando || yaReservadaEstaSemana(reservasClase, clase.id)
+    val scope = rememberCoroutineScope()
     TarjetaOro(
         Modifier
             .fillMaxWidth()
@@ -382,9 +390,16 @@ fun TarjetaClase(clase: ClaseSemana) {
                         RoundedCornerShape(100.dp)
                     )
                     .clickable(
+                        enabled = !reservado,
                         interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                         indication = null
-                    ) { reservado = true }
+                    ) {
+                        reservando = true
+                        scope.launch {
+                            guardarReservaClaseEnFirebase(clase.id)
+                            DatosRemotos.recargarReservasClase()
+                        }
+                    }
                     .padding(horizontal = 13.dp, vertical = 9.dp)
             ) {
                 Text(

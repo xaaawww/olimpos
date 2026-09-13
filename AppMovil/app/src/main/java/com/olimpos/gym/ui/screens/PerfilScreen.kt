@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.SocioAuth
+import com.olimpos.gym.data.clasesReservadasEstaSemana
 import com.olimpos.gym.data.rachaActualDeDias
 import com.olimpos.gym.data.visitasEnElMesActual
 import com.olimpos.gym.ui.theme.Olimpos
@@ -110,16 +111,16 @@ private fun PerfilHome(
         Spacer(Modifier.height(18.dp))
 
         // ── Estadísticas ──
-        // Racha y visitas ya salen de los ingresos reales marcados en
-        // Accesos (ver rachaActualDeDias/visitasEnElMesActual). "Clases
-        // sem." se queda en 0 a propósito: todavía no existe un registro
-        // real de asistencia a clases (reservar una solo muestra un aviso
-        // local, no queda guardado en ningún lado).
+        // Las tres salen de datos reales: ingresos marcados en Accesos
+        // (racha/visitas) y reservas de clase guardadas de verdad desde
+        // Inicio (antes "Reservar" solo cambiaba un estado local que se
+        // perdía al salir de la pantalla).
         val ingresos = DatosRemotos.ingresos ?: emptyList()
+        val reservasClase = DatosRemotos.reservasClase ?: emptyList()
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Estadistica("${rachaActualDeDias(ingresos)}", "Días racha", Modifier.weight(1f))
             Estadistica("${visitasEnElMesActual(ingresos)}", "Visitas mes", Modifier.weight(1f))
-            Estadistica("0", "Clases sem.", Modifier.weight(1f))
+            Estadistica("${clasesReservadasEstaSemana(reservasClase)}", "Clases sem.", Modifier.weight(1f))
         }
 
         SeccionLabel("Mi club")

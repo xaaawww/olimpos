@@ -168,21 +168,22 @@ val PISOS = listOf(
    reservar o ver de qué trata cada una (el contacto con el entrenador para
    pedir una rutina o sesión 1 a 1 se queda en Entrenar). */
 data class ClaseSemana(
+    val id: String,
     val hora: String, val dia: String, val nombre: String,
     val lugar: String, val descripcion: String
 )
 
 val CLASES_SEMANA = listOf(
     ClaseSemana(
-        "19:30", "HOY", "Spinning Intenso", "Sala de Spinning · Piso 1 · Prof. Martina",
+        "spinning-hoy", "19:30", "HOY", "Spinning Intenso", "Sala de Spinning · Piso 1 · Prof. Martina",
         "Clase grupal en bicicleta fija con cambios de ritmo e intervalos guiados por la profesora. Foco en resistencia cardiovascular y piernas — llevá botella de agua y toalla."
     ),
     ClaseSemana(
-        "18:00", "MAR", "Boxeo", "Sala de Boxeo · Piso 2",
+        "boxeo-mar", "18:00", "MAR", "Boxeo", "Sala de Boxeo · Piso 2",
         "Técnica de golpes y combinaciones sobre bolsa, más trabajo de acondicionamiento físico. No hace falta experiencia previa; el gimnasio presta guantes y vendas."
     ),
     ClaseSemana(
-        "10:00", "SÁB", "Danza / Aeróbicos", "Sala de Danza · Piso 1",
+        "danza-sab", "10:00", "SÁB", "Danza / Aeróbicos", "Sala de Danza · Piso 1",
         "Rutina coreografiada de bajo impacto pensada para resistencia y coordinación. Clase apta para todo nivel, ritmo variado según la coreografía de la semana."
     )
 )
@@ -200,7 +201,14 @@ data class EjercicioRutina(
     val pesoBaseKg: Float,
     /** Dominadas/fondos: el peso mostrado es lo AGREGADO al corporal, no el
      *  total (mismo criterio que EJERCICIOS_PESO_CORPORAL en GamificacionData.kt). */
-    val esPesoCorporal: Boolean = false
+    val esPesoCorporal: Boolean = false,
+    /** Id real del ejercicio en el catálogo (colección "ejercicios", el
+     *  mismo que arma la Galería) — el entrenador lo elige de una lista al
+     *  armar la rutina, nunca escribe uno a mano (ver editor_rutinas.py).
+     *  Con esto, el botón "Técnica" de Entrenar muestra la descripción y
+     *  las zonas musculares reales de ese ejercicio en vez de un detalle
+     *  inventado o vacío. */
+    val ejercicioId: String? = null
 )
 
 data class RutinaDelDia(val nombre: String, val creadaPor: String, val ejercicios: List<EjercicioRutina>)

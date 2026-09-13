@@ -81,6 +81,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // Reservas de clase: el propio socio reserva un lugar en una clase de
+    // la semana (ver ClasesRepository.kt) — solo lee/crea las propias.
+    match /reservas_clase/{reservaId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Rutinas asignadas: la arma un entrenador/dueño desde el sistema de
     // empleados (Admin SDK, no pasa por estas reglas — ver rutinas_repo.py),
     // un documento por socio (id = su uid). El socio solo la lee, nunca la

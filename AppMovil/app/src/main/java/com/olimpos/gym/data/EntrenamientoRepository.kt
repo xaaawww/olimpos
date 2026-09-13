@@ -91,7 +91,8 @@ suspend fun cargarRutinaAsignada(): RutinaDelDia? {
             val series = (m["series_objetivo"] as? Long)?.toInt() ?: (m["series_objetivo"] as? Double)?.toInt() ?: 3
             val peso = (m["peso_base_kg"] as? Double)?.toFloat() ?: (m["peso_base_kg"] as? Long)?.toFloat() ?: 0f
             val esPesoCorporal = m["es_peso_corporal"] as? Boolean ?: false
-            EjercicioRutina(nombreEj, series, peso, esPesoCorporal)
+            val ejercicioId = m["ejercicio_id"] as? String
+            EjercicioRutina(nombreEj, series, peso, esPesoCorporal, ejercicioId)
         }
         if (ejercicios.isEmpty()) return null
         RutinaDelDia(nombre, creadaPor, ejercicios)
