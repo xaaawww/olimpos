@@ -42,6 +42,7 @@ import com.olimpos.gym.data.MarcaPersonal
 import com.olimpos.gym.data.calcular1RM
 import com.olimpos.gym.data.cargarMarcasDesdeFirebase
 import com.olimpos.gym.data.eliminarMarcaEnFirebase
+import com.olimpos.gym.data.fechaLegible
 import com.olimpos.gym.data.guardarMarcaEnFirebase
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
@@ -125,11 +126,11 @@ fun MarcasScreen(onVolver: () -> Unit) {
                         BotonPrincipal("Registrar marca", habilitado = pesoF != null && repsI != null) {
                             val p = pesoF ?: 0f
                             val r = repsI ?: 0
-                            val hoy = "hoy"
                             val ahora = System.currentTimeMillis()
-                            marcas = marcas + MarcaPersonal(ejercicio = ejercicio, pesoKg = p, reps = r, fecha = hoy, timestamp = ahora, verificado = false)
+                            val fechaTexto = fechaLegible(ahora)
+                            marcas = marcas + MarcaPersonal(ejercicio = ejercicio, pesoKg = p, reps = r, fecha = fechaTexto, timestamp = ahora, verificado = false)
                             scope.launch {
-                                guardarMarcaEnFirebase(ejercicio, p, r, hoy, ahora)
+                                guardarMarcaEnFirebase(ejercicio, p, r, fechaTexto, ahora)
                                 // Bodygraph y Clasificación leen de este caché — sin
                                 // esto se quedarían con la marca anterior hasta
                                 // reiniciar la app.

@@ -185,11 +185,11 @@ val HISTORIAL_ALIMENTARIO = emptyList<HistorialNutricional>()
 /* ── Progreso: historial de entrenamientos y evolución ── */
 data class PuntoEvolucion(val etiqueta: String, val valor: Float)
 
-// Sin evolución de ejemplo: todavía no existe un registro real de fuerza
-// ni de peso corporal mes a mes (ver ProgresoScreen: se muestra un
-// estado vacío en vez de intentar graficar sin puntos).
-val EVOLUCION_FUERZA = emptyList<PuntoEvolucion>()
-
+// La evolución de fuerza ya se calcula de verdad a partir de las marcas
+// cargadas (ver evolucionDeFuerza en GamificacionData.kt, usado desde
+// ProgresoScreen). La de peso corporal sigue vacía a propósito: el peso
+// solo se carga una vez en el onboarding y todavía no existe una pantalla
+// para actualizarlo después, así que no hay más de un punto que graficar.
 val EVOLUCION_PESO = emptyList<PuntoEvolucion>()
 
 data class SesionHistorial(val fecha: String, val tipo: String, val duracion: String, val volumenKg: Int)

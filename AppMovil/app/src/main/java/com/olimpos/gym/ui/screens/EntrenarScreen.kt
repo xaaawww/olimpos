@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DETALLES_EJERCICIOS
 import com.olimpos.gym.data.EjercicioRutina
-import com.olimpos.gym.data.GHOST_MODE_EJEMPLO
 import com.olimpos.gym.data.RUTINA_HOY
 import com.olimpos.gym.data.RutinaDelDia
 import com.olimpos.gym.data.calcular1RM

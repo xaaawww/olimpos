@@ -52,10 +52,11 @@ import androidx.compose.foundation.Canvas
 import com.olimpos.gym.R
 import com.olimpos.gym.data.CLASES_SEMANA
 import com.olimpos.gym.data.ClaseSemana
-import com.olimpos.gym.data.EQUIVALENCIA_MENSUAL_KG
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.RUTINA_HOY
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
+import com.olimpos.gym.data.kgMovidosEsteMes
 import com.olimpos.gym.data.socioActualNombre
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
@@ -301,11 +302,14 @@ private fun OcupacionEnVivo() {
 /* ───────────────────── Equivalencia de carga movida (kg) ───────────────────── */
 @Composable
 private fun EquivalenciaCarga() {
-    // Sin total mensual de ejemplo: todavía no hay forma de saber qué
-    // marcas son "de este mes" (se guardan con fecha "hoy", no una fecha
-    // real) — mientras no exista eso, se muestra vacío en vez de un
-    // número inventado.
-    if (EQUIVALENCIA_MENSUAL_KG <= 0) {
+    // Se calcula de verdad a partir de las marcas cargadas este mes (ver
+    // kgMovidosEsteMes) — antes esto era un 0 fijo porque no había forma
+    // de filtrar por mes, ahora el timestamp real de cada marca alcanza.
+    val marcas = DatosRemotos.marcas ?: emptyList()
+    val pesoCorporal = DatosRemotos.datosFisicosPropios?.pesoKg ?: 80f
+    val kgDelMes = remember(marcas, pesoCorporal) { kgMovidosEsteMes(marcas, pesoCorporal) }
+
+    if (kgDelMes <= 0) {
         TarjetaOro(Modifier.fillMaxWidth()) {
             Text(
                 "Todavía no registraste kilos movidos este mes.",
@@ -314,8 +318,8 @@ private fun EquivalenciaCarga() {
         }
         return
     }
-    val eq = equivalenciaDeCarga(EQUIVALENCIA_MENSUAL_KG)
-    val cantidad = cantidadEquivalencia(EQUIVALENCIA_MENSUAL_KG, eq.umbralKg)
+    val eq = equivalenciaDeCarga(kgDelMes)
+    val cantidad = cantidadEquivalencia(kgDelMes, eq.umbralKg)
 
     TarjetaOro(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -326,7 +330,7 @@ private fun EquivalenciaCarga() {
                     if (cantidad > 1) "$cantidad × ${eq.texto}" else eq.texto,
                     fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream
                 )
-                Text("$EQUIVALENCIA_MENSUAL_KG kg movidos en total", fontSize = 11.5.sp, color = Olimpos.Muted)
+                Text("$kgDelMes kg movidos este mes", fontSize = 11.5.sp, color = Olimpos.Muted)
             }
         }
     }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,14 +24,18 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.olimpos.gym.data.EVOLUCION_FUERZA
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.EVOLUCION_PESO
 import com.olimpos.gym.data.HISTORIAL_ENTRENAMIENTOS
 import com.olimpos.gym.data.PuntoEvolucion
+import com.olimpos.gym.data.evolucionDeFuerza
 import com.olimpos.gym.ui.theme.Olimpos
 
 @Composable
 fun ProgresoScreen(onVolver: () -> Unit) {
+    val marcas = DatosRemotos.marcas ?: emptyList()
+    val evolucionFuerza = remember(marcas) { evolucionDeFuerza(marcas) }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -39,9 +44,12 @@ fun ProgresoScreen(onVolver: () -> Unit) {
         EncabezadoVolver("Mi progreso", "Historial y evolución", onVolver)
 
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
-            SeccionLabel("Evolución de fuerza (sentadilla, kg)")
+            SeccionLabel(
+                if (evolucionFuerza != null) "Evolución de fuerza (${evolucionFuerza.ejercicio}, 1RM est. en kg)"
+                else "Evolución de fuerza"
+            )
             TarjetaOro(Modifier.fillMaxWidth()) {
-                GraficoLinea(EVOLUCION_FUERZA, Olimpos.Gold)
+                GraficoLinea(evolucionFuerza?.puntos ?: emptyList(), Olimpos.Gold)
             }
 
             SeccionLabel("Evolución de peso corporal (kg)")

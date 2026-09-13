@@ -12,9 +12,13 @@
 # {
 #   "socio_id": "alex_rodriguez", "socio_nombre": "Alex Rodríguez",
 #   "ejercicio": "Press banca", "peso": 82.0, "repeticiones": 2,
-#   "fecha": "hoy", "timestamp": 1725900000000, "verificado": False,
+#   "fecha": "13 sep 2026", "timestamp": 1725900000000, "verificado": False,
 #   "verificado_por": None,
 # }
+# "fecha" es texto legible calculado del timestamp real al momento de
+# cargar la marca (ver fechaLegible en GamificacionData.kt, app móvil) —
+# antes decía el literal "hoy" para siempre, incluso viéndola semanas
+# después.
 
 import math
 

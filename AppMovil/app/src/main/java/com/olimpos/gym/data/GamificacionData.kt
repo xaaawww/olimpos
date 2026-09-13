@@ -407,6 +407,40 @@ fun formatearAntiguedad(creadoMs: Long?): String {
     }
 }
 
+/** Fecha legible ("13 sep 2026") a partir del timestamp real con el que se
+ *  guarda cada marca — antes el campo "fecha" se guardaba como el literal
+ *  "hoy", así que una marca cargada la semana pasada seguía mostrando "hoy"
+ *  para siempre en el historial. El timestamp real (epoch ms) siempre
+ *  existió; lo que faltaba era mostrarlo como texto. */
+fun fechaLegible(timestampMs: Long): String {
+    val formato = java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale("es", "ES"))
+    return formato.format(java.util.Date(timestampMs))
+}
+
+private fun fechaCorta(timestampMs: Long): String {
+    val formato = java.text.SimpleDateFormat("d/M", java.util.Locale("es", "ES"))
+    return formato.format(java.util.Date(timestampMs))
+}
+
+/** Evolución real de 1RM estimado a lo largo del tiempo, para el gráfico de
+ *  "Evolución de fuerza" de Progreso. Se elige automáticamente el ejercicio
+ *  con más marcas cargadas (el que tiene más puntos para graficar) — el
+ *  socio no elige uno fijo porque cuál entrena más varía de persona a
+ *  persona. `null` si todavía no cargó ninguna marca. */
+data class EvolucionFuerza(val ejercicio: String, val puntos: List<PuntoEvolucion>)
+
+fun evolucionDeFuerza(marcas: List<MarcaPersonal>): EvolucionFuerza? {
+    if (marcas.isEmpty()) return null
+    val ejercicioConMasHistoria = marcas.groupBy { it.ejercicio }
+        .maxByOrNull { (_, ms) -> ms.size }
+        ?.key ?: return null
+    val puntos = marcas
+        .filter { it.ejercicio == ejercicioConMasHistoria }
+        .sortedBy { it.timestamp }
+        .map { PuntoEvolucion(etiqueta = fechaCorta(it.timestamp), valor = calcular1RM(it.pesoKg, it.reps)) }
+    return EvolucionFuerza(ejercicioConMasHistoria, puntos)
+}
+
 /* ── Logros / medallas ── */
 data class Logro(
     val emoji: String,
@@ -502,21 +536,27 @@ private val EQUIVALENCIAS = listOf(
     Equivalencia(Int.MAX_VALUE, "una ballena beluga", "🐳")
 )
 
-/** Kg movidos este mes, para la tarjeta de equivalencia de Inicio. En 0 a
- *  propósito: todavía no hay forma real de saber qué marcas son de este
- *  mes (se guardan con fecha "hoy", no una fecha real) — ver
- *  HomeScreen.kt/EquivalenciaCarga. */
-const val EQUIVALENCIA_MENSUAL_KG = 0
+/** Kg movidos en el mes calendario actual, para la tarjeta de equivalencia
+ *  de Inicio: suma peso×repeticiones de CADA marca cargada este mes (no
+ *  solo la vigente por ejercicio, como el ranking — acá interesa el
+ *  volumen real entrenado, no un PR puntual). El timestamp de cada marca
+ *  siempre fue real (epoch ms); lo que faltaba era filtrar por mes en vez
+ *  de mostrar un 0 fijo. */
+fun kgMovidosEsteMes(marcas: List<MarcaPersonal>, pesoCorporalKg: Float): Int {
+    val ahora = java.util.Calendar.getInstance()
+    val mesActual = ahora.get(java.util.Calendar.MONTH)
+    val anioActual = ahora.get(java.util.Calendar.YEAR)
+    return marcas
+        .filter { marca ->
+            val cal = java.util.Calendar.getInstance().apply { timeInMillis = marca.timestamp }
+            cal.get(java.util.Calendar.MONTH) == mesActual && cal.get(java.util.Calendar.YEAR) == anioActual
+        }
+        .sumOf { (cargaTotal(it, pesoCorporalKg) * it.reps).toDouble() }
+        .toInt()
+}
 
 fun equivalenciaDeCarga(kg: Int): Equivalencia = EQUIVALENCIAS.first { kg <= it.umbralKg }
 fun cantidadEquivalencia(kg: Int, umbral: Int): Int = (kg / umbral.toFloat()).let { if (it < 1) 1 else it.toInt() }
-
-/* ── Ghost Mode: comparación contra tu última sesión (ahora vive en la
-   pantalla de rutina de Entrenar, no en Mis marcas) — el nombre coincide
-   con el de RUTINA_HOY para que quede claro que es el mismo ejercicio. */
-data class GhostModeResultado(val ejercicio: String, val pesoAnterior: Float, val repsAnterior: Int, val pesoActual: Float, val repsActual: Int)
-
-val GHOST_MODE_EJEMPLO = GhostModeResultado("Press de banca", 80f, 8, 82f, 10)
 
 /* ── Objetivo de la Arena ── */
 enum class ObjetivoCompetencia(val etiqueta: String, val emoji: String) {
