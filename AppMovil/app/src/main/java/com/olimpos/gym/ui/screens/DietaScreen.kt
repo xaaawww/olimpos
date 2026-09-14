@@ -39,6 +39,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,8 +58,10 @@ import com.olimpos.gym.data.Ingrediente
 import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.PLATOS
 import com.olimpos.gym.data.Plato
+import com.olimpos.gym.data.marcarPlatoProbadoEnFirebase
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -327,6 +330,10 @@ private fun DetalleDieta(plato: Plato, onVolver: () -> Unit) {
     var activo by remember { mutableStateOf<Int?>(null) }
     var rotObjetivo by remember { mutableStateOf(0f) }
     var reproduciendo by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    // Para el logro "Sibarita" (probar 10 platos distintos) — nunca se
+    // marca solo, es el propio socio el que dice "ya lo probé".
+    val yaProbado = plato.id in (DatosRemotos.platosProbados ?: emptySet())
 
     val items = plato.items
     val enfocado = activo != null
@@ -354,6 +361,36 @@ private fun DetalleDieta(plato: Plato, onVolver: () -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         EncabezadoVolver(plato.nombre, "Tocá un ingrediente o iniciá el recorrido", onVolver)
+
+        Row(
+            Modifier
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 4.dp)
+        ) {
+            Box(
+                Modifier
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(if (yaProbado) Olimpos.Card else Olimpos.GoldSoft)
+                    .border(
+                        1.dp,
+                        if (yaProbado) Olimpos.Line else Olimpos.Gold.copy(alpha = 0.35f),
+                        RoundedCornerShape(100.dp)
+                    )
+                    .clickable(enabled = !yaProbado) {
+                        scope.launch {
+                            marcarPlatoProbadoEnFirebase(plato.id)
+                            DatosRemotos.recargarPlatosProbados()
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    if (yaProbado) "✓ Ya probaste este plato" else "🍽️ Marcar como probado",
+                    fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold,
+                    color = if (yaProbado) Olimpos.Muted else Olimpos.GoldLight
+                )
+            }
+        }
 
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val anchoStage = maxWidth

@@ -125,6 +125,31 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Platos probados: el socio marca "ya probé este plato" (ver
+    // PlatosProbadosRepository.kt) — id del documento = "{uid}_{plato_id}",
+    // así marcarlo dos veces no duplica. Solo lee/crea los propios.
+    match /platos_probados/{docId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.socio_id == request.auth.uid;
+      // update: el id fijo "{uid}_{plato_id}" hace que volver a marcar el
+      // mismo plato sea un set() sobre un doc ya existente (una
+      // actualización, no una creación, para las reglas de Firestore) —
+      // solo sobre un documento que ya era propio.
+      allow update: if request.auth != null
+                    && resource.data.socio_id == request.auth.uid
+                    && request.resource.data.socio_id == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // Registros de agua: el socio marca "hoy tomé agua" (ver
+    // AguaRepository.kt) — mismo criterio que ingresos.
+    match /registros_agua/{registroId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;

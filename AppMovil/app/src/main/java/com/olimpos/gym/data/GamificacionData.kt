@@ -564,7 +564,11 @@ data class ContextoLogros(
     /** Fecha real de inicio de la membresía asignada por un empleado
      *  (ver MembresiaRepository.kt) — `null` si todavía no le asignaron
      *  ninguna. */
-    val membresiaFechaInicioMs: Long? = null
+    val membresiaFechaInicioMs: Long? = null,
+    val platosDistintosProbados: Int = 0,
+    /** Timestamps de "hoy tomé agua" (ver AguaRepository.kt) — se calcula
+     *  la racha acá mismo, igual que con los ingresos. */
+    val registrosAgua: List<Long> = emptyList()
 )
 
 private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
@@ -651,7 +655,7 @@ fun visitasEnElMesActual(ingresos: List<Long>): Int {
     }
 }
 
-private fun mejorMesKg(marcas: List<MarcaPersonal>, series: List<SerieEntrenamiento>, pesoCorporalKg: Float): Float {
+private fun mapaKgPorMes(marcas: List<MarcaPersonal>, series: List<SerieEntrenamiento>, pesoCorporalKg: Float): Map<Pair<Int, Int>, Float> {
     val porMes = mutableMapOf<Pair<Int, Int>, Float>()
     fun sumar(timestamp: Long, kg: Float) {
         val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
@@ -660,8 +664,11 @@ private fun mejorMesKg(marcas: List<MarcaPersonal>, series: List<SerieEntrenamie
     }
     marcas.forEach { sumar(it.timestamp, cargaTotal(it, pesoCorporalKg) * it.reps) }
     series.forEach { sumar(it.timestamp, (if (it.esPesoCorporal) pesoCorporalKg + it.pesoKg else it.pesoKg) * it.reps) }
-    return porMes.values.maxOrNull() ?: 0f
+    return porMes
 }
+
+private fun mejorMesKg(marcas: List<MarcaPersonal>, series: List<SerieEntrenamiento>, pesoCorporalKg: Float): Float =
+    mapaKgPorMes(marcas, series, pesoCorporalKg).values.maxOrNull() ?: 0f
 
 /** Posición (1 = primero) en la Escalera del Olimpo completa, ordenando
  *  por rango+nivel y de ahí por kg totales — `null` si el socio no
@@ -770,6 +777,42 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     val mesesDeMembresia = ctx.membresiaFechaInicioMs
         ?.let { (System.currentTimeMillis() - it) / (30L * 86_400_000L) } ?: 0L
     resultados["Cliente fiel"] = (mesesDeMembresia / 6f).coerceIn(0f, 1f) to (mesesDeMembresia >= 6)
+
+    resultados["Sibarita"] = (ctx.platosDistintosProbados / 10f).coerceIn(0f, 1f) to (ctx.platosDistintosProbados >= 10)
+    val rachaAgua = rachaMasLarga(ctx.registrosAgua.map(::diaEpoch).toSet())
+    resultados["Hidratado"] = (rachaAgua / 7f).coerceIn(0f, 1f) to (rachaAgua >= 7)
+
+    // Meta cumplida (Fuerza): el 1RM estimado del ejercicio con más
+    // historia mejoró al menos 10% desde tu primera marca de ese
+    // ejercicio hasta la más reciente — un objetivo de fuerza real,
+    // aunque no exactamente el que el socio haya tipeado como "meta".
+    val ejercicioConMasHistoria = ctx.marcas.groupBy { it.ejercicio }.maxByOrNull { it.value.size }?.value
+    val mejoraFuerza = ejercicioConMasHistoria?.takeIf { it.size >= 2 }?.let { lista ->
+        val ordenadas = lista.sortedBy { it.timestamp }
+        val primero = calcular1RM(ordenadas.first().pesoKg, ordenadas.first().reps)
+        val ultimo = calcular1RM(ordenadas.last().pesoKg, ordenadas.last().reps)
+        if (primero > 0f) (ultimo - primero) / primero else null
+    } ?: 0f
+    resultados["Meta cumplida"] = (mejoraFuerza / 0.10f).coerceIn(0f, 1f) to (mejoraFuerza >= 0.10f)
+
+    // Meta de hipertrofia: sin ninguna medición de masa muscular en la app,
+    // se usa el volumen entrenado (kg movidos) como proxy real — entrenar
+    // para hipertrofia es, en la práctica, sostener/aumentar el volumen —
+    // en vez de inventar un número de "masa muscular" que no se mide.
+    val mapaMeses = mapaKgPorMes(ctx.marcas, ctx.series, ctx.pesoCorporalKg)
+    val hoyCal = java.util.Calendar.getInstance()
+    val mesAnteriorCal = java.util.Calendar.getInstance().apply { add(java.util.Calendar.MONTH, -1) }
+    val kgEsteMes = mapaMeses[hoyCal.get(java.util.Calendar.YEAR) to hoyCal.get(java.util.Calendar.MONTH)] ?: 0f
+    val kgMesAnterior = mapaMeses[mesAnteriorCal.get(java.util.Calendar.YEAR) to mesAnteriorCal.get(java.util.Calendar.MONTH)] ?: 0f
+    val hipertrofiaEnProgreso = kgMesAnterior > 0f && kgEsteMes > kgMesAnterior
+    resultados["Meta de hipertrofia"] = (if (hipertrofiaEnProgreso) 1f else 0f) to hipertrofiaEnProgreso
+
+    // Salud ante todo: sin objetivo de salud medible (no hay presión,
+    // % grasa, etc.), se usa la constancia real de ir al gimnasio este
+    // mes como proxy — venir seguido es, después de todo, el hábito de
+    // salud que esta app sí puede ver.
+    val visitasEsteMesParaSalud = visitasEnElMesActual(ctx.ingresos)
+    resultados["Salud ante todo"] = (visitasEsteMesParaSalud / 12f).coerceIn(0f, 1f) to (visitasEsteMesParaSalud >= 12)
 
     resultados["El ojo de Atenea"] = (diasMadrugonExtremo / 5f).coerceIn(0f, 1f) to (diasMadrugonExtremo >= 5)
     resultados["Ascensión completa"] = (ZonaMuscular.entries.count { alMenos(it, RangoMuscular.DIOS) } / ZonaMuscular.entries.size.toFloat()) to

@@ -33,6 +33,8 @@ import com.olimpos.gym.data.HISTORIAL_ALIMENTARIO
 import com.olimpos.gym.data.PREFERENCIAS_ALIMENTARIAS
 import com.olimpos.gym.data.RECOMENDACIONES_NUTRICIONALES
 import com.olimpos.gym.data.guardarPerfilNutricionalEnFirebase
+import com.olimpos.gym.data.registrarAguaEnFirebase
+import com.olimpos.gym.data.yaRegistroAguaHoy
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
 
@@ -43,6 +45,8 @@ fun NutricionScreen(onVolver: () -> Unit) {
     var excluidos by remember { mutableStateOf(perfilGuardado?.excluidos ?: emptySet()) }
     var aviso by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val registrosAgua = DatosRemotos.registrosAgua ?: emptyList()
+    val yaRegistroAgua = yaRegistroAguaHoy(registrosAgua)
 
     Column(
         Modifier
@@ -81,6 +85,25 @@ fun NutricionScreen(onVolver: () -> Unit) {
                         .padding(13.dp)
                 ) {
                     Text(it, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
+                }
+            }
+
+            SeccionLabel("Hidratación")
+            TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                Text(
+                    if (yaRegistroAgua) "Ya registraste tu consumo de agua de hoy ✓" else "¿Tomaste suficiente agua hoy?",
+                    fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream
+                )
+                Spacer(Modifier.height(10.dp))
+                BotonSecundario(
+                    if (yaRegistroAgua) "Registro de hoy ya hecho" else "💧 Registrar consumo de hoy"
+                ) {
+                    if (!yaRegistroAgua) {
+                        scope.launch {
+                            registrarAguaEnFirebase()
+                            DatosRemotos.recargarRegistrosAgua()
+                        }
+                    }
                 }
             }
 

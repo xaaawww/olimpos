@@ -39,6 +39,8 @@ object DatosRemotos {
     var perfilNutricional by mutableStateOf<PerfilNutricional?>(null); private set
     /** `null` = todavía no le asignaron ninguna membresía. */
     var membresia by mutableStateOf<MembresiaAsignada?>(null); private set
+    var platosProbados by mutableStateOf<Set<String>?>(null); private set
+    var registrosAgua by mutableStateOf<List<Long>?>(null); private set
 
     private var yaPrecargado = false
 
@@ -58,6 +60,8 @@ object DatosRemotos {
             launch { lockersOcupados = cargarLockersDesdeFirebase() }
             launch { perfilNutricional = cargarPerfilNutricionalDesdeFirebase() }
             launch { membresia = cargarMembresiaDesdeFirebase() }
+            launch { platosProbados = cargarPlatosProbadosDesdeFirebase() }
+            launch { registrosAgua = cargarRegistrosAguaDesdeFirebase() }
         }
     }
 
@@ -65,6 +69,16 @@ object DatosRemotos {
      *  mientras el socio ya tenía la app abierta. */
     suspend fun recargarMembresia() {
         membresia = cargarMembresiaDesdeFirebase()
+    }
+
+    /** Se llama al marcar un plato como probado, en Dieta. */
+    suspend fun recargarPlatosProbados() {
+        platosProbados = cargarPlatosProbadosDesdeFirebase()
+    }
+
+    /** Se llama al registrar el consumo de agua de hoy, en Nutrición. */
+    suspend fun recargarRegistrosAgua() {
+        registrosAgua = cargarRegistrosAguaDesdeFirebase()
     }
 
     /** Se llama al tocar "Marcar mi ingreso de hoy" en Accesos. */
