@@ -61,9 +61,10 @@ fun LogrosScreen(onVolver: () -> Unit) {
     val membresia = DatosRemotos.membresia
     val platosProbados = DatosRemotos.platosProbados ?: emptySet()
     val registrosAgua = DatosRemotos.registrosAgua ?: emptyList()
+    val fotosProgreso = DatosRemotos.fotosProgreso ?: emptyList()
     val logros = remember(
         marcas, series, ingresos, rangosSocios, datosFisicos, lockersOcupados,
-        perfilNutricional, membresia, platosProbados, registrosAgua
+        perfilNutricional, membresia, platosProbados, registrosAgua, fotosProgreso
     ) {
         val socioId = socioActualId()
         calcularLogros(
@@ -86,7 +87,8 @@ fun LogrosScreen(onVolver: () -> Unit) {
                 tienePerfilNutricional = perfilNutricional != null && (perfilNutricional.preferencias.isNotEmpty() || perfilNutricional.excluidos.isNotEmpty()),
                 membresiaFechaInicioMs = membresia?.fechaInicioMs,
                 platosDistintosProbados = platosProbados.size,
-                registrosAgua = registrosAgua
+                registrosAgua = registrosAgua,
+                tieneFotoDeProgreso = fotosProgreso.isNotEmpty()
             )
         )
     }

@@ -568,7 +568,8 @@ data class ContextoLogros(
     val platosDistintosProbados: Int = 0,
     /** Timestamps de "hoy tomé agua" (ver AguaRepository.kt) — se calcula
      *  la racha acá mismo, igual que con los ingresos. */
-    val registrosAgua: List<Long> = emptyList()
+    val registrosAgua: List<Long> = emptyList(),
+    val tieneFotoDeProgreso: Boolean = false
 )
 
 private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
@@ -813,6 +814,8 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     // salud que esta app sí puede ver.
     val visitasEsteMesParaSalud = visitasEnElMesActual(ctx.ingresos)
     resultados["Salud ante todo"] = (visitasEsteMesParaSalud / 12f).coerceIn(0f, 1f) to (visitasEsteMesParaSalud >= 12)
+
+    resultados["Antes y después"] = (if (ctx.tieneFotoDeProgreso) 1f else 0f) to ctx.tieneFotoDeProgreso
 
     resultados["El ojo de Atenea"] = (diasMadrugonExtremo / 5f).coerceIn(0f, 1f) to (diasMadrugonExtremo >= 5)
     resultados["Ascensión completa"] = (ZonaMuscular.entries.count { alMenos(it, RangoMuscular.DIOS) } / ZonaMuscular.entries.size.toFloat()) to

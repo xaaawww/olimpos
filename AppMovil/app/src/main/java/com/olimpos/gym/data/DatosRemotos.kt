@@ -41,6 +41,7 @@ object DatosRemotos {
     var membresia by mutableStateOf<MembresiaAsignada?>(null); private set
     var platosProbados by mutableStateOf<Set<String>?>(null); private set
     var registrosAgua by mutableStateOf<List<Long>?>(null); private set
+    var fotosProgreso by mutableStateOf<List<FotoProgreso>?>(null); private set
 
     private var yaPrecargado = false
 
@@ -62,7 +63,13 @@ object DatosRemotos {
             launch { membresia = cargarMembresiaDesdeFirebase() }
             launch { platosProbados = cargarPlatosProbadosDesdeFirebase() }
             launch { registrosAgua = cargarRegistrosAguaDesdeFirebase() }
+            launch { fotosProgreso = cargarFotosProgresoDesdeFirebase() }
         }
+    }
+
+    /** Se llama al subir o borrar una foto de progreso. */
+    suspend fun recargarFotosProgreso() {
+        fotosProgreso = cargarFotosProgresoDesdeFirebase()
     }
 
     /** Botón manual en Membresía, por si un empleado la asignó/cambió
