@@ -172,26 +172,31 @@ private fun TarjetaToastLogro(logro: Logro) {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(Olimpos.Dark.copy(alpha = 0.94f))
-                .border(1.dp, Olimpos.Gold.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
+                // Card/Line (no Dark/Gold fijos) porque son los que cambian
+                // junto con Cream/Muted según el tema — con un fondo fijo
+                // oscuro y texto que se vuelve oscuro en modo claro quedaba
+                // ilegible (letra y marco casi del mismo color).
+                .background(Olimpos.Card)
+                .border(1.dp, Olimpos.Gold.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 Modifier
-                    .size(40.dp)
+                    .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Olimpos.Gold.copy(alpha = 0.22f)),
+                    .background(Olimpos.GoldSoft),
                 contentAlignment = Alignment.Center
-            ) { Text(logro.emoji, fontSize = 20.sp) }
+            ) { Text(logro.emoji, fontSize = 21.sp) }
             Spacer(Modifier.width(11.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     "¡Logro desbloqueado!",
-                    fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
-                    color = Olimpos.Gold, letterSpacing = 0.6.sp
+                    fontSize = 10.sp, fontWeight = FontWeight.ExtraBold,
+                    color = Olimpos.GoldDark, letterSpacing = 0.6.sp
                 )
                 Text(logro.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                Text(logro.descripcion, fontSize = 11.sp, color = Olimpos.Muted)
             }
         }
     }
