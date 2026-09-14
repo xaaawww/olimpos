@@ -59,7 +59,9 @@ import com.olimpos.gym.data.RangoMuscular
 import com.olimpos.gym.data.SexoBiologico
 import com.olimpos.gym.data.SocioRango
 import com.olimpos.gym.data.actualizarOcultoClasificacion
+import com.olimpos.gym.data.agregarCompanero
 import com.olimpos.gym.data.cantidadEjerciciosVigentes
+import com.olimpos.gym.data.eliminarCompanero
 import com.olimpos.gym.data.formatearAntiguedad
 import com.olimpos.gym.data.nivelDesdePuntaje
 import com.olimpos.gym.data.puntajeGeneralDeSocio
@@ -609,6 +611,13 @@ private fun FilaMiembro(socio: SocioRango, esYo: Boolean, onClick: () -> Unit) {
  *  directo desde el buscador. */
 @Composable
 private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val esUnoMismo = socio.socioId == socioActualId()
+    var esCompanero by remember(socio.socioId) {
+        mutableStateOf((DatosRemotos.companeros ?: emptyList()).any { it.socioId == socio.socioId })
+    }
+    var cambiando by remember { mutableStateOf(false) }
+
     Box(
         Modifier
             .fillMaxSize()
@@ -671,6 +680,30 @@ private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             CuerpoMuscularRangosMini(rangoPorZona = socio.rangoPorZona, tamano = 90.dp)
+
+            // Para los logros "Mentor"/"Espíritu de equipo" — agregarlo acá
+            // mismo, sin un sistema de solicitudes: el nombre y el rango de
+            // cualquier socio ya son públicos en esta misma pantalla.
+            if (!esUnoMismo) {
+                Spacer(Modifier.height(16.dp))
+                BotonSecundario(
+                    if (esCompanero) "✓ Es tu compañero de entrenamiento — tocá para quitarlo"
+                    else "🤝 Agregar como compañero de entrenamiento"
+                ) {
+                    if (!cambiando) {
+                        cambiando = true
+                        scope.launch {
+                            val ok = if (esCompanero) eliminarCompanero(socio.socioId)
+                            else agregarCompanero(socio.socioId, socio.nombre)
+                            if (ok) {
+                                esCompanero = !esCompanero
+                                DatosRemotos.recargarCompaneros()
+                            }
+                            cambiando = false
+                        }
+                    }
+                }
+            }
         }
     }
 }

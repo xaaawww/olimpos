@@ -42,6 +42,11 @@ object DatosRemotos {
     var platosProbados by mutableStateOf<Set<String>?>(null); private set
     var registrosAgua by mutableStateOf<List<Long>?>(null); private set
     var fotosProgreso by mutableStateOf<List<FotoProgreso>?>(null); private set
+    var companeros by mutableStateOf<List<Companero>?>(null); private set
+    /** Cuántos días entrenó junto a algún compañero — ver
+     *  [contarDiasEntrenadosConCompaneros]. Se recalcula junto con la lista
+     *  de compañeros porque depende de ella. */
+    var diasEntrenadosConCompaneros by mutableStateOf(0); private set
     /** Se pone en `true` recién cuando TODAS las cargas de [precargar]
      *  terminaron — lo usa ObservadorDeLogros para saber cuándo es seguro
      *  tomar la "foto" inicial de qué logros ya estaban desbloqueados, sin
@@ -70,6 +75,11 @@ object DatosRemotos {
             launch { platosProbados = cargarPlatosProbadosDesdeFirebase() }
             launch { registrosAgua = cargarRegistrosAguaDesdeFirebase() }
             launch { fotosProgreso = cargarFotosProgresoDesdeFirebase() }
+            launch {
+                val lista = cargarCompanerosDesdeFirebase()
+                companeros = lista
+                diasEntrenadosConCompaneros = contarDiasEntrenadosConCompaneros(lista?.map { it.socioId } ?: emptyList())
+            }
         }
         listo = true
     }
@@ -77,6 +87,13 @@ object DatosRemotos {
     /** Se llama al subir o borrar una foto de progreso. */
     suspend fun recargarFotosProgreso() {
         fotosProgreso = cargarFotosProgresoDesdeFirebase()
+    }
+
+    /** Se llama al agregar o quitar un compañero de entrenamiento. */
+    suspend fun recargarCompaneros() {
+        val lista = cargarCompanerosDesdeFirebase()
+        companeros = lista
+        diasEntrenadosConCompaneros = contarDiasEntrenadosConCompaneros(lista?.map { it.socioId } ?: emptyList())
     }
 
     /** Botón manual en Membresía, por si un empleado la asignó/cambió

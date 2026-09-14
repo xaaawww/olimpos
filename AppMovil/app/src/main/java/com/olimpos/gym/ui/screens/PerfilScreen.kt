@@ -39,7 +39,7 @@ import com.olimpos.gym.data.visitasEnElMesActual
 import com.olimpos.gym.ui.theme.Olimpos
 import com.olimpos.gym.ui.theme.ThemeMode
 
-private enum class PerfilVista { HOME, MEMBRESIA, ACCESO, LOCKERS, PROGRESO, CONFIGURACION }
+private enum class PerfilVista { HOME, MEMBRESIA, ACCESO, LOCKERS, PROGRESO, COMPANEROS, CONFIGURACION }
 
 @Composable
 fun PerfilScreen(
@@ -57,6 +57,7 @@ fun PerfilScreen(
             onAcceso = { vista = PerfilVista.ACCESO },
             onLockers = { vista = PerfilVista.LOCKERS },
             onProgreso = { vista = PerfilVista.PROGRESO },
+            onCompaneros = { vista = PerfilVista.COMPANEROS },
             onConfiguracion = { vista = PerfilVista.CONFIGURACION },
             onCerrarSesion = onCerrarSesion
         )
@@ -64,6 +65,7 @@ fun PerfilScreen(
         PerfilVista.ACCESO -> AccesoScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.LOCKERS -> LockersScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.PROGRESO -> ProgresoScreen(onVolver = { vista = PerfilVista.HOME })
+        PerfilVista.COMPANEROS -> CompanerosScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.CONFIGURACION -> ConfiguracionScreen(
             onVolver = { vista = PerfilVista.HOME },
             themeMode = themeMode,
@@ -79,6 +81,7 @@ private fun PerfilHome(
     onAcceso: () -> Unit,
     onLockers: () -> Unit,
     onProgreso: () -> Unit,
+    onCompaneros: () -> Unit,
     onConfiguracion: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
@@ -130,6 +133,7 @@ private fun PerfilHome(
         ItemMenu("🔐", "Accesos y seguridad") { onAcceso() }
         ItemMenu("🔒", "Mis lockers") { onLockers() }
         ItemMenu("📈", "Mi progreso") { onProgreso() }
+        ItemMenu("🤝", "Mis compañeros de entrenamiento") { onCompaneros() }
         ItemMenu("📅", "Mis turnos y reservas") { aviso = "Spinning hoy 19:30 · confirmado" }
 
         SeccionLabel("Cuenta")

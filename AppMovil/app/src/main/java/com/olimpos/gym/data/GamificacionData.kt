@@ -469,9 +469,9 @@ data class Logro(
 // nombre, descripción) — el progreso/desbloqueo real de cada socio lo
 // calcula calcularLogros() a partir de sus propios datos (marcas, series,
 // ingresos, rangos musculares). Los que todavía no tienen una fuente de
-// datos real detrás (fotos de progreso, objetivos, nutrición, reservas de
-// lockers/máquinas, red de amigos, navegación por la app) se quedan en
-// 0f/false ahí también — ver el comentario en calcularLogros.
+// datos real detrás (un plan de dieta día a día, reservar una máquina
+// desde el Plano) se quedan en 0f/false ahí también — ver el comentario
+// en calcularLogros.
 
 val LOGROS = listOf(
     // ── Constancia y racha ──
@@ -570,7 +570,11 @@ data class ContextoLogros(
     /** Timestamps de "hoy tomé agua" (ver AguaRepository.kt) — se calcula
      *  la racha acá mismo, igual que con los ingresos. */
     val registrosAgua: List<Long> = emptyList(),
-    val tieneFotoDeProgreso: Boolean = false
+    val tieneFotoDeProgreso: Boolean = false,
+    val tieneCompanero: Boolean = false,
+    /** Ver [contarDiasEntrenadosConCompaneros] — días distintos que
+     *  entrenó junto a algún compañero. */
+    val diasEntrenadosConCompaneros: Int = 0
 )
 
 /** Arma el [ContextoLogros] leyendo [DatosRemotos] — un solo lugar para esta
@@ -591,6 +595,8 @@ fun construirContextoLogros(contexto: Context): ContextoLogros {
     val platosProbados = DatosRemotos.platosProbados ?: emptySet()
     val registrosAgua = DatosRemotos.registrosAgua ?: emptyList()
     val fotosProgreso = DatosRemotos.fotosProgreso ?: emptyList()
+    val companeros = DatosRemotos.companeros ?: emptyList()
+    val diasEntrenadosConCompaneros = DatosRemotos.diasEntrenadosConCompaneros
     val socioId = socioActualId()
     return ContextoLogros(
         socioId = socioId,
@@ -612,7 +618,9 @@ fun construirContextoLogros(contexto: Context): ContextoLogros {
         membresiaFechaInicioMs = membresia?.fechaInicioMs,
         platosDistintosProbados = platosProbados.size,
         registrosAgua = registrosAgua,
-        tieneFotoDeProgreso = fotosProgreso.isNotEmpty()
+        tieneFotoDeProgreso = fotosProgreso.isNotEmpty(),
+        tieneCompanero = companeros.isNotEmpty(),
+        diasEntrenadosConCompaneros = diasEntrenadosConCompaneros
     )
 }
 
@@ -731,11 +739,9 @@ private fun posicionEnRanking(socioId: String, rangosSocios: List<SocioRango>): 
 
 /** Calcula el progreso/desbloqueo real de cada logro a partir de los datos
  *  del socio. Los que no tienen todavía una fuente de datos real detrás
- *  (fotos de progreso, objetivos de la Arena, cumplimiento nutricional,
- *  reservas de lockers/máquinas, red de amigos, feriados, navegación por
- *  la app, conteo de visitas al Bodygraph, o el método exacto de acceso
- *  QR/biométrico) se dejan tal cual vienen en [LOGROS] — 0%, bloqueados —
- *  en vez de inventar un progreso. */
+ *  (cumplimiento de un plan de dieta día a día, reservar una máquina desde
+ *  el Plano) se dejan tal cual vienen en [LOGROS] — 0%, bloqueados — en vez
+ *  de inventar un progreso. */
 fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     val diasIngreso = ctx.ingresos.map(::diaEpoch).toSet()
     val racha = rachaMasLarga(diasIngreso)
@@ -860,6 +866,9 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Salud ante todo"] = (visitasEsteMesParaSalud / 12f).coerceIn(0f, 1f) to (visitasEsteMesParaSalud >= 12)
 
     resultados["Antes y después"] = (if (ctx.tieneFotoDeProgreso) 1f else 0f) to ctx.tieneFotoDeProgreso
+
+    resultados["Mentor"] = (if (ctx.tieneCompanero) 1f else 0f) to ctx.tieneCompanero
+    resultados["Espíritu de equipo"] = (ctx.diasEntrenadosConCompaneros / 5f).coerceIn(0f, 1f) to (ctx.diasEntrenadosConCompaneros >= 5)
 
     resultados["El ojo de Atenea"] = (diasMadrugonExtremo / 5f).coerceIn(0f, 1f) to (diasMadrugonExtremo >= 5)
     resultados["Ascensión completa"] = (ZonaMuscular.entries.count { alMenos(it, RangoMuscular.DIOS) } / ZonaMuscular.entries.size.toFloat()) to

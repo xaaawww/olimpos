@@ -161,6 +161,19 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Compañeros de entrenamiento: unidireccional (lo agrega quien lo ve
+    // en Clasificación, sin que el otro socio tenga que aceptar nada — ver
+    // CompanerosRepository.kt) — un documento por par, id = "{miUid}_{elOtroUid}".
+    // Cada socio solo lee/crea/borra su propia lista, nunca la de otro.
+    match /companeros/{docId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid
+                    && request.resource.data.companero_id != request.auth.uid;
+      allow delete: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow update: if false;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;
