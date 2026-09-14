@@ -99,6 +99,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Lockers: un documento por socio (id = su uid), el locker que tiene
+    // reservado (ver LockersRepository.kt). Cualquier socio autenticado
+    // puede LEER todas para saber qué números están libres/ocupados por
+    // otro, pero solo puede crear/editar/borrar su propio documento.
+    match /lockers/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Perfiles nutricionales: preferencias/exclusiones que carga el propio
+    // socio en Nutrición (ver NutricionRepository.kt) — solo lee/escribe
+    // su propio documento, nadie más lo necesita.
+    match /perfiles_nutricionales/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;

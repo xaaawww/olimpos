@@ -15,12 +15,18 @@ import kotlinx.coroutines.tasks.await
  */
 private const val COLECCION_INGRESOS = "ingresos"
 
-suspend fun registrarIngresoEnFirebase(): Boolean {
+/** [metodo]: "qr" | "biometrico" | "manual" — el que el socio tenía
+ *  activado al tocar el botón (ver AccesoScreen), no un dato leído de un
+ *  lector real. Sirve para los logros "Puntualidad"/"Biométrico". */
+data class IngresoRegistro(val timestamp: Long, val metodo: String)
+
+suspend fun registrarIngresoEnFirebase(metodo: String): Boolean {
     return try {
         Firebase.firestore.collection(COLECCION_INGRESOS).document().set(
             mapOf(
                 "socio_id" to socioActualId(),
-                "timestamp" to System.currentTimeMillis()
+                "timestamp" to System.currentTimeMillis(),
+                "metodo" to metodo
             )
         ).await()
         true
@@ -29,14 +35,16 @@ suspend fun registrarIngresoEnFirebase(): Boolean {
     }
 }
 
-/** Devuelve solo los timestamps (no hace falta más para racha/visitas). */
-suspend fun cargarIngresosDesdeFirebase(): List<Long>? {
+suspend fun cargarIngresosDesdeFirebase(): List<IngresoRegistro>? {
     return try {
         val snapshot = Firebase.firestore.collection(COLECCION_INGRESOS)
             .whereEqualTo("socio_id", socioActualId())
             .get()
             .await()
-        snapshot.documents.mapNotNull { it.getLong("timestamp") }
+        snapshot.documents.mapNotNull { doc ->
+            val ts = doc.getLong("timestamp") ?: return@mapNotNull null
+            IngresoRegistro(ts, doc.getString("metodo") ?: "manual")
+        }
     } catch (e: Exception) {
         null
     }
@@ -44,10 +52,10 @@ suspend fun cargarIngresosDesdeFirebase(): List<Long>? {
 
 /** `true` si ya hay un ingreso marcado en el día calendario de hoy — para
  *  deshabilitar el botón y no permitir marcar dos veces el mismo día. */
-fun yaIngresoHoy(ingresos: List<Long>): Boolean {
+fun yaIngresoHoy(ingresos: List<IngresoRegistro>): Boolean {
     val hoy = java.util.Calendar.getInstance()
-    return ingresos.any { ts ->
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = ts }
+    return ingresos.any { ingreso ->
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = ingreso.timestamp }
         cal.get(java.util.Calendar.DAY_OF_YEAR) == hoy.get(java.util.Calendar.DAY_OF_YEAR) &&
             cal.get(java.util.Calendar.YEAR) == hoy.get(java.util.Calendar.YEAR)
     }

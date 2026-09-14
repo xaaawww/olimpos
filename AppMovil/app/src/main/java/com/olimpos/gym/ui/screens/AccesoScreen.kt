@@ -76,8 +76,12 @@ fun AccesoScreen(onVolver: () -> Unit) {
                     if (yaMarcado) "Ingreso de hoy ya registrado" else "✅ Marcar mi ingreso de hoy",
                     habilitado = !yaMarcado
                 ) {
+                    // El "método" es el que tenías activado al tocar el botón —
+                    // no lo lee ningún lector real, pero sirve para diferenciar
+                    // ingresos con QR de los de huella (ver Logros).
+                    val metodo = if (qrActivo) "qr" else if (biometricoActivo) "biometrico" else "manual"
                     scope.launch {
-                        registrarIngresoEnFirebase()
+                        registrarIngresoEnFirebase(metodo)
                         DatosRemotos.recargarIngresos()
                     }
                 }
@@ -114,7 +118,7 @@ fun AccesoScreen(onVolver: () -> Unit) {
             if (ingresos.isEmpty()) {
                 Text("Todavía no hay ingresos registrados.", fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 12.dp))
             }
-            ingresos.sortedDescending().forEach { timestamp ->
+            ingresos.sortedByDescending { it.timestamp }.forEach { ingreso ->
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -125,8 +129,13 @@ fun AccesoScreen(onVolver: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(fechaLegible(timestamp), fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Olimpos.Cream)
-                        Text("Ingreso registrado", fontSize = 11.sp, color = Olimpos.Muted)
+                        Text(fechaLegible(ingreso.timestamp), fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Olimpos.Cream)
+                        Text(
+                            "Ingreso registrado · ${
+                                when (ingreso.metodo) { "qr" -> "QR"; "biometrico" -> "Biométrico"; else -> "Manual" }
+                            }",
+                            fontSize = 11.sp, color = Olimpos.Muted
+                        )
                     }
                 }
             }

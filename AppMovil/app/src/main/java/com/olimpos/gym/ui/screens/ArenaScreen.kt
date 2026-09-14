@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -22,7 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.ObjetivoCompetencia
+import com.olimpos.gym.data.marcarSeccionArenaVisitada
 import com.olimpos.gym.ui.theme.Olimpos
 
 private enum class ArenaVista { GRID, BODYGRAPH, CALCULADORA, GALERIA, MARCAS, LOGROS, CLASIFICACION }
@@ -40,6 +43,18 @@ fun ArenaScreen(objetivo: ObjetivoCompetencia?, onObjetivo: (ObjetivoCompetencia
             mostrarSelector = false
         }
         return
+    }
+
+    // Para el logro "Explorador" (visitar las 6 secciones de la Arena) —
+    // se dispara cada vez que se entra a una sección real (no al GRID, que
+    // es el menú, no una sección en sí).
+    LaunchedEffect(vista) {
+        if (vista != ArenaVista.GRID &&
+            vista.name !in (DatosRemotos.datosFisicosPropios?.seccionesArenaVisitadas ?: emptySet())
+        ) {
+            marcarSeccionArenaVisitada(vista.name)
+            DatosRemotos.recargarDatosFisicosPropios()
+        }
     }
 
     when (vista) {

@@ -31,8 +31,12 @@ object DatosRemotos {
      *  aceptable porque [precargar] ya corrió antes de que el socio llegue
      *  a abrir Entrenar (ver MainActivity). */
     var rutinaAsignada by mutableStateOf<RutinaDelDia?>(null); private set
-    var ingresos by mutableStateOf<List<Long>?>(null); private set
+    var ingresos by mutableStateOf<List<IngresoRegistro>?>(null); private set
     var reservasClase by mutableStateOf<List<ReservaClase>?>(null); private set
+    /** uid del ocupante -> número de locker, de TODOS los socios (hace
+     *  falta para saber qué lockers están libres/ocupados por otro). */
+    var lockersOcupados by mutableStateOf<Map<Int, String>?>(null); private set
+    var perfilNutricional by mutableStateOf<PerfilNutricional?>(null); private set
 
     private var yaPrecargado = false
 
@@ -49,6 +53,8 @@ object DatosRemotos {
             launch { rutinaAsignada = cargarRutinaAsignada() }
             launch { ingresos = cargarIngresosDesdeFirebase() }
             launch { reservasClase = cargarReservasClaseDesdeFirebase() }
+            launch { lockersOcupados = cargarLockersDesdeFirebase() }
+            launch { perfilNutricional = cargarPerfilNutricionalDesdeFirebase() }
         }
     }
 
@@ -60,6 +66,16 @@ object DatosRemotos {
     /** Se llama al tocar "Reservar" en una clase de Inicio. */
     suspend fun recargarReservasClase() {
         reservasClase = cargarReservasClaseDesdeFirebase()
+    }
+
+    /** Se llama al reservar/liberar un locker en Mis lockers. */
+    suspend fun recargarLockers() {
+        lockersOcupados = cargarLockersDesdeFirebase()
+    }
+
+    /** Se llama al guardar las preferencias nutricionales. */
+    suspend fun recargarPerfilNutricional() {
+        perfilNutricional = cargarPerfilNutricionalDesdeFirebase()
     }
 
     /** Se llama después de registrar una serie nueva en Entrenar, para que

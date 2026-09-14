@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,7 @@ import com.olimpos.gym.data.MINIMO_EJERCICIOS_PARA_CLASIFICACION
 import com.olimpos.gym.data.NivelMuscular
 import com.olimpos.gym.data.ZonaMuscular
 import com.olimpos.gym.data.cantidadEjerciciosVigentes
+import com.olimpos.gym.data.incrementarVistaBodygraph
 import com.olimpos.gym.data.nivelDesdePuntaje
 import com.olimpos.gym.data.puntajeGeneralDeSocio
 import com.olimpos.gym.data.resumenMuscular
@@ -72,6 +74,14 @@ fun BodygraphScreen(onVolver: () -> Unit) {
         puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo)?.let { nivelDesdePuntaje(it) }
     }
     val ejerciciosRegistrados = remember(marcas) { cantidadEjerciciosVigentes(marcas) }
+
+    // Para el logro "Ojo en el progreso" (revisar el Bodygraph 20 veces) —
+    // LaunchedEffect(Unit) corre una sola vez por cada vez que se entra a
+    // esta pantalla, no en cada recomposición.
+    LaunchedEffect(Unit) {
+        incrementarVistaBodygraph()
+        DatosRemotos.recargarDatosFisicosPropios()
+    }
 
     Column(
         Modifier

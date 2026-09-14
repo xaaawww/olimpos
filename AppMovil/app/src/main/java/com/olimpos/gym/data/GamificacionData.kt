@@ -547,7 +547,20 @@ data class ContextoLogros(
     val pesoCorporalKg: Float,
     val sexo: SexoBiologico?,
     val rangosSocios: List<SocioRango>,
-    val onboardingCompleto: Boolean
+    val onboardingCompleto: Boolean,
+    /** Cuántos ingresos se marcaron con cada método (ver AccesoScreen) —
+     *  ninguno es un lector real todavía, es el método que el socio tenía
+     *  activado al tocar "Marcar mi ingreso de hoy". */
+    val ingresosQr: Int = 0,
+    val ingresosBiometrico: Int = 0,
+    val vioPlano: Boolean = false,
+    val vistasBodygraph: Int = 0,
+    val seccionesArenaVisitadas: Int = 0,
+    /** Distintos objetivos de la Arena que probó alguna vez (ver
+     *  objetivosProbadosAlgunaVez en este mismo archivo). */
+    val objetivosDistintosProbados: Int = 0,
+    val tieneLockerReservado: Boolean = false,
+    val tienePerfilNutricional: Boolean = false
 )
 
 private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
@@ -560,6 +573,31 @@ private fun diaSemana(diaEpoch: Long): Int = ((diaEpoch + 4) % 7).toInt()
 
 private fun horaLocal(timestampMs: Long): Int =
     java.util.Calendar.getInstance().apply { timeInMillis = timestampMs }.get(java.util.Calendar.HOUR_OF_DAY)
+
+/** Feriados nacionales argentinos de fecha fija (mes, día) — simplificado:
+ *  varios feriados reales se trasladan al lunes más cercano (ley 27.399) y
+ *  hay puentes que cambian cada año, pero para este logro alcanza con la
+ *  fecha de referencia. No incluye Semana Santa (depende de una fecha
+ *  móvil que no vale la pena calcular acá). */
+private val FERIADOS_ARGENTINA_MES_DIA = setOf(
+    1 to 1,    // Año Nuevo
+    3 to 24,   // Día de la Memoria
+    4 to 2,    // Día del Veterano y de los Caídos en Malvinas
+    5 to 1,    // Día del Trabajador
+    5 to 25,   // Día de la Revolución de Mayo
+    6 to 20,   // Paso a la Inmortalidad del Gral. Belgrano
+    7 to 9,    // Día de la Independencia
+    8 to 17,   // Paso a la Inmortalidad del Gral. San Martín
+    10 to 12,  // Día del Respeto a la Diversidad Cultural
+    11 to 20,  // Día de la Soberanía Nacional
+    12 to 8,   // Inmaculada Concepción de María
+    12 to 25   // Navidad
+)
+
+private fun esFeriadoArgentino(timestampMs: Long): Boolean {
+    val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestampMs }
+    return (cal.get(java.util.Calendar.MONTH) + 1) to cal.get(java.util.Calendar.DAY_OF_MONTH) in FERIADOS_ARGENTINA_MES_DIA
+}
 
 /** Racha consecutiva más larga entre los días (en "día-epoch") dados —
  *  se usa la más larga de toda la historia, no la actual: un logro de
@@ -677,6 +715,8 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Guerrero de fin de semana"] = (if (finDeSemanaCompleto) 1f else 0f) to finDeSemanaCompleto
     resultados["Doble turno"] = (if (dosVecesElMismoDia) 1f else 0f) to dosVecesElMismoDia
     resultados["Ave fénix"] = (if (pausaLargaYVolvio) 1f else 0f) to pausaLargaYVolvio
+    val entrenoUnFeriado = ctx.series.any { esFeriadoArgentino(it.timestamp) } || ctx.marcas.any { esFeriadoArgentino(it.timestamp) }
+    resultados["Sin excusas"] = (if (entrenoUnFeriado) 1f else 0f) to entrenoUnFeriado
 
     val verificadas = ctx.marcas.count { it.verificado }
     resultados["Cazador de PRs"] = (verificadas / 5f).coerceIn(0f, 1f) to (verificadas >= 5)
@@ -710,6 +750,15 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Corona de laurel"] = (if (posicion == 1) 1f else 0f) to (posicion == 1)
 
     resultados["Graduado"] = (if (ctx.onboardingCompleto) 1f else 0f) to ctx.onboardingCompleto
+
+    resultados["Cartógrafo"] = (if (ctx.vioPlano) 1f else 0f) to ctx.vioPlano
+    resultados["Ojo en el progreso"] = (ctx.vistasBodygraph / 20f).coerceIn(0f, 1f) to (ctx.vistasBodygraph >= 20)
+    resultados["Explorador"] = (ctx.seccionesArenaVisitadas / 6f).coerceIn(0f, 1f) to (ctx.seccionesArenaVisitadas >= 6)
+    resultados["Cambio de look"] = (if (ctx.objetivosDistintosProbados >= 2) 1f else 0f) to (ctx.objetivosDistintosProbados >= 2)
+    resultados["Puntualidad"] = (ctx.ingresosQr / 20f).coerceIn(0f, 1f) to (ctx.ingresosQr >= 20)
+    resultados["Biométrico"] = (ctx.ingresosBiometrico / 10f).coerceIn(0f, 1f) to (ctx.ingresosBiometrico >= 10)
+    resultados["Casillero propio"] = (if (ctx.tieneLockerReservado) 1f else 0f) to ctx.tieneLockerReservado
+    resultados["Plato consciente"] = (if (ctx.tienePerfilNutricional) 1f else 0f) to ctx.tienePerfilNutricional
 
     resultados["El ojo de Atenea"] = (diasMadrugonExtremo / 5f).coerceIn(0f, 1f) to (diasMadrugonExtremo >= 5)
     resultados["Ascensión completa"] = (ZonaMuscular.entries.count { alMenos(it, RangoMuscular.DIOS) } / ZonaMuscular.entries.size.toFloat()) to
@@ -819,6 +868,7 @@ enum class ObjetivoCompetencia(val etiqueta: String, val emoji: String) {
 
 private const val PREFS_ARENA = "olimpos_prefs"
 private const val KEY_OBJETIVO = "objetivo_arena"
+private const val KEY_OBJETIVOS_HISTORICOS = "objetivos_historicos"
 
 /** null = todavía no eligió objetivo: dispara la pantalla de selección la primera vez que entra a Arena. */
 fun leerObjetivoArena(context: Context): ObjetivoCompetencia? {
@@ -827,7 +877,20 @@ fun leerObjetivoArena(context: Context): ObjetivoCompetencia? {
 }
 
 fun guardarObjetivoArena(context: Context, objetivo: ObjetivoCompetencia) {
-    context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).edit()
+    val prefs = context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE)
+    val historicos = (prefs.getStringSet(KEY_OBJETIVOS_HISTORICOS, emptySet()) ?: emptySet()) + objetivo.name
+    prefs.edit()
         .putString(KEY_OBJETIVO, objetivo.name)
+        // Set nuevo (no el mismo mutado) — StringSet de SharedPreferences no
+        // debe modificarse in-place, hay bugs documentados de Android si se
+        // reusa la misma instancia.
+        .putStringSet(KEY_OBJETIVOS_HISTORICOS, historicos)
         .apply()
 }
+
+/** Para el logro "Cambio de look": distintos objetivos que probó alguna vez
+ *  (no solo el primero que eligió en el onboarding de la Arena). Vive en
+ *  SharedPreferences igual que el objetivo actual — es un dato del
+ *  dispositivo, no necesita ser cross-device para un logro. */
+fun objetivosProbadosAlgunaVez(context: Context): Set<String> =
+    context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).getStringSet(KEY_OBJETIVOS_HISTORICOS, emptySet()) ?: emptySet()

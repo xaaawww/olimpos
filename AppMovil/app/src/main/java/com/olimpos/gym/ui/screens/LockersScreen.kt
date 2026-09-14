@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,16 +30,36 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.EstadoLocker
 import com.olimpos.gym.data.Locker
 import com.olimpos.gym.data.LOCKERS_EJEMPLO
+import com.olimpos.gym.data.liberarLockerEnFirebase
+import com.olimpos.gym.data.reservarLockerEnFirebase
+import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.ui.theme.Olimpos
+import kotlinx.coroutines.launch
 
 @Composable
 fun LockersScreen(onVolver: () -> Unit) {
-    val lockers = remember { mutableStateOf(LOCKERS_EJEMPLO.toMutableList()) }
     var aviso by remember { mutableStateOf<String?>(null) }
-    val miLocker = lockers.value.firstOrNull { it.estado == EstadoLocker.RESERVADO_POR_MI }
+    val scope = rememberCoroutineScope()
+    // Los números/zonas de los lockers son el layout físico real del
+    // vestidor (fijo); quién tiene reservado cada uno sale de Firestore —
+    // antes ese "ocupado" era un estado inventado sin ningún socio detrás.
+    val ocupantes = DatosRemotos.lockersOcupados ?: emptyMap()
+    val miId = socioActualId()
+    val lockers = LOCKERS_EJEMPLO.map { l ->
+        val ocupante = ocupantes[l.numero]
+        l.copy(
+            estado = when {
+                ocupante == miId -> EstadoLocker.RESERVADO_POR_MI
+                ocupante != null -> EstadoLocker.OCUPADO
+                else -> EstadoLocker.LIBRE
+            }
+        )
+    }
+    val miLocker = lockers.firstOrNull { it.estado == EstadoLocker.RESERVADO_POR_MI }
 
     Column(Modifier.fillMaxSize()) {
         EncabezadoVolver("Mis lockers", "Reservá y abrí tu locker", onVolver)
@@ -56,6 +77,14 @@ fun LockersScreen(onVolver: () -> Unit) {
                     }
                     Spacer(Modifier.height(10.dp))
                     BotonPrincipal("Abrir locker") { aviso = "Locker Nº ${miLocker.numero} abierto ✓" }
+                    Spacer(Modifier.height(8.dp))
+                    BotonSecundario("Liberar este locker") {
+                        scope.launch {
+                            liberarLockerEnFirebase()
+                            DatosRemotos.recargarLockers()
+                        }
+                        aviso = "Locker Nº ${miLocker.numero} liberado"
+                    }
                 }
                 aviso?.let {
                     Spacer(Modifier.height(10.dp))
@@ -86,16 +115,13 @@ fun LockersScreen(onVolver: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(lockers.value) { l ->
+            items(lockers, key = { it.numero }) { l ->
                 CasillaLocker(l) {
                     if (l.estado == EstadoLocker.LIBRE) {
-                        lockers.value = lockers.value.map {
-                            when {
-                                it.numero == l.numero -> it.copy(estado = EstadoLocker.RESERVADO_POR_MI)
-                                it.estado == EstadoLocker.RESERVADO_POR_MI -> it.copy(estado = EstadoLocker.LIBRE)
-                                else -> it
-                            }
-                        }.toMutableList()
+                        scope.launch {
+                            reservarLockerEnFirebase(l.numero)
+                            DatosRemotos.recargarLockers()
+                        }
                         aviso = "Locker Nº ${l.numero} reservado ✓"
                     }
                 }

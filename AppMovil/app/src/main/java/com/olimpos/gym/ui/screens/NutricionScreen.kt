@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,16 +28,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.ALIMENTOS_EXCLUIBLES
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.HISTORIAL_ALIMENTARIO
 import com.olimpos.gym.data.PREFERENCIAS_ALIMENTARIAS
 import com.olimpos.gym.data.RECOMENDACIONES_NUTRICIONALES
+import com.olimpos.gym.data.guardarPerfilNutricionalEnFirebase
 import com.olimpos.gym.ui.theme.Olimpos
+import kotlinx.coroutines.launch
 
 @Composable
 fun NutricionScreen(onVolver: () -> Unit) {
-    var preferencias by remember { mutableStateOf(setOf<String>()) }
-    var excluidos by remember { mutableStateOf(setOf<String>()) }
+    val perfilGuardado = DatosRemotos.perfilNutricional
+    var preferencias by remember { mutableStateOf(perfilGuardado?.preferencias ?: emptySet()) }
+    var excluidos by remember { mutableStateOf(perfilGuardado?.excluidos ?: emptySet()) }
     var aviso by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(
         Modifier
@@ -58,6 +64,10 @@ fun NutricionScreen(onVolver: () -> Unit) {
 
             Spacer(Modifier.height(14.dp))
             BotonPrincipal("Guardar preferencias") {
+                scope.launch {
+                    guardarPerfilNutricionalEnFirebase(preferencias, excluidos)
+                    DatosRemotos.recargarPerfilNutricional()
+                }
                 aviso = "Preferencias guardadas. Tu nutricionista las va a tener en cuenta en tu próximo plan."
             }
             aviso?.let {

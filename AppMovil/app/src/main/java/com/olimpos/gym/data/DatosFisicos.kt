@@ -29,7 +29,14 @@ data class DatosFisicos(
      *  Olimpo (ni en la búsqueda, ni en las listas de miembros, ni en el
      *  conteo de cada rango) — sigue viendo su PROPIO rango normalmente,
      *  ver ClasificacionScreen.kt. */
-    val ocultoClasificacion: Boolean = false
+    val ocultoClasificacion: Boolean = false,
+    /** Flags/contadores chicos de actividad, para Logros — se guardan acá
+     *  en vez de crear una colección nueva por cada uno, ya total son solo
+     *  un par de campos por socio (ver PlanoScreen/BodygraphScreen/
+     *  ArenaScreen para dónde se actualiza cada uno). */
+    val vioPlano: Boolean = false,
+    val vistasBodygraph: Int = 0,
+    val seccionesArenaVisitadas: Set<String> = emptySet()
 )
 
 private const val COLECCION_DATOS_FISICOS = "datos_fisicos"
@@ -44,6 +51,9 @@ suspend fun guardarDatosFisicos(datos: DatosFisicos): Boolean {
                 "experiencia" to datos.experiencia,
                 "condicion_medica" to datos.condicionMedica,
                 "oculto_clasificacion" to datos.ocultoClasificacion,
+                "vio_plano" to datos.vioPlano,
+                "vistas_bodygraph" to datos.vistasBodygraph,
+                "secciones_arena_visitadas" to datos.seccionesArenaVisitadas.toList(),
                 "actualizado_ms" to System.currentTimeMillis()
             )
         ).await()
@@ -65,6 +75,39 @@ suspend fun actualizarOcultoClasificacion(oculto: Boolean): Boolean {
     }
 }
 
+/** Las tres siguientes son para Logros — updates parciales chicos, cada
+ *  una la dispara la pantalla correspondiente la primera vez que pasa lo
+ *  que cuentan (ver PlanoScreen/BodygraphScreen/ArenaScreen). */
+suspend fun marcarPlanoVisto(): Boolean {
+    return try {
+        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId())
+            .update("vio_plano", true).await()
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+suspend fun incrementarVistaBodygraph(): Boolean {
+    return try {
+        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId())
+            .update("vistas_bodygraph", com.google.firebase.firestore.FieldValue.increment(1)).await()
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+suspend fun marcarSeccionArenaVisitada(seccion: String): Boolean {
+    return try {
+        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId())
+            .update("secciones_arena_visitadas", com.google.firebase.firestore.FieldValue.arrayUnion(seccion)).await()
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
 private fun documentoADatosFisicos(doc: com.google.firebase.firestore.DocumentSnapshot): DatosFisicos? {
     val peso = doc.getDouble("peso_kg")?.toFloat() ?: return null
     return DatosFisicos(
@@ -73,7 +116,11 @@ private fun documentoADatosFisicos(doc: com.google.firebase.firestore.DocumentSn
         sexo = SexoBiologico.entries.firstOrNull { it.name == doc.getString("sexo") } ?: SexoBiologico.PREFIERO_NO_DECIRLO,
         experiencia = doc.getString("experiencia") ?: "",
         condicionMedica = doc.getString("condicion_medica") ?: "",
-        ocultoClasificacion = doc.getBoolean("oculto_clasificacion") ?: false
+        ocultoClasificacion = doc.getBoolean("oculto_clasificacion") ?: false,
+        vioPlano = doc.getBoolean("vio_plano") ?: false,
+        vistasBodygraph = doc.getLong("vistas_bodygraph")?.toInt() ?: 0,
+        seccionesArenaVisitadas = (doc.get("secciones_arena_visitadas") as? List<*>)
+            ?.mapNotNull { it as? String }?.toSet() ?: emptySet()
     )
 }
 

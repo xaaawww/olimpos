@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +36,7 @@ import com.olimpos.gym.data.ContextoLogros
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.Logro
 import com.olimpos.gym.data.calcularLogros
+import com.olimpos.gym.data.objetivosProbadosAlgunaVez
 import com.olimpos.gym.data.socioActualId
 import com.olimpos.gym.ui.theme.Olimpos
 
@@ -48,22 +50,34 @@ fun LogrosScreen(onVolver: () -> Unit) {
     // alguna de las fuentes reales detrás (una marca nueva, una serie
     // registrada, un ingreso marcado, etc.), pero no en cada recomposición
     // suelta (por ejemplo, al abrir o cerrar el detalle de una medalla).
+    val contexto = LocalContext.current
     val marcas = DatosRemotos.marcas ?: emptyList()
     val series = DatosRemotos.seriesEntrenamiento ?: emptyList()
     val ingresos = DatosRemotos.ingresos ?: emptyList()
     val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
     val datosFisicos = DatosRemotos.datosFisicosPropios
-    val logros = remember(marcas, series, ingresos, rangosSocios, datosFisicos) {
+    val lockersOcupados = DatosRemotos.lockersOcupados ?: emptyMap()
+    val perfilNutricional = DatosRemotos.perfilNutricional
+    val logros = remember(marcas, series, ingresos, rangosSocios, datosFisicos, lockersOcupados, perfilNutricional) {
+        val socioId = socioActualId()
         calcularLogros(
             ContextoLogros(
-                socioId = socioActualId(),
+                socioId = socioId,
                 marcas = marcas,
                 series = series,
-                ingresos = ingresos,
+                ingresos = ingresos.map { it.timestamp },
                 pesoCorporalKg = datosFisicos?.pesoKg ?: 80f,
                 sexo = datosFisicos?.sexo,
                 rangosSocios = rangosSocios,
-                onboardingCompleto = datosFisicos != null
+                onboardingCompleto = datosFisicos != null,
+                ingresosQr = ingresos.count { it.metodo == "qr" },
+                ingresosBiometrico = ingresos.count { it.metodo == "biometrico" },
+                vioPlano = datosFisicos?.vioPlano ?: false,
+                vistasBodygraph = datosFisicos?.vistasBodygraph ?: 0,
+                seccionesArenaVisitadas = datosFisicos?.seccionesArenaVisitadas?.size ?: 0,
+                objetivosDistintosProbados = objetivosProbadosAlgunaVez(contexto).size,
+                tieneLockerReservado = lockersOcupados.containsValue(socioId),
+                tienePerfilNutricional = perfilNutricional != null && (perfilNutricional.preferencias.isNotEmpty() || perfilNutricional.excluidos.isNotEmpty())
             )
         )
     }

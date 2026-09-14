@@ -115,11 +115,11 @@ private fun PerfilHome(
         // (racha/visitas) y reservas de clase guardadas de verdad desde
         // Inicio (antes "Reservar" solo cambiaba un estado local que se
         // perdía al salir de la pantalla).
-        val ingresos = DatosRemotos.ingresos ?: emptyList()
+        val timestampsIngreso = (DatosRemotos.ingresos ?: emptyList()).map { it.timestamp }
         val reservasClase = DatosRemotos.reservasClase ?: emptyList()
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Estadistica("${rachaActualDeDias(ingresos)}", "Días racha", Modifier.weight(1f))
-            Estadistica("${visitasEnElMesActual(ingresos)}", "Visitas mes", Modifier.weight(1f))
+            Estadistica("${rachaActualDeDias(timestampsIngreso)}", "Días racha", Modifier.weight(1f))
+            Estadistica("${visitasEnElMesActual(timestampsIngreso)}", "Visitas mes", Modifier.weight(1f))
             Estadistica("${clasesReservadasEstaSemana(reservasClase)}", "Clases sem.", Modifier.weight(1f))
         }
 

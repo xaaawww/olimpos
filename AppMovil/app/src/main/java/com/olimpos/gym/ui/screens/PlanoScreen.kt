@@ -59,8 +59,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.PISOS
 import com.olimpos.gym.data.PuntoPlano
+import com.olimpos.gym.data.marcarPlanoVisto
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlin.math.roundToInt
 
@@ -72,6 +75,16 @@ fun PlanoScreen(onVolver: () -> Unit) {
     var piso by remember { mutableIntStateOf(0) }
     var activo by remember { mutableStateOf<PuntoPlano?>(null) }
     val datos = PISOS[piso]
+
+    // Para el logro "Cartógrafo" — se marca una sola vez, la primera vez
+    // que el socio abre el Plano (el `if` evita reescribir el mismo true
+    // cada vez que vuelve a entrar).
+    LaunchedEffect(Unit) {
+        if (DatosRemotos.datosFisicosPropios?.vioPlano != true) {
+            marcarPlanoVisto()
+            DatosRemotos.recargarDatosFisicosPropios()
+        }
+    }
 
     Column(
         Modifier

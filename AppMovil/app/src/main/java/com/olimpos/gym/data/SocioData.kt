@@ -36,14 +36,17 @@ enum class EstadoLocker { LIBRE, OCUPADO, RESERVADO_POR_MI }
 
 data class Locker(val numero: Int, val zona: String, var estado: EstadoLocker)
 
-val LOCKERS_EJEMPLO = mutableListOf(
-    // Ninguno reservado por el socio todavía a propósito — antes el
-    // locker 12 arrancaba marcado como "mío" sin que nadie lo reservara.
+// El número y la zona de cada locker es el layout físico real del
+// vestidor (fijo, no cambia) — el `estado` acá es solo un valor de
+// arranque sin usar: LockersScreen lo recalcula siempre a partir de las
+// reservas reales en Firestore (ver LockersRepository.kt), así que ningún
+// locker aparece "ocupado" sin que un socio real lo haya reservado.
+val LOCKERS_EJEMPLO = listOf(
     Locker(12, "Vestidor Hombres", EstadoLocker.LIBRE),
     Locker(1, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(2, "Vestidor Hombres", EstadoLocker.OCUPADO),
+    Locker(2, "Vestidor Hombres", EstadoLocker.LIBRE),
     Locker(3, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(4, "Vestidor Hombres", EstadoLocker.OCUPADO),
+    Locker(4, "Vestidor Hombres", EstadoLocker.LIBRE),
     Locker(5, "Vestidor Hombres", EstadoLocker.LIBRE),
     Locker(6, "Vestidor Hombres", EstadoLocker.LIBRE)
 )
