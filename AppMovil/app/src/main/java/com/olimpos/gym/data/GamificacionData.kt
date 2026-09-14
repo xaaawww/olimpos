@@ -560,7 +560,11 @@ data class ContextoLogros(
      *  objetivosProbadosAlgunaVez en este mismo archivo). */
     val objetivosDistintosProbados: Int = 0,
     val tieneLockerReservado: Boolean = false,
-    val tienePerfilNutricional: Boolean = false
+    val tienePerfilNutricional: Boolean = false,
+    /** Fecha real de inicio de la membresía asignada por un empleado
+     *  (ver MembresiaRepository.kt) — `null` si todavía no le asignaron
+     *  ninguna. */
+    val membresiaFechaInicioMs: Long? = null
 )
 
 private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
@@ -759,6 +763,13 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Biométrico"] = (ctx.ingresosBiometrico / 10f).coerceIn(0f, 1f) to (ctx.ingresosBiometrico >= 10)
     resultados["Casillero propio"] = (if (ctx.tieneLockerReservado) 1f else 0f) to ctx.tieneLockerReservado
     resultados["Plato consciente"] = (if (ctx.tienePerfilNutricional) 1f else 0f) to ctx.tienePerfilNutricional
+
+    // Meses aproximados (30 días) desde que un empleado asignó la
+    // membresía — no hay forma de saber si "pagó cada mes", solo desde
+    // cuándo está asignada.
+    val mesesDeMembresia = ctx.membresiaFechaInicioMs
+        ?.let { (System.currentTimeMillis() - it) / (30L * 86_400_000L) } ?: 0L
+    resultados["Cliente fiel"] = (mesesDeMembresia / 6f).coerceIn(0f, 1f) to (mesesDeMembresia >= 6)
 
     resultados["El ojo de Atenea"] = (diasMadrugonExtremo / 5f).coerceIn(0f, 1f) to (diasMadrugonExtremo >= 5)
     resultados["Ascensión completa"] = (ZonaMuscular.entries.count { alMenos(it, RangoMuscular.DIOS) } / ZonaMuscular.entries.size.toFloat()) to

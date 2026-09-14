@@ -37,6 +37,8 @@ object DatosRemotos {
      *  falta para saber qué lockers están libres/ocupados por otro). */
     var lockersOcupados by mutableStateOf<Map<Int, String>?>(null); private set
     var perfilNutricional by mutableStateOf<PerfilNutricional?>(null); private set
+    /** `null` = todavía no le asignaron ninguna membresía. */
+    var membresia by mutableStateOf<MembresiaAsignada?>(null); private set
 
     private var yaPrecargado = false
 
@@ -55,7 +57,14 @@ object DatosRemotos {
             launch { reservasClase = cargarReservasClaseDesdeFirebase() }
             launch { lockersOcupados = cargarLockersDesdeFirebase() }
             launch { perfilNutricional = cargarPerfilNutricionalDesdeFirebase() }
+            launch { membresia = cargarMembresiaDesdeFirebase() }
         }
+    }
+
+    /** Botón manual en Membresía, por si un empleado la asignó/cambió
+     *  mientras el socio ya tenía la app abierta. */
+    suspend fun recargarMembresia() {
+        membresia = cargarMembresiaDesdeFirebase()
     }
 
     /** Se llama al tocar "Marcar mi ingreso de hoy" en Accesos. */

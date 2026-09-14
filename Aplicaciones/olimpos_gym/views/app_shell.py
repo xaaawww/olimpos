@@ -13,6 +13,7 @@ from views.personal import (build_personal, build_asistencia, build_rutinas, bui
 from views.editor_dietas import build_editor_dietas
 from views.editor_ejercicios import build_editor_ejercicios
 from views.editor_rutinas import build_editor_rutinas
+from views.editor_membresias import build_editor_membresias
 from views.verificacion_marcas import build_verificacion_marcas
 
 
@@ -190,6 +191,7 @@ class AppShell:
             "editor-dietas":  lambda: build_editor_dietas(self.page),
             "editor-ejercicios": lambda: build_editor_ejercicios(self.page),
             "verificacion-marcas": lambda: build_verificacion_marcas(self.page, self.role_data["name"]),
+            "membresias":     lambda: build_editor_membresias(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
             "mi-dieta":       build_dietas,
             "progreso":       build_progreso,
             "mi-progreso":    build_progreso,
