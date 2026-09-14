@@ -17,19 +17,30 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.guardarNotificacionesLogrosActivas
 import com.olimpos.gym.ui.theme.Olimpos
 import com.olimpos.gym.ui.theme.ThemeMode
 
 @Composable
 fun ConfiguracionScreen(onVolver: () -> Unit, themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
+    val contexto = LocalContext.current
+    var notificacionesLogros by remember { mutableStateOf(LogrosToastState.notificacionesActivas) }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -48,7 +59,51 @@ fun ConfiguracionScreen(onVolver: () -> Unit, themeMode: ThemeMode, onThemeMode:
                 OpcionTema(modo, themeMode == modo) { onThemeMode(modo) }
                 Spacer(Modifier.height(10.dp))
             }
+
+            SeccionLabel("Logros")
+            FilaSwitch(
+                emoji = "🏆",
+                titulo = "Notificación de logro desbloqueado",
+                sub = "Aviso rápido con sonido cuando conseguís uno nuevo",
+                activo = notificacionesLogros,
+                onCambio = { nuevo ->
+                    notificacionesLogros = nuevo
+                    LogrosToastState.notificacionesActivas = nuevo
+                    guardarNotificacionesLogrosActivas(contexto, nuevo)
+                }
+            )
         }
+    }
+}
+
+@Composable
+private fun FilaSwitch(emoji: String, titulo: String, sub: String, activo: Boolean, onCambio: (Boolean) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, Olimpos.Line, RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconoCuadrado(emoji)
+        Spacer(Modifier.width(13.dp))
+        Column(Modifier.weight(1f)) {
+            Text(titulo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+            Text(sub, fontSize = 11.sp, color = Olimpos.Muted)
+        }
+        Switch(
+            checked = activo,
+            onCheckedChange = onCambio,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Olimpos.Dark,
+                checkedTrackColor = Olimpos.Gold,
+                uncheckedThumbColor = Olimpos.Muted,
+                uncheckedTrackColor = Olimpos.Card,
+                uncheckedBorderColor = Olimpos.Line
+            )
+        )
     }
 }
 

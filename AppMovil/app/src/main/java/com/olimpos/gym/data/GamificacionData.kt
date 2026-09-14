@@ -1,6 +1,7 @@
 package com.olimpos.gym.data
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import kotlin.math.ln
 
 /* ═══════════════════════════════════════════════════════
@@ -572,6 +573,49 @@ data class ContextoLogros(
     val tieneFotoDeProgreso: Boolean = false
 )
 
+/** Arma el [ContextoLogros] leyendo [DatosRemotos] — un solo lugar para esta
+ *  lógica, compartido por LogrosScreen (muestra la grilla) y ObservadorDeLogros
+ *  (vigila en segundo plano para disparar la notificación de logro
+ *  desbloqueado). Al ser @Composable, cada campo de DatosRemotos leído acá
+ *  suscribe recomposición — no hace falta una lista manual de `remember(...)`. */
+@Composable
+fun construirContextoLogros(contexto: Context): ContextoLogros {
+    val marcas = DatosRemotos.marcas ?: emptyList()
+    val series = DatosRemotos.seriesEntrenamiento ?: emptyList()
+    val ingresos = DatosRemotos.ingresos ?: emptyList()
+    val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
+    val datosFisicos = DatosRemotos.datosFisicosPropios
+    val lockersOcupados = DatosRemotos.lockersOcupados ?: emptyMap()
+    val perfilNutricional = DatosRemotos.perfilNutricional
+    val membresia = DatosRemotos.membresia
+    val platosProbados = DatosRemotos.platosProbados ?: emptySet()
+    val registrosAgua = DatosRemotos.registrosAgua ?: emptyList()
+    val fotosProgreso = DatosRemotos.fotosProgreso ?: emptyList()
+    val socioId = socioActualId()
+    return ContextoLogros(
+        socioId = socioId,
+        marcas = marcas,
+        series = series,
+        ingresos = ingresos.map { it.timestamp },
+        pesoCorporalKg = datosFisicos?.pesoKg ?: 80f,
+        sexo = datosFisicos?.sexo,
+        rangosSocios = rangosSocios,
+        onboardingCompleto = datosFisicos != null,
+        ingresosQr = ingresos.count { it.metodo == "qr" },
+        ingresosBiometrico = ingresos.count { it.metodo == "biometrico" },
+        vioPlano = datosFisicos?.vioPlano ?: false,
+        vistasBodygraph = datosFisicos?.vistasBodygraph ?: 0,
+        seccionesArenaVisitadas = datosFisicos?.seccionesArenaVisitadas?.size ?: 0,
+        objetivosDistintosProbados = objetivosProbadosAlgunaVez(contexto).size,
+        tieneLockerReservado = lockersOcupados.containsValue(socioId),
+        tienePerfilNutricional = perfilNutricional != null && (perfilNutricional.preferencias.isNotEmpty() || perfilNutricional.excluidos.isNotEmpty()),
+        membresiaFechaInicioMs = membresia?.fechaInicioMs,
+        platosDistintosProbados = platosProbados.size,
+        registrosAgua = registrosAgua,
+        tieneFotoDeProgreso = fotosProgreso.isNotEmpty()
+    )
+}
+
 private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
 
 /** Día de la semana de un "día-epoch" (0=domingo..6=sábado) — el 1/1/1970
@@ -951,3 +995,17 @@ fun guardarObjetivoArena(context: Context, objetivo: ObjetivoCompetencia) {
  *  dispositivo, no necesita ser cross-device para un logro. */
 fun objetivosProbadosAlgunaVez(context: Context): Set<String> =
     context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).getStringSet(KEY_OBJETIVOS_HISTORICOS, emptySet()) ?: emptySet()
+
+private const val KEY_NOTIFICACIONES_LOGROS = "notificaciones_logros_activas"
+
+/** Si el toast + sonido de "logro desbloqueado" está activado — se puede
+ *  apagar desde Configuración para quien lo encuentre molesto. Activado por
+ *  default. */
+fun leerNotificacionesLogrosActivas(context: Context): Boolean =
+    context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).getBoolean(KEY_NOTIFICACIONES_LOGROS, true)
+
+fun guardarNotificacionesLogrosActivas(context: Context, activas: Boolean) {
+    context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).edit()
+        .putBoolean(KEY_NOTIFICACIONES_LOGROS, activas)
+        .apply()
+}

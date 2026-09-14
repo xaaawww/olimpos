@@ -32,12 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.olimpos.gym.data.ContextoLogros
-import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.Logro
 import com.olimpos.gym.data.calcularLogros
-import com.olimpos.gym.data.objetivosProbadosAlgunaVez
-import com.olimpos.gym.data.socioActualId
+import com.olimpos.gym.data.construirContextoLogros
 import com.olimpos.gym.ui.theme.Olimpos
 
 /** Logros: grilla de 5 columnas solo con el ícono — tocar uno abre el
@@ -51,47 +48,8 @@ fun LogrosScreen(onVolver: () -> Unit) {
     // registrada, un ingreso marcado, etc.), pero no en cada recomposición
     // suelta (por ejemplo, al abrir o cerrar el detalle de una medalla).
     val contexto = LocalContext.current
-    val marcas = DatosRemotos.marcas ?: emptyList()
-    val series = DatosRemotos.seriesEntrenamiento ?: emptyList()
-    val ingresos = DatosRemotos.ingresos ?: emptyList()
-    val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
-    val datosFisicos = DatosRemotos.datosFisicosPropios
-    val lockersOcupados = DatosRemotos.lockersOcupados ?: emptyMap()
-    val perfilNutricional = DatosRemotos.perfilNutricional
-    val membresia = DatosRemotos.membresia
-    val platosProbados = DatosRemotos.platosProbados ?: emptySet()
-    val registrosAgua = DatosRemotos.registrosAgua ?: emptyList()
-    val fotosProgreso = DatosRemotos.fotosProgreso ?: emptyList()
-    val logros = remember(
-        marcas, series, ingresos, rangosSocios, datosFisicos, lockersOcupados,
-        perfilNutricional, membresia, platosProbados, registrosAgua, fotosProgreso
-    ) {
-        val socioId = socioActualId()
-        calcularLogros(
-            ContextoLogros(
-                socioId = socioId,
-                marcas = marcas,
-                series = series,
-                ingresos = ingresos.map { it.timestamp },
-                pesoCorporalKg = datosFisicos?.pesoKg ?: 80f,
-                sexo = datosFisicos?.sexo,
-                rangosSocios = rangosSocios,
-                onboardingCompleto = datosFisicos != null,
-                ingresosQr = ingresos.count { it.metodo == "qr" },
-                ingresosBiometrico = ingresos.count { it.metodo == "biometrico" },
-                vioPlano = datosFisicos?.vioPlano ?: false,
-                vistasBodygraph = datosFisicos?.vistasBodygraph ?: 0,
-                seccionesArenaVisitadas = datosFisicos?.seccionesArenaVisitadas?.size ?: 0,
-                objetivosDistintosProbados = objetivosProbadosAlgunaVez(contexto).size,
-                tieneLockerReservado = lockersOcupados.containsValue(socioId),
-                tienePerfilNutricional = perfilNutricional != null && (perfilNutricional.preferencias.isNotEmpty() || perfilNutricional.excluidos.isNotEmpty()),
-                membresiaFechaInicioMs = membresia?.fechaInicioMs,
-                platosDistintosProbados = platosProbados.size,
-                registrosAgua = registrosAgua,
-                tieneFotoDeProgreso = fotosProgreso.isNotEmpty()
-            )
-        )
-    }
+    val ctxLogros = construirContextoLogros(contexto)
+    val logros = remember(ctxLogros) { calcularLogros(ctxLogros) }
     val publicos = remember(logros) { logros.filter { !it.secreto } }
     val desbloqueados = remember(logros) { publicos.count { it.desbloqueado } }
     val visibles = remember(logros) { logros.filter { !it.secreto || it.desbloqueado } }

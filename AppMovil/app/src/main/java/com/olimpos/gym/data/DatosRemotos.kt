@@ -42,6 +42,12 @@ object DatosRemotos {
     var platosProbados by mutableStateOf<Set<String>?>(null); private set
     var registrosAgua by mutableStateOf<List<Long>?>(null); private set
     var fotosProgreso by mutableStateOf<List<FotoProgreso>?>(null); private set
+    /** Se pone en `true` recién cuando TODAS las cargas de [precargar]
+     *  terminaron — lo usa ObservadorDeLogros para saber cuándo es seguro
+     *  tomar la "foto" inicial de qué logros ya estaban desbloqueados, sin
+     *  confundir datos que todavía están llegando con logros recién
+     *  conseguidos (ver LogroToast.kt). */
+    var listo by mutableStateOf(false); private set
 
     private var yaPrecargado = false
 
@@ -65,6 +71,7 @@ object DatosRemotos {
             launch { registrosAgua = cargarRegistrosAguaDesdeFirebase() }
             launch { fotosProgreso = cargarFotosProgresoDesdeFirebase() }
         }
+        listo = true
     }
 
     /** Se llama al subir o borrar una foto de progreso. */

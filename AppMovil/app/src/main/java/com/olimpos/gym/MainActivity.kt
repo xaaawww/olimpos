@@ -57,6 +57,8 @@ import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
 import com.olimpos.gym.ui.screens.LoginScreen
+import com.olimpos.gym.ui.screens.ObservadorDeLogros
+import com.olimpos.gym.ui.screens.ToastLogroOverlay
 import com.olimpos.gym.ui.screens.OnboardingScreen
 import com.olimpos.gym.ui.screens.PerfilScreen
 import com.olimpos.gym.ui.screens.PlanoScreen
@@ -161,6 +163,10 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
     // en vez de mostrar el catálogo de ejemplo un instante y reemplazarlo.
     LaunchedEffect(Unit) { DatosRemotos.precargar() }
 
+    // Vigila en segundo plano si se desbloqueó un logro nuevo, toda la
+    // sesión — no solo cuando la pantalla de Logros está abierta.
+    ObservadorDeLogros()
+
     Box(Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -209,6 +215,9 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
         ) {
             PlanoScreen(onVolver = { mostrarPlano = false })
         }
+
+        // ── Toast de logro desbloqueado: por encima de todo, incluido el Plano ──
+        ToastLogroOverlay()
     }
 }
 
