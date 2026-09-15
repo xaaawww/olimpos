@@ -14,6 +14,7 @@ import flet as ft
 from theme import *
 from components import section_card, action_button, page_header, status_pill, divider
 import dietas_repo as repo
+import generador_imagenes as gen_ia
 
 CANVAS = 460
 RADIO_PUNTO = 14
@@ -77,6 +78,19 @@ class EditorDietasView:
                                 size=12, color="#DC2626", weight=ft.FontWeight.W_700),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
+        try:
+            hoy_ia = gen_ia.generaciones_hoy()
+            restantes_ia = gen_ia.generaciones_restantes_hoy()
+            avisos.append(ft.Container(
+                content=ft.Text(
+                    f"🤖 Imágenes generadas con IA hoy: {hoy_ia} de {gen_ia.MAXIMO_DIARIO} "
+                    f"— quedan {restantes_ia} disponibles.",
+                    size=11.5, color=TEXT_MUTED if restantes_ia > 0 else RED, weight=ft.FontWeight.W_700,
+                ),
+                bgcolor=CREAM, border_radius=10, padding=ft.padding.symmetric(horizontal=12, vertical=8),
+            ))
+        except Exception:
+            pass  # sin Firestore disponible: se omite el contador, no rompe la lista
 
         if not self.platos:
             grilla = section_card(ft.Column([
@@ -204,6 +218,7 @@ class EditorDietasView:
         acciones = ft.Row([
             action_button("🖼️ " + ("Cambiar imagen" if self.plato.get("imagen") else "Subir imagen"),
                           "outline", on_click=self._elegir_imagen),
+            action_button("🤖 Generar con IA", "outline", on_click=self._abrir_generador_ia),
             action_button(("➕ Agregar punto" if not self.modo_agregar else "✕ Cancelar"),
                           "gold" if not self.modo_agregar else "outline",
                           on_click=self._alternar_modo_agregar),
@@ -490,6 +505,120 @@ class EditorDietasView:
             self.aviso = "Imagen lista ✓ No olvides guardar los cambios."
         except Exception as ex:
             self.aviso = f"No se pudo procesar la imagen: {ex}"
+        self._render()
+
+    # ══════════════ Generar imagen con IA (OpenAI) ══════════════
+    def _abrir_generador_ia(self, e, texto_inicial: str | None = None):
+        """Paso 1: el empleado escribe/revisa la lista de ingredientes.
+        Se precarga con los nombres de los puntos ya cargados, si hay."""
+        if texto_inicial is None:
+            texto_inicial = ", ".join(
+                p["nombre"] for p in self.plato["puntos"]
+                if p.get("nombre") and p["nombre"] != "Nuevo ingrediente"
+            )
+        try:
+            restantes = gen_ia.generaciones_restantes_hoy()
+            hoy = gen_ia.generaciones_hoy()
+            cupo_agotado = restantes <= 0
+            texto_cupo = (
+                f"Hoy se generaron {hoy} de {gen_ia.MAXIMO_DIARIO} imágenes con IA — "
+                f"quedan {restantes} disponibles."
+                if not cupo_agotado else
+                f"Se llegó al máximo de {gen_ia.MAXIMO_DIARIO} imágenes generadas hoy. Probá de nuevo mañana."
+            )
+        except Exception as ex:
+            cupo_agotado = True
+            texto_cupo = f"No se pudo consultar el cupo diario: {ex}"
+
+        campo = ft.TextField(
+            label="Ingredientes de este plato (separados por coma)",
+            value=texto_inicial, multiline=True, min_lines=2, max_lines=4, width=380,
+            autofocus=True, disabled=cupo_agotado,
+        )
+        error_texto = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_700, visible=False)
+
+        def _continuar(ev):
+            ingredientes = [t.strip() for t in (campo.value or "").split(",") if t.strip()]
+            if not ingredientes:
+                error_texto.value = "Escribí al menos un ingrediente."
+                error_texto.visible = True
+                self.page.update()
+                return
+            self.page.pop_dialog()
+            self._abrir_confirmacion_ia(ingredientes)
+
+        boton_continuar = action_button("Continuar →", "gold", on_click=_continuar)
+        boton_continuar.disabled = cupo_agotado
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("🤖 Generar imagen con IA", weight=ft.FontWeight.W_800, font_family="Poppins"),
+            content=ft.Column([
+                ft.Text(
+                    "Se genera con el mismo estilo del resto del catálogo: ilustración plana, "
+                    "vista desde arriba, fondo blanco.",
+                    size=12, color=TEXT_MUTED,
+                ),
+                campo,
+                ft.Text(texto_cupo, size=11.5, color=TEXT_MUTED if not cupo_agotado else RED,
+                        weight=ft.FontWeight.W_700),
+                error_texto,
+            ], tight=True, spacing=10, width=380),
+            actions=[
+                ft.TextButton("Cancelar", on_click=lambda ev: self.page.pop_dialog()),
+                boton_continuar,
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.show_dialog(dialog)
+
+    def _abrir_confirmacion_ia(self, ingredientes: list[str]):
+        """Paso 2: confirmar que esa es la lista completa antes de gastar
+        una generación — pedido explícito del dueño, para no generar una
+        imagen a medio armar por apurarse."""
+        lista = ft.Column([
+            ft.Row([
+                ft.Text("•", size=13, color=GOLD_DARK, weight=ft.FontWeight.W_900),
+                ft.Text(ing, size=12.5, color=DARK, weight=ft.FontWeight.W_600, expand=True),
+            ], spacing=6)
+            for ing in ingredientes
+        ], spacing=4)
+
+        def _confirmar(ev):
+            self.page.pop_dialog()
+            self._generar_imagen_ia(ingredientes)
+
+        def _volver(ev):
+            texto = ", ".join(ingredientes)
+            self.page.pop_dialog()
+            self._abrir_generador_ia(None, texto_inicial=texto)
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("¿Son todos los ingredientes de la dieta?", weight=ft.FontWeight.W_800,
+                          font_family="Poppins"),
+            content=ft.Column([
+                ft.Text("Se va a generar la imagen del plato con exactamente estos ingredientes:",
+                        size=12, color=TEXT_MUTED),
+                lista,
+            ], tight=True, spacing=12, width=380),
+            actions=[
+                ft.TextButton("← Volver", on_click=_volver),
+                action_button("Sí, generar imagen", "gold", on_click=_confirmar),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.page.show_dialog(dialog)
+
+    def _generar_imagen_ia(self, ingredientes: list[str]):
+        self.aviso = "Generando imagen con IA… puede tardar unos segundos."
+        self._render()
+        try:
+            self.plato["imagen"] = gen_ia.generar_imagen_plato(ingredientes)
+            restantes = gen_ia.generaciones_restantes_hoy()
+            self.aviso = f"Imagen generada con IA ✓ No olvides guardar los cambios. Quedan {restantes} generaciones hoy."
+        except Exception as ex:
+            self.aviso = f"No se pudo generar la imagen: {ex}"
         self._render()
 
     def _guardar(self, e):

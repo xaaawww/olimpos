@@ -132,16 +132,25 @@ def nuevo_punto(x: float, y: float) -> dict:
     }
 
 
-def procesar_imagen(ruta_origen: str) -> str:
-    """Redimensiona/comprime la imagen elegida por el usuario y la devuelve
+def comprimir_imagen(img: PILImage.Image) -> str:
+    """Redimensiona/comprime una imagen ya cargada en memoria y la devuelve
     codificada en Base64 (string, sin prefijo "data:"), lista para guardar
     directamente en el documento de Firestore. Tanto ft.Image/DecorationImage
-    (Flet) como Coil (Android) aceptan un string Base64 como fuente."""
-    img = PILImage.open(ruta_origen).convert("RGB")
+    (Flet) como Coil (Android) aceptan un string Base64 como fuente. Usado
+    tanto por [procesar_imagen] (imagen subida por el empleado) como por
+    generador_imagenes.py (imagen generada con OpenAI) — mismo formato final
+    para las dos, así la app móvil no distingue una de otra."""
+    img = img.convert("RGB")
     img.thumbnail((DIMENSION_MAXIMA, DIMENSION_MAXIMA), PILImage.LANCZOS)
     buffer = io.BytesIO()
     img.save(buffer, format="JPEG", quality=CALIDAD_JPEG)
     return base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+def procesar_imagen(ruta_origen: str) -> str:
+    """Igual que [comprimir_imagen], pero abriendo el archivo elegido por
+    el empleado desde el selector de imágenes."""
+    return comprimir_imagen(PILImage.open(ruta_origen))
 
 
 def guardar_plato(platos: list[dict], plato: dict) -> list[dict]:
@@ -160,3 +169,23 @@ def eliminar_plato(platos: list[dict], plato_id: str) -> list[dict]:
     restantes = [p for p in platos if p["id"] != plato_id]
     _cache_platos = restantes
     return restantes
+
+
+# ══════════════ Cupo diario de imágenes generadas con IA ══════════════
+# OpenAI no expone "cuántas imágenes te quedan hoy" — ese tope es propio
+# de esta app (ver generador_imagenes.py) para no gastar de más en la
+# cuenta de OpenAI sin darse cuenta. Un documento por día (id = "YYYY-MM-DD").
+COLECCION_GENERACIONES_IA = "generaciones_imagenes_ia"
+
+
+def generaciones_ia_hoy() -> int:
+    doc_id = datetime.now().strftime("%Y-%m-%d")
+    doc = _db().collection(COLECCION_GENERACIONES_IA).document(doc_id).get()
+    return doc.to_dict().get("cantidad", 0) if doc.exists else 0
+
+
+def registrar_generacion_ia():
+    doc_id = datetime.now().strftime("%Y-%m-%d")
+    _db().collection(COLECCION_GENERACIONES_IA).document(doc_id).set(
+        {"fecha": doc_id, "cantidad": firestore.Increment(1)}, merge=True
+    )
