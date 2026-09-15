@@ -15,6 +15,7 @@ from views.editor_ejercicios import build_editor_ejercicios
 from views.editor_rutinas import build_editor_rutinas
 from views.editor_membresias import build_editor_membresias
 from views.verificacion_marcas import build_verificacion_marcas
+from views.argos import build_argos
 
 
 class AppShell:
@@ -202,6 +203,7 @@ class AppShell:
             "stock":          build_stock,
             "configuracion":  build_configuracion,
             "mi-perfil":      build_mi_perfil,
+            "argos":          lambda: build_argos(self.page, self.role),
         }
         builder = builders.get(section_id, lambda: ft.Text(f"Sección: {section_id}"))
         return builder()

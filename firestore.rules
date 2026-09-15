@@ -174,6 +174,15 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Configuración de la app (por ahora, solo la base de conocimiento de
+    // Argos — ver argos_repo.py). La edita el dueño/admin desde el sistema
+    // de empleados (Admin SDK, no pasa por estas reglas); la app móvil y el
+    // Worker de Argos solo la leen.
+    match /configuracion_app/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;

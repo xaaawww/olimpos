@@ -2,6 +2,7 @@
 **/firebase_credentials.json
 **/google-services.json
 **/openai_credentials.json
+**/anthropic_credentials.json
 local.properties
 
 # Backups manuales de antes de tener git: quedan en el disco tal cual,

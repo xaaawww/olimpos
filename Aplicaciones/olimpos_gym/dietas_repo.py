@@ -82,6 +82,13 @@ def _db():
     return firestore.client()
 
 
+def db_cliente():
+    """Acceso público al cliente de Firestore ya inicializado — para otros
+    módulos que necesitan su propia colección (generador_imagenes.py,
+    argos_repo.py) sin reinicializar Firebase por su cuenta."""
+    return _db()
+
+
 _cache_platos: list[dict] | None = None
 
 

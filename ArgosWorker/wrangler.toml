@@ -1,0 +1,15 @@
+name = "argos-olimpos"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# El nombre del proyecto de Firebase (olimpos-18320) — el token de la app
+# móvil se verifica contra este proyecto exacto. No es secreto, se puede
+# dejar en el archivo.
+[vars]
+FIREBASE_PROJECT_ID = "olimpos-18320"
+
+# Guarda el conteo diario de mensajes (cupo, ver src/index.ts). Creala con
+# "wrangler kv namespace create ARGOS_KV" y pegá el id que te devuelva acá.
+[[kv_namespaces]]
+binding = "ARGOS_KV"
+id = "REEMPLAZAR_CON_EL_ID_QUE_DEVUELVE_WRANGLER"
