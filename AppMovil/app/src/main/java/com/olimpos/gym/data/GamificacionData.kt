@@ -501,7 +501,7 @@ val LOGROS = listOf(
     Logro("💪", "Bíceps de acero", "Bíceps en rango Héroe o superior", 0f, false),
     Logro("🦵", "Piernas de Titán", "Cuádriceps en rango Titán o superior", 0f, false),
     Logro("🔺", "Espalda de Coloso", "Dorsales en rango Coloso o superior", 0f, false),
-    Logro("🫀", "Pecho Olímpico", "Pecho en rango Olímpico", 0f, false),
+    Logro("🎽", "Pecho Olímpico", "Pecho en rango Olímpico", 0f, false),
     Logro("⚖️", "Cuerpo equilibrado", "Las 19 zonas musculares en rango Hoplita o superior", 0f, false),
     Logro("👁️", "Ojo en el progreso", "Revisá tu Bodygraph 20 veces", 0f, false),
     // ── Exploración de la app ──
@@ -528,7 +528,7 @@ val LOGROS = listOf(
     Logro("📲", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0f, false),
     Logro("🖐️", "Biométrico", "Ingresá al gimnasio con huella 10 veces", 0f, false),
     Logro("🔒", "Casillero propio", "Reservá tu primer locker", 0f, false),
-    Logro("🔧", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
+    Logro("📍", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
     Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0f, false),
     Logro("📸", "Antes y después", "Subí tu primera foto de progreso", 0f, false),
     Logro("🎓", "Graduado", "Completá el onboarding completo de OlimpΩs", 0f, false),
