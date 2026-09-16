@@ -597,7 +597,12 @@ private fun PanelIngrediente(
             .width(ancho)
             .fillMaxHeight()
             .clip(RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp))
-            .background(Olimpos.Card)
+            // Superficie2 (no Card): este panel se superpone a la foto del
+            // plato, no al fondo liso de la pantalla — Card es semitransparente
+            // a propósito en modo oscuro (pensada para ir sobre el degradé de
+            // fondo), así que acá dejaba traslucir la foto y el texto se
+            // volvía ilegible. Superficie2 es opaca en los dos modos.
+            .background(Olimpos.Superficie2)
             .border(1.dp, Olimpos.Line, RoundedCornerShape(topStart = 26.dp, bottomStart = 26.dp))
     ) {
         Column(
@@ -672,7 +677,7 @@ private fun PanelIngrediente(
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(Olimpos.Card)
+                .background(Olimpos.Superficie2)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
