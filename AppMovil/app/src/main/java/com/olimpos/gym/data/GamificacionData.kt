@@ -481,7 +481,7 @@ val LOGROS = listOf(
     Logro("♾️", "Racha eterna", "100 días seguidos entrenando", 0f, false),
     Logro("🐣", "Primer paso", "Completá tu primer entrenamiento", 0f, false),
     Logro("🌅", "Madrugador", "Entrená antes de las 7 de la mañana", 0f, false),
-    Logro("🦉", "Búho nocturno", "Entrená después de las 22h", 0f, false),
+    Logro("🌙", "Búho nocturno", "Entrená después de las 22h", 0f, false),
     Logro("🎉", "Sin excusas", "Entrená un feriado", 0f, false),
     Logro("🏖️", "Guerrero de fin de semana", "Entrená sábado y domingo la misma semana", 0f, false),
     Logro("🔁", "Doble turno", "Entrená dos veces el mismo día", 0f, false),
@@ -491,11 +491,11 @@ val LOGROS = listOf(
     Logro("🐘", "Levantador de elefantes", "Acumulá 6.000kg movidos en un mes", 0f, false),
     Logro("🏋️", "Club de los 100kg", "Sentadilla ≥ 100kg", 0f, false),
     Logro("🛏️", "Club de los 120kg", "Press de banca ≥ 120kg", 0f, false),
-    Logro("⚙️", "Club de los 150kg", "Peso muerto ≥ 150kg", 0f, false),
+    Logro("⛓️", "Club de los 150kg", "Peso muerto ≥ 150kg", 0f, false),
     Logro("🧗", "Dominador", "10 dominadas seguidas sin soltar la barra", 0f, false),
     Logro("🤸", "Máquina de flexiones", "50 flexiones seguidas", 0f, false),
     Logro("✅", "Verificado", "Tu primera marca confirmada por un entrenador", 0f, false),
-    Logro("🔒", "Sin trampas", "10 marcas verificadas seguidas", 0f, false),
+    Logro("🕵️", "Sin trampas", "10 marcas verificadas seguidas", 0f, false),
     Logro("🧮", "Calculadora en mano", "Usá la Calculadora 10 veces", 0f, false),
     // ── Bodygraph y rangos ──
     Logro("💪", "Bíceps de acero", "Bíceps en rango Héroe o superior", 0f, false),
@@ -521,13 +521,13 @@ val LOGROS = listOf(
     Logro("📅", "Nutricionista amateur", "Completá 7 días seguidos tu plan de dieta", 0f, false),
     Logro("💧", "Hidratado", "Registrá tu consumo de agua 7 días seguidos", 0f, false),
     // ── Objetivos de la Arena ──
-    Logro("🎖️", "Meta cumplida", "Alcanzá el objetivo de fuerza que elegiste", 0f, false),
+    Logro("🏁", "Meta cumplida", "Alcanzá el objetivo de fuerza que elegiste", 0f, false),
     Logro("💪", "Meta de hipertrofia", "Alcanzá tu objetivo de hipertrofia", 0f, false),
     Logro("❤️", "Salud ante todo", "Alcanzá tu objetivo de salud general", 0f, false),
     // ── Gimnasio físico ──
     Logro("📲", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0f, false),
     Logro("🖐️", "Biométrico", "Ingresá al gimnasio con huella 10 veces", 0f, false),
-    Logro("🗄️", "Casillero propio", "Reservá tu primer locker", 0f, false),
+    Logro("🔒", "Casillero propio", "Reservá tu primer locker", 0f, false),
     Logro("🔧", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
     Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0f, false),
     Logro("📸", "Antes y después", "Subí tu primera foto de progreso", 0f, false),
@@ -535,7 +535,7 @@ val LOGROS = listOf(
     // ── Secretos: no aparecen en la grilla hasta desbloquearse ──
     Logro("🦉", "El ojo de Atenea", "Entrená pasada la medianoche 5 veces", 0f, false, secreto = true),
     Logro("🌟", "Ascensión completa", "Las 19 zonas musculares alcanzaron rango Dios", 0f, false, secreto = true),
-    Logro("🗿", "Corazón de Esparta", "Cargá una marca en los 5 ejercicios de la Calculadora el mismo día", 0f, false, secreto = true)
+    Logro("🔱", "Corazón de Esparta", "Cargá una marca en los 5 ejercicios de la Calculadora el mismo día", 0f, false, secreto = true)
 )
 
 /** Todo lo que hace falta para calcular los logros de un socio — cada

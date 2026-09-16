@@ -109,24 +109,28 @@ val DETALLES_EJERCICIOS = mapOf(
    anatómico que dibuja CuerpoMuscular — cada zona es un grupo que ya viene
    separado en los paths de origen, no una agrupación inventada). ── */
 enum class ZonaMuscular(val etiqueta: String, val emoji: String) {
-    PECHO_SUPERIOR("Parte superior del pecho", "🫀"),
-    PECHO_INFERIOR("Parte inferior del pecho", "🫀"),
-    DORSALES("Dorsales", "🔺"),
-    TRAPECIO("Trapecios", "🔺"),
-    LUMBARES("Parte inferior de la espalda", "🔻"),
-    DELTOIDES_ANTERIOR("Deltoides anterior", "🔘"),
-    DELTOIDES_MEDIO("Deltoides medio", "🔘"),
-    DELTOIDES_POSTERIOR("Deltoides posterior", "🔘"),
+    // Emojis elegidos para que cada zona se distinga de sus vecinas — no
+    // existe un emoji real para "trapecio" o "dorsal", así que se usan
+    // metáforas visuales reconocibles en vez de repetir el mismo ícono
+    // genérico en zonas que antes eran indistinguibles entre sí.
+    PECHO_SUPERIOR("Parte superior del pecho", "🎽"),
+    PECHO_INFERIOR("Parte inferior del pecho", "🎽"),
+    DORSALES("Dorsales", "🦅"),
+    TRAPECIO("Trapecios", "⛰️"),
+    LUMBARES("Parte inferior de la espalda", "🪨"),
+    DELTOIDES_ANTERIOR("Deltoides anterior", "⬆️"),
+    DELTOIDES_MEDIO("Deltoides medio", "↔️"),
+    DELTOIDES_POSTERIOR("Deltoides posterior", "↩️"),
     BICEPS("Bíceps", "💪"),
-    TRICEPS("Tríceps", "💪"),
+    TRICEPS("Tríceps", "🥊"),
     ANTEBRAZOS("Antebrazos", "✊"),
-    ABDOMINALES("Abdominales", "⭐"),
-    OBLICUOS("Oblicuos", "⭐"),
-    ABDUCTORES("Abductores", "🦵"),
-    ADUCTORES("Aductores", "🦵"),
-    PANTORRILLAS("Pantorrillas", "🦵"),
+    ABDOMINALES("Abdominales", "🧱"),
+    OBLICUOS("Oblicuos", "🌀"),
+    ABDUCTORES("Abductores", "➡️"),
+    ADUCTORES("Aductores", "⬅️"),
+    PANTORRILLAS("Pantorrillas", "🦶"),
     GLUTEOS("Glúteos", "🍑"),
-    ISQUIOTIBIALES("Isquiotibiales", "🦵"),
+    ISQUIOTIBIALES("Isquiotibiales", "🦿"),
     CUADRICEPS("Cuádriceps", "🦵")
 }
 
@@ -138,11 +142,11 @@ enum class ZonaMuscular(val etiqueta: String, val emoji: String) {
  *  anatómico no distingue ahí una región más además de dorsales/trapecio/
  *  lumbares. */
 enum class GrupoMuscular(val etiqueta: String, val emoji: String, val zonas: List<ZonaMuscular>) {
-    PECHO("Pecho", "🫀", listOf(ZonaMuscular.PECHO_SUPERIOR, ZonaMuscular.PECHO_INFERIOR)),
-    ESPALDA("Espalda", "🔺", listOf(ZonaMuscular.DORSALES, ZonaMuscular.LUMBARES, ZonaMuscular.TRAPECIO)),
-    HOMBROS("Hombros", "🔘", listOf(ZonaMuscular.DELTOIDES_ANTERIOR, ZonaMuscular.DELTOIDES_MEDIO, ZonaMuscular.DELTOIDES_POSTERIOR)),
+    PECHO("Pecho", "🎽", listOf(ZonaMuscular.PECHO_SUPERIOR, ZonaMuscular.PECHO_INFERIOR)),
+    ESPALDA("Espalda", "🦅", listOf(ZonaMuscular.DORSALES, ZonaMuscular.LUMBARES, ZonaMuscular.TRAPECIO)),
+    HOMBROS("Hombros", "🛡️", listOf(ZonaMuscular.DELTOIDES_ANTERIOR, ZonaMuscular.DELTOIDES_MEDIO, ZonaMuscular.DELTOIDES_POSTERIOR)),
     BRAZOS("Brazos", "💪", listOf(ZonaMuscular.BICEPS, ZonaMuscular.TRICEPS, ZonaMuscular.ANTEBRAZOS)),
-    ABDOMINALES("Abdominales", "⭐", listOf(ZonaMuscular.ABDOMINALES, ZonaMuscular.OBLICUOS)),
+    ABDOMINALES("Abdominales", "🧱", listOf(ZonaMuscular.ABDOMINALES, ZonaMuscular.OBLICUOS)),
     PIERNAS("Piernas", "🦵", listOf(ZonaMuscular.ABDUCTORES, ZonaMuscular.ADUCTORES, ZonaMuscular.PANTORRILLAS, ZonaMuscular.GLUTEOS, ZonaMuscular.ISQUIOTIBIALES, ZonaMuscular.CUADRICEPS))
 }
 
