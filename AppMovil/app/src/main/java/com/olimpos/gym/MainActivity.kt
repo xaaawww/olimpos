@@ -53,6 +53,8 @@ import com.olimpos.gym.data.cargarDatosFisicosPropios
 import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.guardarObjetivoArena
 import com.olimpos.gym.ui.screens.ArenaScreen
+import com.olimpos.gym.ui.screens.ArgosBurbujaFlotante
+import com.olimpos.gym.ui.screens.ArgosScreen
 import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
@@ -154,6 +156,9 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
     var tab by remember { mutableStateOf(Tab.INICIO) }
     // El plano vive fuera de la navegación principal: sector aparte
     var mostrarPlano by remember { mutableStateOf(false) }
+    // Argos también: burbuja flotante sobre cualquier pestaña, en vez de
+    // que haga falta ir hasta Perfil para preguntarle algo.
+    var mostrarArgos by remember { mutableStateOf(false) }
 
     val contexto = LocalContext.current
     var objetivoArena by remember { mutableStateOf(leerObjetivoArena(contexto)) }
@@ -207,6 +212,18 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
             }
         }
 
+        // ── Burbuja flotante de Argos: se tapa sola en cuanto se abre el
+        // Plano o el propio chat, por estar antes que esos dos en el Stack ──
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !mostrarPlano && !mostrarArgos,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 84.dp),
+            enter = fadeIn(), exit = fadeOut()
+        ) {
+            ArgosBurbujaFlotante(onClick = { mostrarArgos = true })
+        }
+
         // ── Plano interactivo: pantalla completa aparte ──
         androidx.compose.animation.AnimatedVisibility(
             visible = mostrarPlano,
@@ -214,6 +231,15 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
             exit = slideOutVertically { it } + fadeOut()
         ) {
             PlanoScreen(onVolver = { mostrarPlano = false })
+        }
+
+        // ── Chat de Argos: pantalla completa aparte, igual que el Plano ──
+        androidx.compose.animation.AnimatedVisibility(
+            visible = mostrarArgos,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut()
+        ) {
+            ArgosScreen(onVolver = { mostrarArgos = false })
         }
 
         // ── Toast de logro desbloqueado: por encima de todo, incluido el Plano ──

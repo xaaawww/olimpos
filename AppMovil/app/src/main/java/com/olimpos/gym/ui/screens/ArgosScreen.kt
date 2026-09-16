@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -29,6 +31,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -138,6 +144,7 @@ fun ArgosScreen(onVolver: () -> Unit) {
 @Composable
 private fun BurbujaArgos(m: MensajeArgos, atenuado: Boolean = false) {
     val esUsuario = m.rol == "user"
+    val color = if (esUsuario) Olimpos.Dark else Olimpos.Cream
     Row(
         Modifier.fillMaxWidth().alpha(if (atenuado) 0.6f else 1f),
         horizontalArrangement = if (esUsuario) Arrangement.End else Arrangement.Start
@@ -150,10 +157,58 @@ private fun BurbujaArgos(m: MensajeArgos, atenuado: Boolean = false) {
                 .let { if (!esUsuario) it.border(1.dp, Olimpos.Line, RoundedCornerShape(14.dp)) else it }
                 .padding(horizontal = 13.dp, vertical = 10.dp)
         ) {
-            Text(
-                m.texto, fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                color = if (esUsuario) Olimpos.Dark else Olimpos.Cream
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                // Argos suele escribir con **negrita** y listas con "- " —
+                // esto lo interpreta en vez de mostrar los asteriscos
+                // sueltos, para que la burbuja no se vea rara.
+                m.texto.split("\n").forEach { linea ->
+                    val recortada = linea.trimStart()
+                    val esBullet = recortada.startsWith("- ") || recortada.startsWith("* ")
+                    val contenido = if (esBullet) recortada.removePrefix("- ").removePrefix("* ") else linea
+                    Row {
+                        if (esBullet) {
+                            Text("•  ", fontSize = 13.sp, fontWeight = FontWeight.Black, color = color)
+                        }
+                        Text(
+                            aTextoConNegrita(contenido, color), fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium, color = color
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+/** Convierte "**palabra**" en negrita real (Compose no interpreta markdown
+ *  solo) — Argos, el modelo de lenguaje, escribe así seguido. */
+private fun aTextoConNegrita(texto: String, color: androidx.compose.ui.graphics.Color) = buildAnnotatedString {
+    val regex = Regex("\\*\\*(.+?)\\*\\*")
+    var ultimo = 0
+    for (match in regex.findAll(texto)) {
+        append(texto.substring(ultimo, match.range.first))
+        pushStyle(SpanStyle(fontWeight = FontWeight.Black, color = color))
+        append(match.groupValues[1])
+        pop()
+        ultimo = match.range.last + 1
+    }
+    append(texto.substring(ultimo))
+}
+
+/** Burbuja flotante siempre visible (cualquier pestaña) para abrir el chat
+ *  de Argos sin tener que ir hasta Perfil. */
+@Composable
+fun ArgosBurbujaFlotante(onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(58.dp)
+            .shadow(8.dp, CircleShape)
+            .clip(CircleShape)
+            .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark)))
+            .border(1.5.dp, Olimpos.Gold, CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("🐕", fontSize = 26.sp)
     }
 }

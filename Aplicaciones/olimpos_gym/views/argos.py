@@ -9,6 +9,7 @@
 # que Argos usa como referencia — tanto acá como en la app móvil de los
 # socios, que lee el mismo documento de Firestore.
 
+import re
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -18,6 +19,23 @@ from components import section_card, action_button, page_header, divider
 import argos_repo
 
 ROLES_QUE_EDITAN_BASE = ("dueno", "admin")
+
+_REGEX_NEGRITA = re.compile(r"\*\*(.+?)\*\*")
+
+
+def _spans_con_negrita(texto: str, color: str) -> list[ft.TextSpan]:
+    """Convierte "**palabra**" en negrita real — Flet no interpreta markdown
+    solo, y Argos (el modelo de lenguaje) escribe así seguido."""
+    spans: list[ft.TextSpan] = []
+    ultimo = 0
+    for m in _REGEX_NEGRITA.finditer(texto):
+        if m.start() > ultimo:
+            spans.append(ft.TextSpan(texto[ultimo:m.start()]))
+        spans.append(ft.TextSpan(m.group(1), style=ft.TextStyle(weight=ft.FontWeight.W_900, color=color)))
+        ultimo = m.end()
+    if ultimo < len(texto) or not spans:
+        spans.append(ft.TextSpan(texto[ultimo:]))
+    return spans
 
 
 class ArgosView:
@@ -157,9 +175,25 @@ class ArgosView:
 
     def _burbuja(self, m: dict, atenuado: bool = False) -> ft.Row:
         es_usuario = m["rol"] == "user"
+        color = DARK if es_usuario else WHITE
+
+        # Argos suele escribir con **negrita** y listas con "- " — se
+        # interpreta línea por línea en vez de mostrar los asteriscos
+        # sueltos, para que la burbuja no se vea rara.
+        filas_texto = []
+        for linea in m["texto"].split("\n"):
+            recortada = linea.strip()
+            es_bullet = recortada.startswith("- ") or recortada.startswith("* ")
+            contenido = recortada[2:] if es_bullet else linea
+            hijos = []
+            if es_bullet:
+                hijos.append(ft.Text("•  ", size=13, weight=ft.FontWeight.W_900, color=color))
+            hijos.append(ft.Text(spans=_spans_con_negrita(contenido, color), size=13,
+                                 weight=ft.FontWeight.W_600, color=color))
+            filas_texto.append(ft.Row(hijos, spacing=0))
+
         burbuja = ft.Container(
-            content=ft.Text(m["texto"], size=13, color=DARK if es_usuario else WHITE,
-                            weight=ft.FontWeight.W_600),
+            content=ft.Column(filas_texto, spacing=3, tight=True),
             bgcolor=GOLD if es_usuario else DARK2,
             border_radius=14, padding=ft.padding.symmetric(horizontal=14, vertical=10),
             opacity=0.6 if atenuado else 1,
