@@ -28,6 +28,10 @@ __pycache__/
 venv/
 .venv/
 
+# Node (ArgosWorker)
+node_modules/
+**/node_modules/
+
 # SO
 .DS_Store
 Thumbs.db

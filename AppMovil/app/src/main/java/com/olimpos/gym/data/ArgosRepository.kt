@@ -23,7 +23,7 @@ import java.net.URL
  * Reemplazar ARGOS_WORKER_URL por la URL real una vez desplegado el Worker
  * (ver instrucciones de despliegue).
  */
-private const val ARGOS_WORKER_URL = "https://argos-olimpos.TU-SUBDOMINIO.workers.dev"
+private const val ARGOS_WORKER_URL = "https://argos-olimpos.argosolimpo.workers.dev"
 
 private const val COLECCION_CONFIG = "configuracion_app"
 private const val DOC_ARGOS = "argos"

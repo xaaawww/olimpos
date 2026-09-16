@@ -12,4 +12,4 @@ FIREBASE_PROJECT_ID = "olimpos-18320"
 # "wrangler kv namespace create ARGOS_KV" y pegá el id que te devuelva acá.
 [[kv_namespaces]]
 binding = "ARGOS_KV"
-id = "REEMPLAZAR_CON_EL_ID_QUE_DEVUELVE_WRANGLER"
+id = "b325f48409094c078ca7fe69704d664b"
