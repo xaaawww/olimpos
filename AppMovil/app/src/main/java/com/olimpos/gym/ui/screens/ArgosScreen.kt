@@ -3,6 +3,7 @@ package com.olimpos.gym.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -75,7 +76,16 @@ fun ArgosScreen(onVolver: () -> Unit) {
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.linearGradient(listOf(Olimpos.FondoA, Olimpos.FondoB, Olimpos.FondoC)))
+            // Consume cualquier toque en las zonas "vacías" de esta pantalla
+            // — sin esto, un toque ahí pasaba de largo hacia la pestaña de
+            // abajo (Inicio/Entrenar/...) que sigue compuesta debajo, aunque
+            // tapada visualmente por este overlay de pantalla completa.
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+    ) {
         EncabezadoVolver("🐕 Argos", "Tu asistente de IA en OlimpΩs", onVolver)
 
         LazyColumn(

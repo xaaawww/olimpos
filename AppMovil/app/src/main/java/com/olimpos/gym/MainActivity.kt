@@ -213,12 +213,18 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
         }
 
         // ── Burbuja flotante de Argos: se tapa sola en cuanto se abre el
-        // Plano o el propio chat, por estar antes que esos dos en el Stack ──
+        // Plano o el propio chat, por estar antes que esos dos en el Stack.
+        // navigationBarsPadding() primero (el inset real del gesto/barra del
+        // sistema, lo mismo que ya usa BarraInferior) y recién después el
+        // alto fijo de nuestra propia barra de pestañas (66.dp) + margen —
+        // sin esto, en un celular con navegación por botones la burbuja
+        // terminaba tapando el botón "Perfil". ──
         androidx.compose.animation.AnimatedVisibility(
             visible = !mostrarPlano && !mostrarArgos,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 84.dp),
+                .navigationBarsPadding()
+                .padding(end = 16.dp, bottom = 82.dp),
             enter = fadeIn(), exit = fadeOut()
         ) {
             ArgosBurbujaFlotante(onClick = { mostrarArgos = true })

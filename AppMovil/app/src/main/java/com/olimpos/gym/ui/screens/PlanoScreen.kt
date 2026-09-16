@@ -14,6 +14,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -90,6 +91,10 @@ fun PlanoScreen(onVolver: () -> Unit) {
         Modifier
             .fillMaxSize()
             .background(Brush.linearGradient(listOf(Olimpos.FondoA, Olimpos.FondoB, Olimpos.FondoC)))
+            // Consume cualquier toque en las zonas "vacías" de esta pantalla
+            // — sin esto, un toque ahí pasaba de largo hacia la pestaña de
+            // abajo que sigue compuesta debajo, aunque tapada visualmente.
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
             .statusBarsPadding()
     ) {
         // ── Encabezado con volver ──
