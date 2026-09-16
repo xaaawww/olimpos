@@ -72,7 +72,7 @@ class VerificacionMarcasView:
         return ft.Row([
             self._boton_tab("pendientes", f"⏳ Pendientes ({pendientes})"),
             self._boton_tab("ranking", "📊 Ranking general"),
-            self._boton_tab("rangos", "🏛️ Rangos"),
+            self._boton_tab("rangos", "🪜 Rangos"),
         ], spacing=8)
 
     def _boton_tab(self, tab: str, label: str) -> ft.Container:
