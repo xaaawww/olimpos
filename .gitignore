@@ -21,6 +21,8 @@ build/
 .cxx/
 captures/
 local.properties
+.kotlin/
+**/.kotlin/
 
 # Python
 __pycache__/
