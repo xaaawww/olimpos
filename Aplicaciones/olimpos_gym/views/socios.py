@@ -1,7 +1,24 @@
+import urllib.parse
+
 import flet as ft
 from theme import *
 from components import stat_card, section_card, status_pill, avatar, action_button, page_header
 import auth_repo
+
+
+def _link_whatsapp(telefono: str, nombre: str, email: str, password: str) -> str:
+    """Arma un enlace wa.me con el mensaje ya redactado — no manda nada solo,
+    el empleado lo confirma y lo envía él mismo al tocar "Enviar" en
+    WhatsApp. No hay ninguna cuenta de SMS/WhatsApp Business conectada al
+    proyecto; esto no tiene costo ni depende de un servicio externo."""
+    solo_digitos = "".join(c for c in telefono if c.isdigit())
+    mensaje = (
+        f"Hola {nombre}! Ya está listo tu acceso a la app OlimpΩs.\n\n"
+        f"Email: {email}\n"
+        f"Contraseña: {password}\n\n"
+        f"La primera vez que entres te va a pedir que la cambies por una que prefieras."
+    )
+    return f"https://wa.me/{solo_digitos}?text={urllib.parse.quote(mensaje)}"
 
 
 SOCIOS_DATA = [
@@ -21,7 +38,10 @@ SOCIOS_DATA = [
 # después le pasa el email/contraseña en persona o por WhatsApp — la app
 # móvil ya no tiene forma de "crear cuenta" (ver LoginScreen.kt).
 
-def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str) -> ft.AlertDialog:
+def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str, telefono: str) -> ft.AlertDialog:
+    def _enviar_whatsapp(e):
+        page.launch_url(_link_whatsapp(telefono, nombre, email, password))
+
     dialog = ft.AlertDialog(
         modal=True,
         title=ft.Text("✅ Acceso creado", weight=ft.FontWeight.W_800, font_family="Poppins"),
@@ -47,7 +67,10 @@ def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str)
                 size=11, color=RED, weight=ft.FontWeight.W_700,
             ),
         ], tight=True, spacing=10, width=360),
-        actions=[action_button("Listo", "gold", on_click=lambda e: page.pop_dialog())],
+        actions=[
+            action_button("📲 Enviar por WhatsApp", "outline", on_click=_enviar_whatsapp),
+            action_button("Listo", "gold", on_click=lambda e: page.pop_dialog()),
+        ],
         actions_alignment=ft.MainAxisAlignment.END,
     )
     return dialog
@@ -56,6 +79,8 @@ def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str)
 def _dialogo_nuevo_socio(page: ft.Page):
     campo_nombre = ft.TextField(label="Nombre y apellido", width=360, autofocus=True)
     campo_dni = ft.TextField(label="DNI", width=360, keyboard_type=ft.KeyboardType.NUMBER)
+    campo_telefono = ft.TextField(label="Teléfono (con código de área)", width=360,
+                                   keyboard_type=ft.KeyboardType.PHONE, hint_text="Ej: 5491122334455")
     campo_email = ft.TextField(label="Email", width=360, keyboard_type=ft.KeyboardType.EMAIL)
     campo_password = ft.TextField(label="Contraseña", width=270, value=auth_repo.generar_password())
     error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_700, visible=False)
@@ -67,10 +92,11 @@ def _dialogo_nuevo_socio(page: ft.Page):
     def _crear(e):
         nombre = (campo_nombre.value or "").strip()
         dni = (campo_dni.value or "").strip()
+        telefono = (campo_telefono.value or "").strip()
         email = (campo_email.value or "").strip()
         password = (campo_password.value or "").strip()
-        if not nombre or not dni or not email or not password:
-            error_text.value = "Completá nombre, DNI, email y contraseña."
+        if not nombre or not dni or not telefono or not email or not password:
+            error_text.value = "Completá nombre, DNI, teléfono, email y contraseña."
             error_text.visible = True
             page.update()
             return
@@ -81,7 +107,7 @@ def _dialogo_nuevo_socio(page: ft.Page):
             page.update()
             return
         page.pop_dialog()
-        page.show_dialog(_dialogo_credenciales(page, nombre, email, password))
+        page.show_dialog(_dialogo_credenciales(page, nombre, email, password, telefono))
 
     dialog = ft.AlertDialog(
         modal=True,
@@ -89,11 +115,13 @@ def _dialogo_nuevo_socio(page: ft.Page):
         content=ft.Column([
             ft.Text(
                 "Se crea una cuenta real (Firebase) para que este socio entre a la "
-                "app OlimpΩs. El email y la contraseña se los pasás vos.",
+                "app OlimpΩs. El teléfono es para mandarle el email y la contraseña "
+                "por WhatsApp apenas se cree el acceso.",
                 size=12, color=TEXT_MUTED,
             ),
             campo_nombre,
             campo_dni,
+            campo_telefono,
             campo_email,
             ft.Row([campo_password, action_button("🎲 Generar", "outline", on_click=_regenerar)],
                    spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),

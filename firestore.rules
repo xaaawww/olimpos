@@ -32,10 +32,16 @@ service cloud.firestore {
 
     // Socios_app: nombre y fecha de alta de cada acceso (lo crea un
     // empleado, ver auth_repo.py). Se lee para mostrar "socio hace X" en la
-    // Escalera del Olimpo — nunca se escribe desde el cliente.
+    // Escalera del Olimpo. La única escritura permitida desde el cliente es
+    // que el propio socio apague "debe_cambiar_password" (nunca lo prenda)
+    // después de elegir su contraseña nueva en el primer login (ver
+    // CambiarPasswordScreen.kt) — sin tocar ningún otro campo del documento.
     match /socios_app/{uid} {
       allow read: if request.auth != null;
-      allow write: if false;
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['debe_cambiar_password'])
+                    && request.resource.data.debe_cambiar_password == false;
+      allow create, delete: if false;
     }
 
     // Datos físicos: a diferencia de socios_app, esto SÍ lo escribe el

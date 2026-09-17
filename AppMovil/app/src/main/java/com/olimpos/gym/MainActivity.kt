@@ -55,6 +55,7 @@ import com.olimpos.gym.data.guardarObjetivoArena
 import com.olimpos.gym.ui.screens.ArenaScreen
 import com.olimpos.gym.ui.screens.ArgosBurbujaFlotante
 import com.olimpos.gym.ui.screens.ArgosScreen
+import com.olimpos.gym.ui.screens.CambiarPasswordScreen
 import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
@@ -79,9 +80,11 @@ enum class Tab(val label: String, val icon: String) {
 }
 
 /** Etapa general de la app: verificación (arranque/post-login) →
- *  autenticación → onboarding obligatorio (solo si todavía no cargó sus
- *  datos físicos, ver [cargarDatosFisicosPropios]) → app principal. */
-private enum class Etapa { VERIFICANDO, LOGIN, ONBOARDING, APP }
+ *  autenticación → cambio de contraseña obligatorio (solo en el primer
+ *  login, ver [SocioAuth.debeCambiarPassword]) → onboarding obligatorio
+ *  (solo si todavía no cargó sus datos físicos, ver
+ *  [cargarDatosFisicosPropios]) → app principal. */
+private enum class Etapa { VERIFICANDO, LOGIN, CAMBIAR_PASSWORD, ONBOARDING, APP }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,6 +121,9 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
     LaunchedEffect(verificacion) {
         etapa = when {
             Firebase.auth.currentUser == null -> Etapa.LOGIN
+            // Contraseña temporal generada por el empleado, todavía no
+            // reemplazada por el propio socio (ver auth_repo.py).
+            SocioAuth.debeCambiarPassword() -> Etapa.CAMBIAR_PASSWORD
             // Sin datos físicos todavía (cuenta recién creada por un
             // empleado) → onboarding obligatorio antes de dejarlo entrar.
             cargarDatosFisicosPropios() == null -> Etapa.ONBOARDING
@@ -137,6 +143,7 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
                     CircularProgressIndicator(color = Olimpos.Gold)
                 }
                 Etapa.LOGIN -> LoginScreen(onIngresar = { verificacion++ })
+                Etapa.CAMBIAR_PASSWORD -> CambiarPasswordScreen(onListo = { verificacion++ })
                 Etapa.ONBOARDING -> OnboardingScreen(onFinalizar = { etapa = Etapa.APP })
                 Etapa.APP -> OlimposAppPrincipal(
                     themeMode = themeMode,

@@ -4,6 +4,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -34,6 +35,36 @@ object SocioAuth {
 
     fun cerrarSesion() {
         Firebase.auth.signOut()
+    }
+
+    /** true si a este socio todavía le queda pendiente cambiar la
+     *  contraseña temporal que le generó el empleado al crear el acceso
+     *  (ver auth_repo.py). Si el documento es viejo y no tiene el campo
+     *  (cuentas creadas antes de esta función), se asume que no debe. */
+    suspend fun debeCambiarPassword(): Boolean {
+        val uid = uidActual ?: return false
+        return try {
+            val doc = Firebase.firestore.collection("socios_app").document(uid).get().await()
+            doc.getBoolean("debe_cambiar_password") ?: false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** Cambia la contraseña en Firebase Auth y apaga el flag en Firestore
+     *  (ver firestore.rules: el socio solo puede tocar ese único campo, y
+     *  solo para ponerlo en false). Devuelve un mensaje de error si falló,
+     *  o null si salió bien. */
+    suspend fun actualizarPassword(nueva: String): String? {
+        val user = Firebase.auth.currentUser ?: return "Tu sesión expiró, volvé a iniciar sesión."
+        return try {
+            user.updatePassword(nueva).await()
+            Firebase.firestore.collection("socios_app").document(user.uid)
+                .update("debe_cambiar_password", false).await()
+            null
+        } catch (e: Exception) {
+            "No se pudo cambiar la contraseña. Volvé a iniciar sesión e intentá de nuevo."
+        }
     }
 }
 

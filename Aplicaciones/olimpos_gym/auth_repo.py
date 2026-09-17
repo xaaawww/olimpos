@@ -73,6 +73,11 @@ def crear_acceso_socio(nombre: str, email: str, password: str, dni: str) -> tupl
         # Fecha de alta en milisegundos (no un string ISO): así la app móvil
         # la lee directo como epoch sin tener que parsear formatos de fecha.
         "creado_ms": int(time.time() * 1000),
+        # La contraseña que ve acá el empleado es una generada al azar (ver
+        # generar_password) — en el primer login la app móvil obliga a
+        # cambiarla por una que el socio elija (ver CambiarPasswordScreen.kt
+        # y firestore.rules), y ahí se pone en False.
+        "debe_cambiar_password": True,
     }
     _repo._db().collection(COLECCION).document(user.uid).set(ficha)
     _repo._db().collection(COLECCION_PRIVADA).document(user.uid).set({
