@@ -11,7 +11,7 @@
   :root {
     --bg: oklch(0.90 0.02 80);
     --panel-dark: oklch(0.20 0.012 70);
-    --panel-warm: oklch(0.36 0.03 65);
+    --panel-warm: oklch(0.26 0.025 68);
     --ink: oklch(0.18 0.01 70);
     --cream: oklch(0.95 0.012 85);
     --cream-soft: oklch(0.86 0.015 80);
@@ -21,60 +21,45 @@
     --yellow-ink: oklch(0.26 0.05 80);
     --line: oklch(1 0 0 / 0.14);
     --radius: 26px;
+    --wrap: 1160px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  html { scroll-behavior: smooth; }
   body {
     font-family: "Manrope", system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--cream);
-    overflow: auto;
-    -webkit-font-smoothing: antialiased;
-  }
-  .serif { font-family: "Bodoni Moda", Georgia, serif; }
-  .mono-ish { font-family: "Manrope", sans-serif; letter-spacing: 0.22em; text-transform: uppercase; }
-
-  /* ===== Page frame ===== */
-  .frame {
-    position: fixed; inset: 0;
-    padding: clamp(10px, 2.2vh, 26px);
-    display: grid;
-    overflow: auto;
-  }
-  .card {
-    position: relative;
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 30px 90px oklch(0.2 0.02 70 / 0.35), 0 2px 6px oklch(0.2 0.02 70 / 0.2);
-    display: grid;
-    grid-template-rows: auto 1fr;
     background: var(--panel-dark);
+    color: var(--cream);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
-  /* two-tone split background */
-  .card::before {
-    content: "";
-    position: absolute; inset: 0;
-    background: linear-gradient(90deg,
-      var(--panel-dark) 0%, var(--panel-dark) 50%,
-      var(--panel-warm) 50%, var(--panel-warm) 100%);
-    z-index: 0;
-  }
-  .card > * { position: relative; z-index: 1; }
+  img { max-width: 100%; display: block; }
+  .serif { font-family: "Bodoni Moda", Georgia, serif; }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 clamp(20px, 4vw, 44px); }
 
-  /* ===== Top nav ===== */
-  nav.bar {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    padding: clamp(12px, 2.2vh, 26px) clamp(20px, 3vw, 44px);
-    gap: 20px;
+  /* ===== Site header (sticky) ===== */
+  .site-header {
+    position: sticky; top: 0; z-index: 100;
+    background: oklch(0.16 0.012 70 / 0.88);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
   }
-  .nav-group { display: flex; align-items: center; gap: clamp(14px, 2vw, 30px); }
-  .nav-group.right { justify-content: flex-end; }
+  .site-header .wrap {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding-top: 14px; padding-bottom: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex: none; }
+  .brand img { height: 34px; width: auto; filter: drop-shadow(0 2px 6px oklch(0.2 0.02 70 / 0.5)); }
+  .brand .word {
+    font-family: "Bodoni Moda", serif; font-weight: 600;
+    font-size: clamp(19px, 3vw, 24px); letter-spacing: 0.05em;
+    color: var(--cream); line-height: 1; white-space: nowrap;
+  }
+  .brand .word .om { color: var(--gold); }
+
+  .site-nav { display: flex; align-items: center; gap: clamp(16px, 2.4vw, 30px); }
   .nav-link {
-    appearance: none; border: 0; background: none;
     font-family: "Manrope", sans-serif; font-weight: 600; font-size: 14px;
-    color: var(--cream-soft); cursor: pointer; padding: 6px 0;
+    color: var(--cream-soft); text-decoration: none; padding: 6px 0;
     position: relative; letter-spacing: 0.01em; white-space: nowrap;
     transition: color 0.2s;
   }
@@ -86,91 +71,93 @@
   .nav-link.active { color: var(--yellow); }
   .nav-link.active::after { right: 0; }
 
-  .brand {
-    display: flex; align-items: center; gap: 12px; cursor: pointer;
-  }
-  .brand img { height: clamp(34px, 5vh, 48px); width: auto; filter: drop-shadow(0 2px 6px oklch(0.2 0.02 70 / 0.5)); }
-  .brand .word {
-    font-family: "Bodoni Moda", serif; font-weight: 600;
-    font-size: clamp(22px, 3vh, 30px); letter-spacing: 0.06em;
-    color: var(--cream); line-height: 1;
-  }
-  .brand .word .om { color: var(--gold); }
-
+  .header-right { display: flex; align-items: center; gap: 14px; flex: none; }
   .join-btn {
-    appearance: none; border: 0; cursor: pointer;
+    appearance: none; border: 0; cursor: pointer; text-decoration: none;
     background: var(--yellow); color: var(--yellow-ink);
-    font-family: "Manrope", sans-serif; font-weight: 800; font-size: 13px;
-    letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 11px 20px; border-radius: 999px;
+    font-family: "Manrope", sans-serif; font-weight: 800; font-size: 12.5px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 11px 18px; border-radius: 999px;
     box-shadow: 0 4px 0 var(--gold-deep);
     transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-flex; align-items: center; white-space: nowrap;
   }
   .join-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--gold-deep); }
   .join-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--gold-deep); }
 
-  .avatar {
-    width: 38px; height: 38px; border-radius: 50%;
-    border: 1.5px solid var(--line);
-    display: grid; place-items: center;
-    background: oklch(1 0 0 / 0.06); color: var(--gold);
+  .hamburger {
+    display: none; flex-direction: column; justify-content: center; gap: 5px;
+    width: 38px; height: 38px; border: 1.5px solid var(--line); border-radius: 10px;
+    background: none; cursor: pointer; flex: none; padding: 0 8px;
+  }
+  .hamburger span { display: block; width: 100%; height: 2px; background: var(--cream); border-radius: 2px; }
+
+  @media (max-width: 860px) {
+    .site-nav {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: oklch(0.15 0.012 70 / 0.98); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+      flex-direction: column; align-items: flex-start; gap: 4px;
+      padding: 10px clamp(20px, 4vw, 44px) 18px;
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+    }
+    .site-nav.open { max-height: 320px; }
+    .nav-link { padding: 10px 0; width: 100%; }
+    .hamburger { display: flex; }
   }
 
-  /* ===== Stage / sections ===== */
-  .stage { position: relative; overflow: hidden; }
-  .section {
-    position: absolute; inset: 0;
-    opacity: 0; visibility: hidden;
-    transition: opacity 0.5s ease;
-    pointer-events: none;
-    overflow-y: auto;
+  @media (max-width: 400px) {
+    .header-right { gap: 8px; }
+    .join-btn { padding: 9px 12px; font-size: 11px; }
   }
-  .section.active { opacity: 1; visibility: visible; pointer-events: auto; }
 
-  .split {
-    height: 100%;
-    display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
-  }
-  .pane { position: relative; padding: clamp(16px, 3.4vh, 52px) clamp(24px, 4vw, 60px); display: flex; flex-direction: column; overflow-y: auto; }
-  .pane.left { justify-content: center; }
+  /* ===== Sections ===== */
+  .sect { padding: clamp(56px, 9vh, 100px) 0; position: relative; overflow: hidden; scroll-margin-top: 76px; }
+  .sect.alt { background: var(--panel-warm); }
+  .stack-head { max-width: 640px; margin-bottom: clamp(28px, 5vh, 48px); }
+  .stack-head.center { margin-left: auto; margin-right: auto; text-align: center; }
 
   .eyebrow {
     font-family: "Manrope", sans-serif; font-weight: 700; font-size: 12px;
     letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold);
-    display: flex; align-items: center; gap: 10px; margin-bottom: clamp(14px, 2.4vh, 26px);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
   }
+  .stack-head.center .eyebrow { justify-content: center; }
   .eyebrow::before { content: ""; width: 28px; height: 1px; background: var(--gold); }
+  .stack-head.center .eyebrow::before { display: none; }
 
-  h1.display {
+  h1.display, h2.display {
     font-family: "Bodoni Moda", serif; font-weight: 600;
-    font-size: clamp(30px, 5.4vh, 72px); line-height: 0.98;
+    font-size: clamp(32px, 5.4vw, 60px); line-height: 1.02;
     letter-spacing: -0.01em; color: var(--cream);
     text-wrap: balance;
   }
-  h1.display em { font-style: italic; color: var(--gold); }
-  h1.display .hl { color: var(--yellow); font-style: italic; }
+  h1.display em, h2.display em { font-style: italic; color: var(--gold); }
+  h1.display .hl, h2.display .hl { color: var(--yellow); font-style: italic; }
 
   .lede {
-    font-size: clamp(14px, 1.8vh, 16.5px); line-height: 1.6;
-    color: var(--cream-soft); max-width: 42ch; margin-top: clamp(16px, 2.6vh, 28px);
+    font-size: 16px; line-height: 1.6;
+    color: var(--cream-soft); max-width: 46ch; margin-top: 20px;
     text-wrap: pretty;
   }
+  .stack-head.center .lede { margin-left: auto; margin-right: auto; }
 
-  .cta-row { display: flex; align-items: center; gap: 18px; margin-top: clamp(20px, 3.2vh, 36px); flex-wrap: wrap; }
+  .cta-row { display: flex; align-items: center; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
+  .stack-head.center .cta-row { justify-content: center; }
   .btn-primary {
-    appearance: none; border: 0; cursor: pointer;
+    appearance: none; border: 0; cursor: pointer; text-decoration: none;
     background: var(--yellow); color: var(--yellow-ink);
     font-family: "Manrope", sans-serif; font-weight: 800; font-size: 15px;
     letter-spacing: 0.04em; text-transform: uppercase;
     padding: 16px 30px; border-radius: 14px;
     box-shadow: 0 5px 0 var(--gold-deep);
     transition: transform 0.15s, box-shadow 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
   }
   .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 0 var(--gold-deep); }
   .btn-primary:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-deep); }
   .btn-ghost {
-    appearance: none; cursor: pointer; background: none;
+    appearance: none; cursor: pointer; background: none; text-decoration: none;
     border: 1.5px solid var(--line); color: var(--cream);
     font-family: "Manrope", sans-serif; font-weight: 700; font-size: 14px;
     letter-spacing: 0.04em; text-transform: uppercase;
@@ -180,57 +167,61 @@
   }
   .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
 
-  .foot-meta {
-    position: absolute; left: clamp(24px, 4vw, 60px); bottom: clamp(20px, 3.4vh, 40px);
-    display: flex; align-items: center; gap: 12px;
-    font-size: 13px; color: var(--cream-soft);
-  }
+  .foot-meta { display: flex; align-items: center; gap: 12px; margin-top: 28px; font-size: 13px; color: var(--cream-soft); }
+  .stack-head.center .foot-meta { justify-content: center; }
   .foot-meta .pin { color: var(--gold); display: grid; place-items: center; }
   .foot-meta b { color: var(--cream); font-weight: 700; }
 
-  /* hero center photo */
-  .hero-photo {
-    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-    width: clamp(280px, 34vw, 480px); height: 92%;
-    z-index: 3;
+  /* ===== two-column layout used by every section ===== */
+  .split2 { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(30px, 5vw, 70px); align-items: center; }
+  @media (max-width: 860px) {
+    .split2 { grid-template-columns: 1fr; }
   }
-  .hero-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* ===== Hero (Inicio) ===== */
+  .hero-media { position: relative; }
+  .hero-photo-wrap {
+    position: relative; border-radius: 24px; overflow: hidden;
+    aspect-ratio: 3 / 4; max-width: 420px; margin: 0 auto;
+    box-shadow: 0 30px 70px oklch(0.12 0.02 70 / 0.5);
+  }
+  .hero-photo-wrap img { width: 100%; height: 100%; object-fit: cover; }
   .badge-float {
-    position: absolute; z-index: 4;
-    width: clamp(96px, 9vw, 132px); height: clamp(96px, 9vw, 132px);
+    position: absolute; right: -14px; bottom: 28px; z-index: 2;
+    width: 104px; height: 104px;
     border-radius: 50%; background: var(--yellow); color: var(--yellow-ink);
     display: grid; place-items: center; text-align: center;
-    font-weight: 800; font-size: clamp(10px, 1.3vh, 13px); line-height: 1.25;
+    font-weight: 800; font-size: 12px; line-height: 1.25;
     padding: 14px; box-shadow: 0 10px 30px oklch(0.2 0.02 70 / 0.4);
     transform: rotate(-6deg);
   }
+  @media (max-width: 480px) {
+    .badge-float { width: 84px; height: 84px; font-size: 10.5px; right: 4px; }
+  }
 
-  /* right panel carousel card (hero) */
-  .pane.right { justify-content: space-between; }
-  .promo-note { align-self: flex-end; font-size: 13px; color: var(--cream-soft); }
+  .promo-note { font-size: 13px; color: var(--cream-soft); margin-bottom: 14px; text-align: center; }
   .promo-note b { color: var(--yellow); }
-  .carousel { align-self: flex-end; width: min(100%, 360px); }
+  .carousel { width: min(100%, 360px); margin: 0 auto; }
   .carousel-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
   .cbtn {
-    width: 42px; height: 42px; border-radius: 50%; cursor: pointer;
+    width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
     border: 1.5px solid var(--line); background: none; color: var(--cream);
-    display: grid; place-items: center; transition: 0.2s;
+    display: grid; place-items: center; transition: 0.2s; flex: none;
   }
   .cbtn.fill { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); }
   .cbtn:hover { border-color: var(--gold); }
-  .cnum { margin-left: auto; font-family: "Bodoni Moda", serif; font-size: 40px; color: var(--cream); }
-  .cnum small { font-size: 18px; color: var(--cream-soft); }
+  .cnum { margin-left: auto; font-family: "Bodoni Moda", serif; font-size: 34px; color: var(--cream); }
+  .cnum small { font-size: 16px; color: var(--cream-soft); }
   .ccard {
     background: oklch(1 0 0 / 0.06); border: 1px solid var(--line);
     border-radius: 16px; overflow: hidden;
   }
-  .ccard img { width: 100%; height: clamp(150px, 22vh, 230px); display: block; object-fit: cover; transition: opacity 0.32s ease; }
+  .ccard img { width: 100%; height: 190px; object-fit: cover; transition: opacity 0.32s ease; }
   .ccard .cmeta { padding: 14px 16px; }
   .ccard .cmeta .t { font-weight: 700; font-size: 15px; }
   .ccard .cmeta .s { font-size: 13px; color: var(--gold); margin-top: 3px; }
 
-  /* socials */
-  .socials { position: absolute; right: clamp(24px,4vw,60px); bottom: clamp(20px,3.4vh,40px); display: flex; gap: 10px; z-index: 5; }
+  .socials { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
   .socials a {
     width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
     background: oklch(1 0 0 / 0.08); color: var(--cream); text-decoration: none; font-size: 13px;
@@ -238,32 +229,31 @@
   }
   .socials a:hover { background: var(--yellow); color: var(--yellow-ink); }
 
-  /* ===== Generic content blocks ===== */
-  .stack-head { margin-bottom: clamp(16px, 2.6vh, 30px); }
-
-  /* classes grid */
-  .class-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(8px,1.4vh,14px); align-content: center; height: 100%; }
+  /* ===== classes grid ===== */
+  .class-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .class-grid { grid-template-columns: 1fr; } }
   .class-card {
-    border: 1px solid var(--line); border-radius: 16px; padding: clamp(12px,1.8vh,18px) 20px;
-    background: oklch(1 0 0 / 0.05); transition: 0.2s; cursor: default;
+    border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
+    background: oklch(1 0 0 / 0.05); transition: 0.2s;
     display: flex; flex-direction: column; gap: 6px;
   }
   .class-card:hover { background: oklch(1 0 0 / 0.1); border-color: var(--gold); transform: translateY(-3px); }
-  .class-card .ct { font-family: "Bodoni Moda", serif; font-size: clamp(19px, 2.6vh, 24px); color: var(--cream); }
+  .class-card .ct { font-family: "Bodoni Moda", serif; font-size: 21px; color: var(--cream); }
   .class-card .cd { font-size: 12.5px; color: var(--cream-soft); line-height: 1.4; }
   .class-card .tag { margin-top: auto; align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--yellow-ink); background: var(--yellow); padding: 4px 10px; border-radius: 999px; }
 
-  /* plans */
-  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-content: center; height: 100%; }
+  /* ===== plans ===== */
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .plans { grid-template-columns: 1fr; max-width: 380px; margin: 0 auto; } }
   .plan {
-    border: 1px solid var(--line); border-radius: 18px; padding: clamp(16px,2.4vh,26px) 18px;
+    border: 1px solid var(--line); border-radius: 18px; padding: 26px 20px;
     background: oklch(1 0 0 / 0.05); display: flex; flex-direction: column; gap: 8px;
     transition: 0.2s; position: relative;
   }
-  .plan.feature { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); transform: scale(1.04); }
+  .plan.feature { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); }
   .plan.feature .pname, .plan.feature .price, .plan.feature li { color: var(--yellow-ink); }
-  .plan .pname { font-family: "Bodoni Moda", serif; font-size: clamp(20px,2.8vh,26px); color: var(--cream); }
-  .plan .price { font-family: "Bodoni Moda", serif; font-size: clamp(30px,4.6vh,46px); color: var(--gold); line-height: 1; }
+  .plan .pname { font-family: "Bodoni Moda", serif; font-size: 24px; color: var(--cream); }
+  .plan .price { font-family: "Bodoni Moda", serif; font-size: 42px; color: var(--gold); line-height: 1; }
   .plan.feature .price { color: var(--yellow-ink); }
   .plan .price small { font-size: 14px; font-family: "Manrope"; color: var(--cream-soft); font-weight: 600; }
   .plan.feature .price small { color: var(--yellow-ink); }
@@ -273,16 +263,15 @@
   .plan.feature li::before { color: var(--yellow-ink); }
   .plan .ribbon { position: absolute; top: -11px; right: 16px; background: var(--panel-dark); color: var(--yellow); font-size: 10px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }
 
-  /* ===== APP CTA (recurring) ===== */
+  /* ===== APP CTA (recurring small promo box) ===== */
   .appcta {
-    display: flex; align-items: center; gap: clamp(18px, 2.6vw, 34px);
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
     background: linear-gradient(120deg, oklch(0.24 0.03 80), oklch(0.3 0.04 75));
     border: 1px solid var(--line); border-radius: 20px;
-    padding: clamp(16px, 2.4vh, 26px) clamp(18px, 2.6vw, 32px);
+    padding: 22px clamp(18px, 3vw, 32px); margin-top: 30px;
   }
-  .appcta.center { width: min(620px, 92%); margin: clamp(14px,2.6vh,26px) auto 0; }
   .phone {
-    flex: none; width: clamp(70px, 8vw, 100px); height: clamp(118px, 15vh, 190px);
+    flex: none; width: 84px; height: 150px;
     border-radius: 18px; border: 3px solid oklch(1 0 0 / 0.18);
     background: var(--panel-dark); position: relative; overflow: hidden;
     box-shadow: 0 12px 30px oklch(0.15 0.02 70 / 0.5);
@@ -296,13 +285,13 @@
     background-size: 33% 33%, 100% 100%;
     border: 4px solid var(--cream);
   }
-  .appcta .body { flex: 1; min-width: 0; }
+  .appcta .body { flex: 1; min-width: 220px; }
   .appcta .kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--yellow); margin-bottom: 6px; }
-  .appcta h3 { font-family: "Bodoni Moda", serif; font-weight: 600; font-size: clamp(20px, 2.8vh, 28px); color: var(--cream); line-height: 1.05; }
+  .appcta h3 { font-family: "Bodoni Moda", serif; font-weight: 600; font-size: 22px; color: var(--cream); line-height: 1.1; }
   .appcta p { font-size: 13px; color: var(--cream-soft); margin-top: 7px; line-height: 1.5; max-width: 46ch; }
   .store-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
   .store {
-    display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 9px; cursor: pointer; text-decoration: none;
     background: var(--cream); color: var(--ink); border: 0; border-radius: 11px;
     padding: 8px 14px; font-family: "Manrope"; transition: 0.15s;
   }
@@ -313,16 +302,16 @@
   .store .tx b { font-size: 14px; font-weight: 800; }
   .store.sub { background: var(--yellow); color: var(--yellow-ink); }
 
-  /* APP section big layout */
-  .app-features { display: flex; flex-direction: column; gap: clamp(9px, 1.5vh, 15px); align-self: center; }
+  /* ===== APP section big layout ===== */
+  .app-features { display: flex; flex-direction: column; gap: 16px; }
   .feat { display: flex; gap: 14px; align-items: flex-start; }
   .feat .fic { flex: none; width: 44px; height: 44px; border-radius: 12px; background: oklch(1 0 0 / 0.07); color: var(--gold); display: grid; place-items: center; font-size: 20px; border: 1px solid var(--line); }
   .feat .ft { font-weight: 700; font-size: 15px; color: var(--cream); }
   .feat .fd { font-size: 13px; color: var(--cream-soft); margin-top: 2px; line-height: 1.45; }
 
+  .bigphone-wrap { display: flex; justify-content: center; }
   .bigphone {
-    align-self: center; justify-self: center;
-    width: clamp(160px, 18vw, 260px); height: clamp(260px, 56vh, 520px);
+    width: 240px; height: 480px;
     border-radius: 34px; border: 6px solid oklch(0.16 0.01 70); background: var(--panel-dark);
     position: relative; overflow: hidden; box-shadow: 0 30px 70px oklch(0.12 0.02 70 / 0.6);
   }
@@ -344,15 +333,19 @@
   .bigphone .next .k { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
   .bigphone .next .v { font-weight: 800; font-size: 14px; margin-top: 2px; }
 
-  /* contact */
-  .contact-grid { display: flex; flex-direction: column; gap: 14px; align-self: center; height: 100%; justify-content: center; }
+  .apk-note { font-size: 11.5px; color: var(--cream-soft); margin-top: 14px; max-width: 46ch; line-height: 1.5; }
+
+  /* ===== contact ===== */
+  .contact-grid { display: flex; flex-direction: column; gap: 14px; }
   .crow { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
   .crow .ic { color: var(--gold); font-size: 18px; width: 26px; text-align: center; }
   .crow .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-soft); }
   .crow .v { font-weight: 700; font-size: 15px; color: var(--cream); margin-top: 2px; }
+  .crow .v a { color: inherit; text-decoration: none; }
+  .crow .v a:hover { color: var(--gold); }
 
   /* formulario de contacto real (guarda en Firestore, ver <script> al pie) */
-  .contact-form { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
+  .contact-form { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
   .cf-eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
   .cf-input {
     width: 100%; appearance: none; border: 1.5px solid var(--line); border-radius: 10px;
@@ -368,248 +361,252 @@
   .cf-status.ok { color: oklch(0.75 0.16 145); }
   .cf-status.err { color: oklch(0.68 0.19 25); }
 
-  /* nota bajo el botón de descarga directa del APK */
-  .apk-note { font-size: 11.5px; color: var(--cream-soft); margin-top: 10px; max-width: 46ch; line-height: 1.5; }
+  /* ===== footer ===== */
+  .site-footer { padding: 28px 0; border-top: 1px solid var(--line); }
+  .site-footer .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .site-footer .brand .word { font-size: 17px; }
+  .site-footer .fine-print { font-size: 12px; color: var(--cream-soft); }
 
-  /* progress dots */
-  .progress { position: absolute; bottom: clamp(16px,2.6vh,28px); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 6; }
-  .progress button { width: 9px; height: 9px; border-radius: 50%; border: 0; background: oklch(1 0 0 / 0.25); cursor: pointer; transition: 0.2s; padding: 0; }
-  .progress button.active { background: var(--yellow); width: 26px; border-radius: 999px; }
-
-  @media (max-width: 900px) {
-    .split { grid-template-columns: 1fr; grid-template-rows: 1fr; }
-    .pane.right, .hero-photo, .carousel, .socials { display: none; }
-    .class-grid, .plans { grid-template-columns: 1fr; overflow: auto; }
-    .nav-group.left, .nav-group.right .nav-link { display: none; }
+  @media (max-width: 480px) {
+    .cta-row, .foot-meta { justify-content: flex-start; }
   }
 </style>
 </head>
 <body>
-  <div class="frame">
-    <div class="card">
-      <!-- ===== NAV ===== -->
-      <nav class="bar">
-        <div class="nav-group left">
-          <button class="nav-link active" data-go="inicio">Inicio</button>
-          <button class="nav-link" data-go="clases">Clases</button>
-          <button class="nav-link" data-go="planes">Planes</button>
-        </div>
-        <div class="brand" onclick="window.location.href='C:/Users/sanchez/OneDrive/Desktop/Claude/Olimpos/Paginas/Plano Interactivo.html';" style="cursor: pointer;">
-            <img src="assets/olimpos-logo.png" alt="Olimpos" />
-            <span class="word">OLIMP<span class="om">Ω</span>S</span>
-        </div>
-        <div class="nav-group right">
-          <button class="nav-link" data-go="app">La App</button>
-          <button class="nav-link" data-go="contacto">Contacto</button>
-          <button class="join-btn" data-go="app">Descarga la app</button>
-          <div class="avatar">▲</div>
-        </div>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="#inicio">
+        <img src="assets/olimpos-logo.png" alt="Olimpos" />
+        <span class="word">OLIMP<span class="om">Ω</span>S</span>
+      </a>
+      <nav class="site-nav" id="siteNav">
+        <a class="nav-link" href="#inicio">Inicio</a>
+        <a class="nav-link" href="#clases">Clases</a>
+        <a class="nav-link" href="#planes">Planes</a>
+        <a class="nav-link" href="#app">La App</a>
+        <a class="nav-link" href="#contacto">Contacto</a>
       </nav>
+      <div class="header-right">
+        <a class="join-btn" href="#app">Descarga la app</a>
+        <button class="hamburger" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
 
-      <!-- ===== STAGE ===== -->
-      <div class="stage" id="stage">
-
-        <!-- ===== INICIO ===== -->
-        <section class="section active" data-section="inicio" data-screen-label="Inicio">
-          <div class="split">
-            <div class="pane left">
-              <div class="eyebrow">Gimnasio Olímpico · desde 2014</div>
-              <h1 class="display">Forja la <em>leyenda</em><br />que llevas <span class="hl">dentro</span></h1>
-              <p class="lede">Entrena con la fuerza de los dioses del Olimpo. Más de 60 clases semanales, entrenadores de élite y una comunidad que no se rinde — todo gestionado desde la app OlimpΩs.</p>
-              <div class="cta-row">
-                <button class="btn-primary" data-go="planes">Únete ahora</button>
-                <button class="btn-ghost" data-go="app">Instala la app →</button>
-              </div>
-              <div class="foot-meta">
-                <span class="pin">◉</span>
-                <span>Av. del Olimpo 1200 · <b>Abierto 24/7</b></span>
-              </div>
-            </div>
-
-            <div class="pane right">
-              <div class="promo-note">Primer mes <b>-50%</b> registrándote desde la app</div>
-              <div class="carousel">
-                <div class="carousel-top">
-                  <button class="cbtn" aria-label="anterior">←</button>
-                  <button class="cbtn fill" aria-label="siguiente">→</button>
-                  <div class="cnum">01<small>/05</small></div>
-                </div>
-                <div class="ccard">
-                  <img src="assets/Clas.jpg" alt="Foto de clase" />
-                  <div class="cmeta">
-                    <div class="t">CrossOlympus · alta intensidad</div>
-                    <div class="s">Reserva tu cupo en la app</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+  <!-- ===== INICIO ===== -->
+  <section class="sect" id="inicio">
+    <div class="wrap">
+      <div class="split2">
+        <div class="col text">
+          <div class="eyebrow">Gimnasio Olímpico · desde 2014</div>
+          <h1 class="display">Forja la <em>leyenda</em><br />que llevas <span class="hl">dentro</span></h1>
+          <p class="lede">Entrena con la fuerza de los dioses del Olimpo. Más de 60 clases semanales, entrenadores de élite y una comunidad que no se rinde — todo gestionado desde la app OlimpΩs.</p>
+          <div class="cta-row">
+            <a class="btn-primary" href="#planes">Únete ahora</a>
+            <a class="btn-ghost" href="#app">Instala la app →</a>
           </div>
+          <div class="foot-meta">
+            <span class="pin">◉</span>
+            <span>Av. del Olimpo 1200 · <b>Abierto 24/7</b></span>
+          </div>
+        </div>
 
-          <div class="hero-photo">
+        <div class="col media hero-media">
+          <div class="hero-photo-wrap">
             <img src="assets/atleta2.png" alt="Foto de atleta" />
+            <div class="badge-float">Acceso<br />24/7</div>
           </div>
-          <div class="badge-float" style="left: 46%; bottom: 22%;">Acceso<br />24/7</div>
+          <div class="promo-note" style="margin-top:22px;">Primer mes <b>-50%</b> registrándote desde la app</div>
+          <div class="carousel">
+            <div class="carousel-top">
+              <button class="cbtn" aria-label="anterior">←</button>
+              <button class="cbtn fill" aria-label="siguiente">→</button>
+              <div class="cnum">01<small>/03</small></div>
+            </div>
+            <div class="ccard">
+              <img src="assets/Clase1.jpg" alt="Foto de clase" />
+              <div class="cmeta">
+                <div class="t">CrossOlympus · alta intensidad</div>
+                <div class="s">Reserva tu cupo en la app</div>
+              </div>
+            </div>
+          </div>
           <div class="socials">
             <a href="#" title="Instagram">◎</a>
             <a href="#" title="Facebook">f</a>
             <a href="#" title="WhatsApp">✆</a>
           </div>
-        </section>
-
-        <!-- ===== CLASES ===== -->
-        <section class="section" data-section="clases" data-screen-label="Clases">
-          <div class="split">
-            <div class="pane left">
-              <div class="eyebrow">Entrenamiento</div>
-              <h1 class="display">Disciplinas<br />de <em>campeones</em></h1>
-              <p class="lede">Elige tu batalla. Cada clase está dirigida por entrenadores certificados y se reserva con un toque desde la app — sin filas, sin esperas.</p>
-              <div class="appcta" style="margin-top: clamp(18px,3vh,30px);">
-                <div class="phone"><div class="scr"><div class="qr"></div></div></div>
-                <div class="body">
-                  <div class="kicker">Reserva en segundos</div>
-                  <h3>Tu cupo, en la app</h3>
-                  <p>Suscríbete y asegura tu lugar en cualquier clase antes de que se llene.</p>
-                  <div class="store-row">
-                    <button class="store sub" data-go="app"><span class="ic">⤓</span><span class="tx"><small>Instalar</small><b>App OlimpΩs</b></span></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="pane right">
-              <div class="class-grid">
-                <div class="class-card"><div class="ct">CrossOlympus</div><div class="cd">Fuerza y resistencia funcional en circuito.</div><div class="tag">Alta intensidad</div></div>
-                <div class="class-card"><div class="ct">Boxeo Espartano</div><div class="cd">Técnica, potencia y cardio de combate.</div><div class="tag">Combate</div></div>
-                <div class="class-card"><div class="ct">Spinning Zeus</div><div class="cd">Ciclismo indoor con ritmo y música épica.</div><div class="tag">Cardio</div></div>
-                <div class="class-card"><div class="ct">Hipertrofia</div><div class="cd">Volumen y fuerza con peso libre guiado.</div><div class="tag">Fuerza</div></div>
-                <div class="class-card"><div class="ct">Funcional</div><div class="cd">Movilidad y potencia para el día a día.</div><div class="tag">Todos</div></div>
-                <div class="class-card"><div class="ct">Yoga Atenea</div><div class="cd">Equilibrio, flexibilidad y mente clara.</div><div class="tag">Recuperación</div></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ===== PLANES ===== -->
-        <section class="section" data-section="planes" data-screen-label="Planes">
-          <div class="split">
-            <div class="pane left">
-              <div class="eyebrow">Membresías</div>
-              <h1 class="display">Elige<br />tu <em>senda</em></h1>
-              <p class="lede">Sin permanencia, sin letra pequeña. Cambia o congela tu plan cuando quieras — todo desde tu perfil en la app OlimpΩs.</p>
-              <div class="cta-row">
-                <button class="btn-primary" data-go="app">Suscríbete en la app</button>
-              </div>
-              <div class="foot-meta">
-                <span class="pin">★</span>
-                <span>Activa tu carné digital al suscribirte</span>
-              </div>
-            </div>
-            <div class="pane right">
-              <div class="plans">
-                <div class="plan">
-                  <div class="pname">Mortal</div>
-                  <div class="price">$19<small>/mes</small></div>
-                  <ul><li>Acceso a sala</li><li>App básica</li><li>Horario diurno</li></ul>
-                </div>
-                <div class="plan feature">
-                  <div class="ribbon">Popular</div>
-                  <div class="pname">Héroe</div>
-                  <div class="price">$34<small>/mes</small></div>
-                  <ul><li>Acceso 24/7</li><li>Todas las clases</li><li>Carné QR en la app</li><li>1 invitado/mes</li></ul>
-                </div>
-                <div class="plan">
-                  <div class="pname">Titán</div>
-                  <div class="price">$49<small>/mes</small></div>
-                  <ul><li>Todo lo de Héroe</li><li>Spa y sauna</li><li>Plan personalizado</li></ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ===== APP ===== -->
-        <section class="section" data-section="app" data-screen-label="La App">
-          <div class="split">
-            <div class="pane left">
-              <div class="eyebrow">El sistema de socios</div>
-              <h1 class="display">Tu <span class="hl">Olimpo</span><br />en el bolsillo</h1>
-              <p class="lede">La app OlimpΩs es tu llave al gimnasio: entra con tu carné QR, reserva clases, sigue tu progreso y paga tu cuota. Todo en un solo lugar.</p>
-              <div class="store-row" style="margin-top: clamp(20px,3vh,32px);">
-                <a class="store sub" href="https://github.com/xaaawww/olimpos/releases/download/app-v1.0.0/OlimpOS.apk" download="OlimpOS.apk"><span class="ic">⤓</span><span class="tx"><small>Descarga directa</small><b>APK Android</b></span></a>
-                <button class="store"><span class="ic"></span><span class="tx"><small>Descarga en</small><b>App Store</b></span></button>
-                <button class="store"><span class="ic">▶</span><span class="tx"><small>Disponible en</small><b>Google Play</b></span></button>
-              </div>
-              <p class="apk-note">La versión Android se instala directo desde este botón (todavía no está en Google Play) — el celular puede pedir habilitar "instalar apps de orígenes desconocidos" la primera vez.</p>
-            </div>
-            <div class="pane right" style="display:grid; grid-template-columns: auto 1fr; gap: clamp(20px,3vw,44px); align-items:center;">
-              <div class="bigphone">
-                <div class="ui">
-                  <div class="logo"><img src="assets/olimpos-logo.png" alt="" /><span>OLIMP<span class="om">Ω</span>S</span></div>
-                  <div class="qrbox">
-                    <div class="qr"></div>
-                    <div class="lab">Tu carné de acceso</div>
-                  </div>
-                  <div class="rowmini">
-                    <div class="mini"><div class="v">12</div><div class="k">clases este mes</div></div>
-                    <div class="mini"><div class="v">8.4k</div><div class="k">kcal quemadas</div></div>
-                  </div>
-                  <div class="next"><div class="k">Próxima clase</div><div class="v">Boxeo · 19:00</div></div>
-                </div>
-              </div>
-              <div class="app-features">
-                <div class="feat"><div class="fic">▢</div><div><div class="ft">Carné QR de acceso</div><div class="fd">Entra al gimnasio escaneando tu teléfono.</div></div></div>
-                <div class="feat"><div class="fic">◷</div><div><div class="ft">Reserva de clases</div><div class="fd">Asegura tu cupo en segundos, sin filas.</div></div></div>
-                <div class="feat"><div class="fic">◍</div><div><div class="ft">Progreso y rutinas</div><div class="fd">Registra entrenos, peso y récords.</div></div></div>
-                <div class="feat"><div class="fic">⎙</div><div><div class="ft">Pagos y membresía</div><div class="fd">Gestiona tu cuota y plan sin papeleo.</div></div></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ===== CONTACTO ===== -->
-        <section class="section" data-section="contacto" data-screen-label="Contacto">
-          <div class="split">
-            <div class="pane left">
-              <div class="eyebrow">Visítanos</div>
-              <h1 class="display">Ven a<br /><em>entrenar</em></h1>
-              <p class="lede">Tu primera clase es gratis. Pásate por el templo, conoce a los entrenadores y siente la energía del Olimpo.</p>
-              <div class="appcta" style="margin-top: clamp(18px,3vh,30px);">
-                <div class="phone"><div class="scr"><img src="assets/olimpos-logo.png" alt="" /></div></div>
-                <div class="body">
-                  <div class="kicker">Antes de venir</div>
-                  <h3>Instala la app</h3>
-                  <p>Crea tu cuenta, reserva tu clase de prueba y entra con tu carné QR.</p>
-                  <div class="store-row">
-                    <button class="store sub" data-go="app"><span class="ic">⤓</span><span class="tx"><small>Suscríbete</small><b>App OlimpΩs</b></span></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="pane right">
-              <div class="contact-grid">
-                <div class="crow"><div class="ic">◉</div><div><div class="k">Dirección</div><div class="v">Av. del Olimpo 1200, Ciudad</div></div></div>
-                <div class="crow"><div class="ic">◷</div><div><div class="k">Horario</div><div class="v">Abierto 24 horas · 7 días</div></div></div>
-                <div class="crow"><div class="ic">✆</div><div><div class="k">Teléfono</div><div class="v">+54 11 4000 0000</div></div></div>
-                <div class="crow"><div class="ic">✉</div><div><div class="k">Email</div><div class="v"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="adc5c2c1ccedc2c1c4c0ddc2de83cbc4d9">MatiasBellu6767@gmail.com</a></div></div></div>
-
-                <form class="contact-form" id="contactForm">
-                  <div class="cf-eyebrow">¿Querés que te contactemos?</div>
-                  <input class="cf-input" type="text" id="cfNombre" placeholder="Tu nombre" maxlength="99" required />
-                  <input class="cf-input" type="text" id="cfContacto" placeholder="Email o teléfono" maxlength="149" required />
-                  <textarea class="cf-input cf-textarea" id="cfMensaje" placeholder="¿En qué te podemos ayudar? (opcional)" maxlength="999"></textarea>
-                  <button type="submit" class="btn-primary cf-submit" id="cfSubmit">Quiero que me contacten</button>
-                  <div class="cf-status" id="cfStatus"></div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </section>
-
+        </div>
       </div>
-
-      <!-- progress dots -->
-      <div class="progress" id="progress"></div>
     </div>
-  </div>
+  </section>
+
+  <!-- ===== CLASES ===== -->
+  <section class="sect alt" id="clases">
+    <div class="wrap">
+      <div class="split2">
+        <div class="col text">
+          <div class="eyebrow">Entrenamiento</div>
+          <h2 class="display">Disciplinas<br />de <em>campeones</em></h2>
+          <p class="lede">Elige tu batalla. Cada clase está dirigida por entrenadores certificados y se reserva con un toque desde la app — sin filas, sin esperas.</p>
+          <div class="appcta">
+            <div class="phone"><div class="scr"><div class="qr"></div></div></div>
+            <div class="body">
+              <div class="kicker">Reserva en segundos</div>
+              <h3>Tu cupo, en la app</h3>
+              <p>Suscríbete y asegura tu lugar en cualquier clase antes de que se llene.</p>
+              <div class="store-row">
+                <a class="store sub" href="#app"><span class="ic">⤓</span><span class="tx"><small>Instalar</small><b>App OlimpΩs</b></span></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col media">
+          <div class="class-grid">
+            <div class="class-card"><div class="ct">CrossOlympus</div><div class="cd">Fuerza y resistencia funcional en circuito.</div><div class="tag">Alta intensidad</div></div>
+            <div class="class-card"><div class="ct">Boxeo Espartano</div><div class="cd">Técnica, potencia y cardio de combate.</div><div class="tag">Combate</div></div>
+            <div class="class-card"><div class="ct">Spinning Zeus</div><div class="cd">Ciclismo indoor con ritmo y música épica.</div><div class="tag">Cardio</div></div>
+            <div class="class-card"><div class="ct">Hipertrofia</div><div class="cd">Volumen y fuerza con peso libre guiado.</div><div class="tag">Fuerza</div></div>
+            <div class="class-card"><div class="ct">Funcional</div><div class="cd">Movilidad y potencia para el día a día.</div><div class="tag">Todos</div></div>
+            <div class="class-card"><div class="ct">Yoga Atenea</div><div class="cd">Equilibrio, flexibilidad y mente clara.</div><div class="tag">Recuperación</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PLANES ===== -->
+  <section class="sect" id="planes">
+    <div class="wrap">
+      <div class="stack-head center">
+        <div class="eyebrow">Membresías</div>
+        <h2 class="display">Elige tu <em>senda</em></h2>
+        <p class="lede">Sin permanencia, sin letra pequeña. Cambia o congela tu plan cuando quieras — todo desde tu perfil en la app OlimpΩs.</p>
+        <div class="cta-row">
+          <a class="btn-primary" href="#app">Suscríbete en la app</a>
+        </div>
+        <div class="foot-meta">
+          <span class="pin">★</span>
+          <span>Activa tu carné digital al suscribirte</span>
+        </div>
+      </div>
+      <div class="plans">
+        <div class="plan">
+          <div class="pname">Mortal</div>
+          <div class="price">$19<small>/mes</small></div>
+          <ul><li>Acceso a sala</li><li>App básica</li><li>Horario diurno</li></ul>
+        </div>
+        <div class="plan feature">
+          <div class="ribbon">Popular</div>
+          <div class="pname">Héroe</div>
+          <div class="price">$34<small>/mes</small></div>
+          <ul><li>Acceso 24/7</li><li>Todas las clases</li><li>Carné QR en la app</li><li>1 invitado/mes</li></ul>
+        </div>
+        <div class="plan">
+          <div class="pname">Titán</div>
+          <div class="price">$49<small>/mes</small></div>
+          <ul><li>Todo lo de Héroe</li><li>Spa y sauna</li><li>Plan personalizado</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== APP ===== -->
+  <section class="sect alt" id="app">
+    <div class="wrap">
+      <div class="split2">
+        <div class="col text">
+          <div class="eyebrow">El sistema de socios</div>
+          <h2 class="display">Tu <span class="hl">Olimpo</span><br />en el bolsillo</h2>
+          <p class="lede">La app OlimpΩs es tu llave al gimnasio: entra con tu carné QR, reserva clases, sigue tu progreso y paga tu cuota. Todo en un solo lugar.</p>
+          <div class="store-row" style="margin-top: 24px;">
+            <a class="store sub" href="https://github.com/xaaawww/olimpos/releases/download/app-v1.0.0/OlimpOS.apk" download="OlimpOS.apk"><span class="ic">⤓</span><span class="tx"><small>Descarga directa</small><b>APK Android</b></span></a>
+            <button class="store" type="button"><span class="ic"></span><span class="tx"><small>Descarga en</small><b>App Store</b></span></button>
+            <button class="store" type="button"><span class="ic">▶</span><span class="tx"><small>Disponible en</small><b>Google Play</b></span></button>
+          </div>
+          <p class="apk-note">La versión Android se instala directo desde este botón (todavía no está en Google Play) — el celular puede pedir habilitar "instalar apps de orígenes desconocidos" la primera vez.</p>
+
+          <div class="app-features" style="margin-top:32px;">
+            <div class="feat"><div class="fic">▢</div><div><div class="ft">Carné QR de acceso</div><div class="fd">Entra al gimnasio escaneando tu teléfono.</div></div></div>
+            <div class="feat"><div class="fic">◷</div><div><div class="ft">Reserva de clases</div><div class="fd">Asegura tu cupo en segundos, sin filas.</div></div></div>
+            <div class="feat"><div class="fic">◍</div><div><div class="ft">Progreso y rutinas</div><div class="fd">Registra entrenos, peso y récords.</div></div></div>
+            <div class="feat"><div class="fic">⎙</div><div><div class="ft">Pagos y membresía</div><div class="fd">Gestiona tu cuota y plan sin papeleo.</div></div></div>
+          </div>
+        </div>
+        <div class="col media">
+          <div class="bigphone-wrap">
+            <div class="bigphone">
+              <div class="ui">
+                <div class="logo"><img src="assets/olimpos-logo.png" alt="" /><span>OLIMP<span class="om">Ω</span>S</span></div>
+                <div class="qrbox">
+                  <div class="qr"></div>
+                  <div class="lab">Tu carné de acceso</div>
+                </div>
+                <div class="rowmini">
+                  <div class="mini"><div class="v">12</div><div class="k">clases este mes</div></div>
+                  <div class="mini"><div class="v">8.4k</div><div class="k">kcal quemadas</div></div>
+                </div>
+                <div class="next"><div class="k">Próxima clase</div><div class="v">Boxeo · 19:00</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONTACTO ===== -->
+  <section class="sect" id="contacto">
+    <div class="wrap">
+      <div class="split2">
+        <div class="col text">
+          <div class="eyebrow">Visítanos</div>
+          <h2 class="display">Ven a<br /><em>entrenar</em></h2>
+          <p class="lede">Tu primera clase es gratis. Pásate por el templo, conoce a los entrenadores y siente la energía del Olimpo.</p>
+          <div class="appcta">
+            <div class="phone"><div class="scr"><img src="assets/olimpos-logo.png" alt="" /></div></div>
+            <div class="body">
+              <div class="kicker">Antes de venir</div>
+              <h3>Instala la app</h3>
+              <p>Crea tu cuenta, reserva tu clase de prueba y entra con tu carné QR.</p>
+              <div class="store-row">
+                <a class="store sub" href="#app"><span class="ic">⤓</span><span class="tx"><small>Suscríbete</small><b>App OlimpΩs</b></span></a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col media">
+          <div class="contact-grid">
+            <div class="crow"><div class="ic">◉</div><div><div class="k">Dirección</div><div class="v">Av. del Olimpo 1200, Ciudad</div></div></div>
+            <div class="crow"><div class="ic">◷</div><div><div class="k">Horario</div><div class="v">Abierto 24 horas · 7 días</div></div></div>
+            <div class="crow"><div class="ic">✆</div><div><div class="k">Teléfono</div><div class="v">+54 11 4000 0000</div></div></div>
+            <div class="crow"><div class="ic">✉</div><div><div class="k">Email</div><div class="v"><a href="mailto:contacto@olimpos.com">contacto@olimpos.com</a></div></div></div>
+
+            <form class="contact-form" id="contactForm">
+              <div class="cf-eyebrow">¿Querés que te contactemos?</div>
+              <input class="cf-input" type="text" id="cfNombre" placeholder="Tu nombre" maxlength="99" required />
+              <input class="cf-input" type="text" id="cfContacto" placeholder="Email o teléfono" maxlength="149" required />
+              <textarea class="cf-input cf-textarea" id="cfMensaje" placeholder="¿En qué te podemos ayudar? (opcional)" maxlength="999"></textarea>
+              <button type="submit" class="btn-primary cf-submit" id="cfSubmit">Quiero que me contacten</button>
+              <div class="cf-status" id="cfStatus"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <a class="brand" href="#inicio">
+        <img src="assets/olimpos-logo.png" alt="Olimpos" style="height:26px;" />
+        <span class="word">OLIMP<span class="om">Ω</span>S</span>
+      </a>
+      <div class="fine-print">© 2026 OlimpΩs · Av. del Olimpo 1200</div>
+    </div>
+  </footer>
 
 <!-- Firebase (mismo proyecto que la app móvil y el sistema de empleados,
      olimpos-18320) — solo para que el formulario de Contacto guarde el
@@ -670,46 +667,42 @@
   // CARRUSEL — agrega aquí las rutas de tus imágenes de clases
   // =====================================================================
   const CLASES_IMGS = [
-    "assets/Clase1.jpg",   // ← reemplaza con tu ruta
-    "assets/clase2.jpg",
-    "assets/clase3.jpg",
+    "assets/Clase1.jpg",
+    "assets/Clase2.jpg",
+    "assets/Clase3.jpg",
   ];
   // =====================================================================
 
-  // --- Navegación entre secciones ---
-  const order = ["inicio", "clases", "planes", "app", "contacto"];
-  const sections = document.querySelectorAll(".section");
-  const navlinks = document.querySelectorAll(".nav-link");
-  const progress = document.getElementById("progress");
-
-  order.forEach((id) => {
-    const b = document.createElement("button");
-    b.dataset.go = id;
-    b.title = id;
-    progress.appendChild(b);
-  });
-  const dots = progress.querySelectorAll("button");
-
-  let currentIndex = 0;
-
-  function go(id) {
-    const idx = order.indexOf(id);
-    if (idx === -1) return;
-    currentIndex = idx;
-    sections.forEach(s => s.classList.toggle("active", s.dataset.section === id));
-    navlinks.forEach(l => l.classList.toggle("active", l.dataset.go === id));
-    dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+  // --- Menú hamburguesa (mobile) ---
+  const menuToggle = document.getElementById("menuToggle");
+  const siteNav = document.getElementById("siteNav");
+  if (menuToggle && siteNav) {
+    menuToggle.addEventListener("click", () => {
+      const open = siteNav.classList.toggle("open");
+      menuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    siteNav.querySelectorAll(".nav-link").forEach((a) => {
+      a.addEventListener("click", () => {
+        siteNav.classList.remove("open");
+        menuToggle.setAttribute("aria-expanded", "false");
+      });
+    });
   }
 
-  document.body.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-go]");
-    if (el) { e.preventDefault(); go(el.dataset.go); }
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") go(order[Math.min(order.length - 1, currentIndex + 1)]);
-    if (e.key === "ArrowLeft") go(order[Math.max(0, currentIndex - 1)]);
-  });
+  // --- Resalta el link activo del nav según la sección visible ---
+  const navlinks = document.querySelectorAll(".nav-link");
+  const sections = document.querySelectorAll(".sect[id]");
+  if ("IntersectionObserver" in window && sections.length) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          navlinks.forEach((l) => l.classList.toggle("active", l.getAttribute("href") === "#" + id));
+        }
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    sections.forEach((s) => obs.observe(s));
+  }
 
   // --- Carrusel automático de clases ---
   const ccImg   = document.querySelector(".ccard img");
@@ -752,7 +745,6 @@
   if (btnPrev) btnPrev.addEventListener("click", () => { setSlide(cIdx - 1, true); resetTimer(); });
 
   setSlide(0, false);
-  go("inicio");
 
 })();
 </script>
