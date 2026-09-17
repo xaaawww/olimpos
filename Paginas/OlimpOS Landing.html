@@ -351,6 +351,26 @@
   .crow .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-soft); }
   .crow .v { font-weight: 700; font-size: 15px; color: var(--cream); margin-top: 2px; }
 
+  /* formulario de contacto real (guarda en Firestore, ver <script> al pie) */
+  .contact-form { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
+  .cf-eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .cf-input {
+    width: 100%; appearance: none; border: 1.5px solid var(--line); border-radius: 10px;
+    background: oklch(1 0 0 / 0.06); color: var(--cream); font-family: "Manrope", sans-serif;
+    font-size: 13.5px; padding: 11px 13px; transition: border-color 0.2s;
+  }
+  .cf-input::placeholder { color: var(--cream-soft); }
+  .cf-input:focus { outline: none; border-color: var(--gold); }
+  .cf-textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+  .cf-submit { align-self: flex-start; margin-top: 2px; }
+  .cf-submit:disabled { opacity: 0.55; cursor: default; transform: none !important; }
+  .cf-status { font-size: 12.5px; min-height: 16px; }
+  .cf-status.ok { color: oklch(0.75 0.16 145); }
+  .cf-status.err { color: oklch(0.68 0.19 25); }
+
+  /* nota bajo el botón de descarga directa del APK */
+  .apk-note { font-size: 11.5px; color: var(--cream-soft); margin-top: 10px; max-width: 46ch; line-height: 1.5; }
+
   /* progress dots */
   .progress { position: absolute; bottom: clamp(16px,2.6vh,28px); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 6; }
   .progress button { width: 9px; height: 9px; border-radius: 50%; border: 0; background: oklch(1 0 0 / 0.25); cursor: pointer; transition: 0.2s; padding: 0; }
@@ -514,10 +534,11 @@
               <h1 class="display">Tu <span class="hl">Olimpo</span><br />en el bolsillo</h1>
               <p class="lede">La app OlimpΩs es tu llave al gimnasio: entra con tu carné QR, reserva clases, sigue tu progreso y paga tu cuota. Todo en un solo lugar.</p>
               <div class="store-row" style="margin-top: clamp(20px,3vh,32px);">
+                <a class="store sub" href="app/OlimpOS.apk" download="OlimpOS.apk"><span class="ic">⤓</span><span class="tx"><small>Descarga directa</small><b>APK Android</b></span></a>
                 <button class="store"><span class="ic"></span><span class="tx"><small>Descarga en</small><b>App Store</b></span></button>
                 <button class="store"><span class="ic">▶</span><span class="tx"><small>Disponible en</small><b>Google Play</b></span></button>
-                <button class="store sub"><span class="ic">★</span><span class="tx"><small>Hazte socio</small><b>Suscríbete</b></span></button>
               </div>
+              <p class="apk-note">La versión Android se instala directo desde este botón (todavía no está en Google Play) — el celular puede pedir habilitar "instalar apps de orígenes desconocidos" la primera vez.</p>
             </div>
             <div class="pane right" style="display:grid; grid-template-columns: auto 1fr; gap: clamp(20px,3vw,44px); align-items:center;">
               <div class="bigphone">
@@ -569,7 +590,15 @@
                 <div class="crow"><div class="ic">◷</div><div><div class="k">Horario</div><div class="v">Abierto 24 horas · 7 días</div></div></div>
                 <div class="crow"><div class="ic">✆</div><div><div class="k">Teléfono</div><div class="v">+54 11 4000 0000</div></div></div>
                 <div class="crow"><div class="ic">✉</div><div><div class="k">Email</div><div class="v"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="adc5c2c1ccedc2c1c4c0ddc2de83cbc4d9">MatiasBellu6767@gmail.com</a></div></div></div>
-                <div class="crow" style="background: var(--yellow); border-color: var(--yellow); cursor:pointer;" data-go="app"><div class="ic" style="color:var(--yellow-ink)">⤓</div><div><div class="k" style="color:var(--yellow-ink)">Empieza hoy</div><div class="v" style="color:var(--yellow-ink)">Descarga la app y reserva tu clase gratis</div></div></div>
+
+                <form class="contact-form" id="contactForm">
+                  <div class="cf-eyebrow">¿Querés que te contactemos?</div>
+                  <input class="cf-input" type="text" id="cfNombre" placeholder="Tu nombre" maxlength="99" required />
+                  <input class="cf-input" type="text" id="cfContacto" placeholder="Email o teléfono" maxlength="149" required />
+                  <textarea class="cf-input cf-textarea" id="cfMensaje" placeholder="¿En qué te podemos ayudar? (opcional)" maxlength="999"></textarea>
+                  <button type="submit" class="btn-primary cf-submit" id="cfSubmit">Quiero que me contacten</button>
+                  <div class="cf-status" id="cfStatus"></div>
+                </form>
               </div>
             </div>
           </div>
@@ -582,6 +611,58 @@
     </div>
   </div>
 
+<!-- Firebase (mismo proyecto que la app móvil y el sistema de empleados,
+     olimpos-18320) — solo para que el formulario de Contacto guarde el
+     mensaje en la colección "contactos_web" (ver firestore.rules: acá no
+     hay login, así que solo se permite "crear", nunca leer/editar/borrar
+     desde el navegador de nadie). -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBha_0V6QCuID5yosqf9ZqtpcNRVj2McM8",
+    authDomain: "olimpos-18320.firebaseapp.com",
+    projectId: "olimpos-18320",
+    storageBucket: "olimpos-18320.firebasestorage.app",
+    messagingSenderId: "422807004523",
+    appId: "1:422807004523:web:e6dc00de79811545ce582e",
+  });
+  const dbWeb = firebase.firestore();
+
+  const contactForm = document.getElementById("contactForm");
+  if (contactForm) {
+    const cfSubmit = document.getElementById("cfSubmit");
+    const cfStatus = document.getElementById("cfStatus");
+    contactForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("cfNombre").value.trim();
+      const contacto = document.getElementById("cfContacto").value.trim();
+      const mensaje = document.getElementById("cfMensaje").value.trim();
+      if (!nombre || !contacto) return;
+
+      cfSubmit.disabled = true;
+      cfStatus.textContent = "Enviando…";
+      cfStatus.className = "cf-status";
+
+      dbWeb.collection("contactos_web").add({
+        nombre,
+        contacto,
+        mensaje,
+        creado: firebase.firestore.FieldValue.serverTimestamp(),
+      }).then(() => {
+        cfStatus.textContent = "¡Listo! Te vamos a contactar pronto.";
+        cfStatus.className = "cf-status ok";
+        contactForm.reset();
+      }).catch((err) => {
+        cfStatus.textContent = "No se pudo enviar — probá de nuevo en un momento.";
+        cfStatus.className = "cf-status err";
+        console.error("contactos_web", err);
+      }).finally(() => {
+        cfSubmit.disabled = false;
+      });
+    });
+  }
+</script>
 <script>
 (function () {
 

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradient(120% 120% at 50% 0%, #f4f1ea 0%, #e9e6df 60%, #e2ded6 100%);}
+@keyframes ringPulse{0%,100%{box-shadow:0 0 0 0 rgba(238,196,49,.45);}50%{box-shadow:0 0 0 10px rgba(238,196,49,0);}}
+@keyframes idleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+.scrl::-webkit-scrollbar{width:0;}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 24px;">
+  <div style="width:390px;height:844px;background:#0b0b0d;border-radius:48px;padding:11px;box-shadow:0 40px 90px -30px rgba(0,0,0,.55),0 0 0 2px rgba(255,255,255,.04) inset;position:relative;">
+
+    <div style="position:relative;width:100%;height:100%;background:#ffffff;border-radius:38px;overflow:hidden;">
+
+      <!-- STATUS BAR -->
+      <div style="position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;z-index:60;color:oklch(0.24 0.012 80);font-size:13px;font-weight:700;">
+        <span>9:41</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;">5G</span>
+          <div style="display:flex;align-items:flex-end;gap:2px;height:11px;">
+            <div style="width:3px;height:5px;background:oklch(0.24 0.012 80);border-radius:1px;"></div>
+            <div style="width:3px;height:7px;background:oklch(0.24 0.012 80);border-radius:1px;"></div>
+            <div style="width:3px;height:9px;background:oklch(0.24 0.012 80);border-radius:1px;"></div>
+            <div style="width:3px;height:11px;background:oklch(0.24 0.012 80);border-radius:1px;"></div>
+          </div>
+          <div style="width:22px;height:11px;border:1.5px solid oklch(0.24 0.012 80);border-radius:3px;padding:1.5px;display:flex;"><div style="flex:1;background:oklch(0.24 0.012 80);border-radius:1px;"></div></div>
+        </div>
+      </div>
+
+      <!-- APP BAR -->
+      <div style="position:absolute;top:44px;left:0;right:0;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:55;">
+        <div style="display:flex;flex-direction:column;gap:4px;cursor:pointer;">
+          <div style="width:20px;height:2px;background:oklch(0.30 0.012 80);border-radius:2px;"></div>
+          <div style="width:14px;height:2px;background:oklch(0.30 0.012 80);border-radius:2px;"></div>
+          <div style="width:20px;height:2px;background:oklch(0.30 0.012 80);border-radius:2px;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;line-height:1;">
+          <span style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:oklch(0.66 0.13 78);">Mi dieta</span>
+          <span style="font-size:17px;font-weight:800;color:oklch(0.22 0.012 80);margin-top:2px;">Plato saludable</span>
+        </div>
+        <div style="width:36px;height:36px;border-radius:50%;background:oklch(0.96 0.05 95);border:1.5px solid oklch(0.88 0.07 95);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:oklch(0.55 0.13 78);">A</div>
+      </div>
+
+      <!-- TABS -->
+      <div style="position:absolute;top:102px;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 18px;z-index:55;">
+        <div onClick="{{ selPlate0 }}" style="position:relative;flex:1;text-align:center;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:oklch(0.32 0.012 80);">
+          <sc-if value="{{ a0 }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;border-radius:14px;background:oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(214,170,30,.8);"></div></sc-if>
+          <span style="position:relative;z-index:1;">Atún</span>
+        </div>
+        <div onClick="{{ selPlate1 }}" style="position:relative;flex:1;text-align:center;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:oklch(0.32 0.012 80);">
+          <sc-if value="{{ a1 }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;border-radius:14px;background:oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(214,170,30,.8);"></div></sc-if>
+          <span style="position:relative;z-index:1;">Salmón</span>
+        </div>
+        <div onClick="{{ selPlate2 }}" style="position:relative;flex:1;text-align:center;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:oklch(0.32 0.012 80);">
+          <sc-if value="{{ a2 }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;border-radius:14px;background:oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(214,170,30,.8);"></div></sc-if>
+          <span style="position:relative;z-index:1;">Ensalada</span>
+        </div>
+      </div>
+
+      <!-- STAGE -->
+      <div style="position:absolute;top:156px;left:0;right:0;bottom:0;overflow:hidden;background:radial-gradient(80% 60% at 38% 42%, #ffffff 0%, #f6f4ef 70%, #efece5 100%);">
+
+        <!-- soft plate halo -->
+        <div style="position:absolute;left:50%;top:50%;width:330px;height:330px;margin-left:-165px;margin-top:-165px;border-radius:50%;background:radial-gradient(circle, rgba(238,196,49,.10) 0%, rgba(238,196,49,0) 68%);pointer-events:none;"></div>
+
+        <!-- TURNTABLE -->
+        <div style="{{ turntableStyle }}">
+          <div style="position:absolute;inset:0;border-radius:50%;overflow:hidden;box-shadow:0 18px 30px -10px rgba(0,0,0,.22);background-color:#fff;background-repeat:no-repeat;background-position:center;background-size:112%;{{ plateBg }}"></div>
+          <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="4">
+            <div onClick="{{ dot.onClick }}" style="{{ dot.dotStyle }}">{{ dot.num }}</div>
+          </sc-for>
+        </div>
+
+        <!-- FOCUS RING -->
+        <sc-if value="{{ showRing }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ ringStyle }}"></div>
+        </sc-if>
+
+        <!-- OVERVIEW CTA -->
+        <sc-if value="{{ overview }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:30px;pointer-events:none;">
+            <span style="font-size:12.5px;font-weight:600;color:oklch(0.5 0.015 80);background:rgba(255,255,255,.7);padding:6px 14px;border-radius:30px;backdrop-filter:blur(4px);">Toca un ingrediente o inicia el recorrido</span>
+            <div onClick="{{ startTour }}" style="pointer-events:auto;display:flex;align-items:center;gap:10px;background:oklch(0.86 0.16 95);color:oklch(0.24 0.012 80);font-weight:800;font-size:15px;padding:14px 26px;border-radius:30px;box-shadow:0 12px 26px -8px rgba(214,170,30,.7);cursor:pointer;animation:idleFloat 3s ease-in-out infinite;">
+              <span style="font-size:13px;">▶</span>Iniciar recorrido
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- SIDE PANEL -->
+      <div style="position:absolute;top:156px;right:0;bottom:0;width:250px;background:#ffffff;box-shadow:-22px 0 50px -22px rgba(0,0,0,.28);border-top-left-radius:26px;border-bottom-left-radius:0;z-index:40;transition:transform .55s cubic-bezier(.22,.61,.36,1);display:flex;flex-direction:column;{{ panelStyleStr }}">
+        <sc-if value="{{ current }}" hint-placeholder-val="{{ true }}">
+          <div class="scrl" style="flex:1;overflow-y:auto;padding:20px 20px 12px;">
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:oklch(0.55 0.13 78);background:oklch(0.96 0.05 95);padding:5px 10px;border-radius:20px;">{{ current.category }}</span>
+              <div onClick="{{ closePanel }}" style="width:30px;height:30px;border-radius:50%;background:oklch(0.96 0.01 80);display:flex;align-items:center;justify-content:center;font-size:15px;color:oklch(0.45 0.012 80);cursor:pointer;">✕</div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+              <div style="width:78px;height:78px;border-radius:50%;flex:none;border:3px solid oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(0,0,0,.3);{{ cropStyleStr }}"></div>
+              <div style="min-width:0;">
+                <div style="font-size:11px;font-weight:700;color:oklch(0.7 0.04 80);">{{ current.stepText }}</div>
+                <div style="font-size:20px;font-weight:800;line-height:1.1;color:oklch(0.22 0.012 80);margin-top:2px;text-wrap:balance;">{{ current.name }}</div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:baseline;gap:6px;background:linear-gradient(100deg, oklch(0.97 0.04 95), oklch(0.99 0.01 95));border:1px solid oklch(0.92 0.05 95);border-radius:14px;padding:10px 14px;margin-bottom:14px;">
+              <span style="font-size:22px;font-weight:800;color:oklch(0.5 0.13 78);">{{ current.kcal }}</span>
+              <span style="font-size:11px;font-weight:600;color:oklch(0.6 0.03 80);">por porción</span>
+            </div>
+
+            <p style="font-size:13.5px;line-height:1.55;color:oklch(0.38 0.012 80);margin:0 0 16px;text-wrap:pretty;">{{ current.aporte }}</p>
+
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;">
+              <sc-for list="{{ current.tags }}" as="tag" hint-placeholder-count="3">
+                <span style="font-size:11.5px;font-weight:700;color:oklch(0.42 0.05 80);background:oklch(0.96 0.012 90);border:1px solid oklch(0.91 0.012 90);padding:6px 11px;border-radius:20px;">{{ tag.label }}</span>
+              </sc-for>
+            </div>
+
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:oklch(0.6 0.03 80);margin-bottom:10px;">Aporte saludable</div>
+            <div style="display:flex;flex-direction:column;gap:11px;">
+              <sc-for list="{{ current.beneficios }}" as="b" hint-placeholder-count="3">
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <div style="width:18px;height:18px;flex:none;border-radius:50%;background:oklch(0.86 0.16 95);display:flex;align-items:center;justify-content:center;margin-top:1px;">
+                    <span style="font-size:10px;font-weight:900;color:oklch(0.28 0.05 90);">✓</span>
+                  </div>
+                  <span style="font-size:13px;line-height:1.45;color:oklch(0.34 0.012 80);">{{ b.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- PANEL CONTROLS -->
+          <div style="flex:none;border-top:1px solid oklch(0.93 0.008 90);padding:12px 18px 16px;background:#fff;border-bottom-left-radius:0;">
+            <div style="display:flex;gap:5px;margin-bottom:12px;">
+              <sc-for list="{{ progress }}" as="seg" hint-placeholder-count="4">
+                <div onClick="{{ seg.onClick }}" style="{{ seg.style }}"></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div onClick="{{ prev }}" style="width:42px;height:42px;border-radius:50%;background:oklch(0.96 0.01 80);display:flex;align-items:center;justify-content:center;font-size:18px;color:oklch(0.4 0.012 80);cursor:pointer;">‹</div>
+              <div onClick="{{ togglePlay }}" style="width:54px;height:54px;border-radius:50%;background:oklch(0.86 0.16 95);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:oklch(0.26 0.05 90);cursor:pointer;box-shadow:0 10px 22px -8px rgba(214,170,30,.75);">{{ playIcon }}</div>
+              <div onClick="{{ next }}" style="width:42px;height:42px;border-radius:50%;background:oklch(0.96 0.01 80);display:flex;align-items:center;justify-content:center;font-size:18px;color:oklch(0.4 0.012 80);cursor:pointer;">›</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { plateIdx:0, activeItem:0, rotation:0, panelOpen:true, playing:true };
+
+  PLATES = [
+    { id:'atun', tab:'Atún', name:'Atún sellado', img:'assets/atun.png', items:[
+      { name:'Atún sellado', cat:'Proteína', angle:212, rad:96, kcal:'144 kcal', tags:['29 g proteína','Omega-3','Selenio'],
+        aporte:'Pescado azul magro: proteína de alto valor biológico y ácidos grasos omega-3 que cuidan el corazón y bajan la inflamación.',
+        beneficios:['Construye y repara músculo','Omega-3 para corazón y cerebro','Rico en vitamina B12 y selenio'] },
+      { name:'Brócoli', cat:'Verdura', angle:300, rad:96, kcal:'34 kcal', tags:['Fibra','Vitamina C','Antioxidantes'],
+        aporte:'Crucífera densa en nutrientes: mucha vitamina C, fibra y antioxidantes con muy pocas calorías.',
+        beneficios:['Refuerza el sistema inmune','Mejora la digestión por su fibra','Aporta calcio y folato vegetales'] },
+      { name:'Rábano', cat:'Verdura', angle:22, rad:96, kcal:'16 kcal', tags:['Hidratante','Vitamina C','Bajo en kcal'],
+        aporte:'Fresco y crujiente, casi todo agua: suma volumen y saciedad al plato con calorías mínimas.',
+        beneficios:['Hidrata y refresca','Favorece la digestión','Antioxidantes que protegen las células'] },
+      { name:'Camote asado', cat:'Carbohidrato', angle:112, rad:96, kcal:'86 kcal', tags:['Betacaroteno','Fibra','Energía'],
+        aporte:'Carbohidrato complejo de bajo índice glucémico: energía estable y betacaroteno que el cuerpo convierte en vitamina A.',
+        beneficios:['Energía de liberación lenta','Vitamina A para vista y piel','Potasio y fibra que sacian'] },
+      { name:'Aceite de oliva', cat:'Grasa saludable', angle:270, rad:0, kcal:'120 kcal', tags:['Monoinsaturadas','Vitamina E','Polifenoles'],
+        aporte:'Grasa monoinsaturada del aderezo: ayuda a absorber vitaminas liposolubles y da sabor sin grasas saturadas.',
+        beneficios:['Cuida el colesterol bueno (HDL)','Antioxidante: vitamina E y polifenoles','Mejora la absorción de nutrientes'] }
+    ]},
+    { id:'salmon', tab:'Salmón', name:'Salmón con quinoa', img:'assets/salmon.png', items:[
+      { name:'Salmón', cat:'Proteína', angle:180, rad:92, kcal:'208 kcal', tags:['20 g proteína','Omega-3','Vitamina D'],
+        aporte:'Pescado graso estrella: omega-3 EPA y DHA, proteína completa y una de las pocas fuentes naturales de vitamina D.',
+        beneficios:['Omega-3 para corazón y cerebro','Vitamina D para huesos e inmunidad','Proteína completa de calidad'] },
+      { name:'Quinoa', cat:'Cereal integral', angle:286, rad:92, kcal:'120 kcal', tags:['Proteína vegetal','Fibra','Sin gluten'],
+        aporte:'Pseudocereal con proteína vegetal completa (todos los aminoácidos esenciales), fibra y minerales, sin gluten.',
+        beneficios:['Proteína vegetal completa','Energía de índice glucémico moderado','Hierro y magnesio'] },
+      { name:'Brócoli', cat:'Verdura', angle:20, rad:92, kcal:'34 kcal', tags:['Fibra','Vitamina C','Antioxidantes'],
+        aporte:'Crucífera densa en nutrientes: vitamina C, fibra y antioxidantes con muy pocas calorías.',
+        beneficios:['Refuerza el sistema inmune','Mejora la digestión','Calcio y folato vegetales'] },
+      { name:'Aguacate', cat:'Grasa saludable', angle:128, rad:92, kcal:'160 kcal', tags:['Monoinsaturadas','Potasio','Fibra'],
+        aporte:'Fruta cremosa rica en grasas monoinsaturadas, potasio y fibra que dan saciedad y cuidan el corazón.',
+        beneficios:['Grasas que cuidan el corazón','Más potasio que el plátano','Fibra y vitamina E'] }
+    ]},
+    { id:'ensalada', tab:'Ensalada', name:'Huevo y cítricos', img:'assets/ensalada.png', items:[
+      { name:'Huevo', cat:'Proteína', angle:355, rad:88, kcal:'78 kcal', tags:['6 g proteína','Colina','Vitamina B12'],
+        aporte:'Proteína completa y económica; la yema concentra colina, vitamina D y B12 esenciales para el cerebro.',
+        beneficios:['Proteína completa de referencia','Colina para la memoria','Saciante con pocas calorías'] },
+      { name:'Hojas verdes', cat:'Verdura', angle:228, rad:88, kcal:'15 kcal', tags:['Folato','Fibra','Vitamina K'],
+        aporte:'Base de hojas frescas: folato, vitamina K y mucha agua y fibra con apenas calorías.',
+        beneficios:['Volumen y saciedad sin calorías','Folato y vitamina K','Hidratan y aportan antioxidantes'] },
+      { name:'Naranja', cat:'Fruta', angle:138, rad:88, kcal:'47 kcal', tags:['Vitamina C','Fibra','Antioxidantes'],
+        aporte:'Cítrico jugoso cargado de vitamina C que refuerza las defensas y mejora la absorción del hierro vegetal.',
+        beneficios:['Vitamina C para las defensas','Fibra que regula el azúcar','Hidratante y antioxidante'] },
+      { name:'Aderezo ligero', cat:'Grasa saludable', angle:292, rad:88, kcal:'90 kcal', tags:['Con moderación','Sabor','Grasa buena'],
+        aporte:'Un toque de grasa de sabor: úsalo con moderación para realzar el plato sin disparar las calorías.',
+        beneficios:['Realza el sabor del plato','Ayuda a absorber vitaminas','Mejor si es a base de aceite de oliva'] }
+    ]}
+  ];
+
+  componentDidMount(){
+    this.setActive(0);
+    this.timer = setInterval(()=>{
+      if(this.state.playing && this.state.activeItem!=null){
+        const items=this.PLATES[this.state.plateIdx].items;
+        const ni=(this.state.activeItem+1)%items.length;
+        this.setActive(ni);
+      }
+    }, 3200);
+  }
+  componentWillUnmount(){ clearInterval(this.timer); }
+
+  setActive(i){
+    const items=this.PLATES[this.state.plateIdx].items;
+    const it=items[i];
+    let rot=this.state.rotation;
+    if(it.rad>0){
+      const desired=270-it.angle;
+      const cur=((rot%360)+360)%360;
+      const delta=(((desired-cur)%360)+360)%360;
+      rot=rot+delta;
+    }
+    this.setState({activeItem:i, rotation:rot, panelOpen:true});
+  }
+  selectPlate(idx){
+    if(idx===this.state.plateIdx) return;
+    this.setState({plateIdx:idx, rotation:0, activeItem:0, panelOpen:true, playing:true}, ()=>this.setActive(0));
+  }
+  togglePlay(){
+    if(!this.state.playing && this.state.activeItem==null){ this.setActive(0); }
+    this.setState(s=>({playing:!s.playing}));
+  }
+  next(){ const n=this.PLATES[this.state.plateIdx].items.length; const cur=this.state.activeItem==null?-1:this.state.activeItem; this.setActive((cur+1+n)%n); }
+  prev(){ const n=this.PLATES[this.state.plateIdx].items.length; const cur=this.state.activeItem==null?0:this.state.activeItem; this.setActive((cur-1+n)%n); }
+  closePanel(){ const rot=Math.round(this.state.rotation/360)*360; this.setState({panelOpen:false, activeItem:null, playing:false, rotation:rot}); }
+
+  renderVals(){
+    const ACC='oklch(0.86 0.16 95)';
+    const ACC_D='oklch(0.6 0.13 78)';
+    const INK='oklch(0.24 0.012 80)';
+    const plate=this.PLATES[this.state.plateIdx];
+    const items=plate.items;
+    const ai=this.state.activeItem;
+    const focused=ai!=null;
+    const Z=1.82, dx=-82, dy=-46;
+    const rot=this.state.rotation;
+    const trans='transform 1.05s cubic-bezier(.22,.61,.36,1)';
+
+    let turntableStyle;
+    const base={position:'absolute',left:'50%',top:'50%',width:'300px',height:'300px',marginLeft:'-150px',marginTop:'-150px',transformOrigin:'50% 50%',transition:trans};
+    if(focused){
+      const it=items[ai];
+      const ty=dy+Z*it.rad;
+      turntableStyle={...base, transform:`translate(${dx}px,${ty}px) scale(${Z}) rotate(${rot}deg)`};
+    } else {
+      turntableStyle={...base, transform:`translate(0px,-30px) scale(1) rotate(${rot}deg)`};
+    }
+
+    const D2R=Math.PI/180;
+    const dots=items.map((it,idx)=>{
+      const a=it.angle*D2R;
+      const x=Math.cos(a)*it.rad, y=Math.sin(a)*it.rad;
+      const active=focused&&idx===ai;
+      const dim=focused&&idx!==ai;
+      const size=active?32:26;
+      const dotStyle={position:'absolute',left:`calc(50% + ${x}px)`,top:`calc(50% + ${y}px)`,width:size+'px',height:size+'px',marginLeft:(-size/2)+'px',marginTop:(-size/2)+'px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:'800',cursor:'pointer',transition:'all .45s ease',border:active?'2px solid #fff':'2px solid '+ACC_D,background:active?ACC:'rgba(255,255,255,.94)',color:active?INK:ACC_D,boxShadow:active?'0 5px 16px rgba(0,0,0,.3)':'0 2px 7px rgba(0,0,0,.18)',opacity:dim?0:1,transform:dim?'scale(.4)':'scale(1)'};
+      return {key:it.name+idx, dotStyle, num:idx+1, onClick:()=>this.setActive(idx)};
+    });
+
+    const ringStyle={position:'absolute',left:'50%',top:'50%',width:'132px',height:'132px',marginLeft:(dx-66)+'px',marginTop:(dy-66)+'px',borderRadius:'50%',border:'2.5px solid '+ACC,pointerEvents:'none',animation:'ringPulse 2.2s ease-in-out infinite',transition:'opacity .4s ease'};
+
+    let current=null, cropStyleStr='';
+    if(focused){
+      const it=items[ai];
+      const a=it.angle*D2R;
+      const f=0.30;
+      const bgX=it.rad>0?(50+f*100*Math.cos(a)):50;
+      const bgY=it.rad>0?(50+f*100*Math.sin(a)):50;
+      cropStyleStr=`background-image:url(${plate.img});background-size:250%;background-position:${bgX}% ${bgY}%;background-color:#fff;background-repeat:no-repeat;`;
+      current={
+        name:it.name, category:it.cat, kcal:it.kcal, aporte:it.aporte,
+        stepText:`Ingrediente ${ai+1} de ${items.length}`,
+        tags:it.tags.map(t=>({label:t})),
+        beneficios:it.beneficios.map(b=>({text:b}))
+      };
+    }
+
+    const panelStyleStr = this.state.panelOpen ? 'transform:translateX(0);' : 'transform:translateX(112%);';
+
+    const pi=this.state.plateIdx;
+
+    const progress=items.map((it,idx)=>({
+      onClick:()=>this.setActive(idx),
+      style:{flex:'1',height:'4px',borderRadius:'3px',cursor:'pointer',transition:'all .3s ease',background:(focused&&idx<=ai)?ACC:'oklch(0.92 0.008 90)'}
+    }));
+
+    return {
+      a0:pi===0, a1:pi===1, a2:pi===2,
+      selPlate0:()=>this.selectPlate(0), selPlate1:()=>this.selectPlate(1), selPlate2:()=>this.selectPlate(2),
+      dots, turntableStyle, plateBg:`background-image:url(${plate.img});`,
+      showRing:focused, ringStyle, focused, overview:!focused,
+      current, cropStyleStr, panelStyleStr, panelOpen:this.state.panelOpen,
+      playing:this.state.playing, playIcon:this.state.playing?'❚❚':'▶',
+      togglePlay:()=>this.togglePlay(), next:()=>this.next(), prev:()=>this.prev(),
+      closePanel:()=>this.closePanel(), startTour:()=>{ this.setActive(0); this.setState({playing:true}); },
+      progress
+    };
+  }
+}
+</script>
+</body>
+</html>

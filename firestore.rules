@@ -183,6 +183,29 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Contactos web: lo que llega desde el formulario de "Contacto" de la
+    // página pública (Paginas/OlimpOS Landing.html) — quien lo completa
+    // todavía no es socio, así que no hay auth.uid para exigir, a
+    // diferencia de todo lo demás en este archivo. Por eso solo se permite
+    // crear (nunca leer/editar/borrar desde el cliente, ni siquiera el
+    // propio mensaje — evita que cualquiera vacíe o lea la bandeja), y se
+    // valida la forma exacta del documento para frenar la basura
+    // automatizada más obvia. Esto no es una defensa real contra spam
+    // (para eso hace falta App Check); es la misma barrera liviana que ya
+    // se usa en el resto del proyecto.
+    match /contactos_web/{docId} {
+      allow read, update, delete: if false;
+      allow create: if request.resource.data.keys().hasOnly(['nombre', 'contacto', 'mensaje', 'creado'])
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() > 0
+                    && request.resource.data.nombre.size() < 100
+                    && request.resource.data.contacto is string
+                    && request.resource.data.contacto.size() > 0
+                    && request.resource.data.contacto.size() < 150
+                    && request.resource.data.mensaje is string
+                    && request.resource.data.mensaje.size() < 1000;
+    }
+
     // Cualquier otra colección: denegado por defecto.
     match /{document=**} {
       allow read, write: if false;
