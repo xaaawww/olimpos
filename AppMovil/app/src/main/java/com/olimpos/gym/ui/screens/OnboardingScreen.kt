@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ import com.olimpos.gym.data.NIVELES_EXPERIENCIA
 import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.SexoBiologico
 import com.olimpos.gym.data.guardarDatosFisicos
+import com.olimpos.gym.data.guardarObjetivoArena
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
 
@@ -54,10 +56,13 @@ private const val TOTAL_PASOS = 4
  *  y el sexo son la base real de todos los rangos de la Escalera del
  *  Olimpo — se comparan contra tablas de fuerza reales relativas al peso
  *  corporal (ver GamificacionData.kt: ANCLAS_FUERZA), y esas tablas
- *  cambian bastante según el sexo. Objetivo/experiencia/disponibilidad
- *  (pasos 2 a 4) siguen siendo solo de la app, sin persistir todavía. */
+ *  cambian bastante según el sexo. El objetivo (paso 2) también se guarda:
+ *  adapta los rankings, la dieta y la racha de dieta, y se puede cambiar
+ *  después en Configuración. Experiencia/disponibilidad (pasos 3 y 4)
+ *  siguen siendo solo de la app, sin persistir todavía. */
 @Composable
 fun OnboardingScreen(onFinalizar: () -> Unit) {
+    val contexto = LocalContext.current
     var paso by remember { mutableIntStateOf(0) }
 
     // Paso 1: datos físicos
@@ -92,13 +97,15 @@ fun OnboardingScreen(onFinalizar: () -> Unit) {
         if (guardando) return
         guardando = true
         scope.launch {
+            objetivo?.let { guardarObjetivoArena(contexto, it) }
             guardarDatosFisicos(
                 DatosFisicos(
                     pesoKg = peso.toFloatOrNull() ?: 0f,
                     edad = edad.toIntOrNull() ?: 0,
                     sexo = sexo ?: SexoBiologico.PREFIERO_NO_DECIRLO,
                     experiencia = experiencia ?: "",
-                    condicionMedica = condicion
+                    condicionMedica = condicion,
+                    objetivo = objetivo
                 )
             )
             DatosRemotos.recargarDatosFisicosPropios()
@@ -203,7 +210,7 @@ private fun PasoFisico(
 private fun PasoObjetivo(seleccionado: ObjetivoCompetencia?, onSeleccion: (ObjetivoCompetencia) -> Unit) {
     Text("¿Cuál es tu objetivo?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
     Text(
-        "Vamos a adaptar tu rutina, tu perfil de competencia y tus rankings.",
+        "Vamos a adaptar tu dieta, tu perfil de competencia y tus rankings. Lo podés cambiar después en Configuración.",
         fontSize = 13.sp, color = Olimpos.Muted,
         modifier = Modifier.padding(top = 4.dp, bottom = 22.dp)
     )

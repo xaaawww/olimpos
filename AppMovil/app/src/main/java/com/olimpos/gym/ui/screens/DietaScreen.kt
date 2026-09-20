@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.Ingrediente
+import com.olimpos.gym.data.MomentoComida
 import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.PLATOS
 import com.olimpos.gym.data.Plato
@@ -78,7 +79,7 @@ private const val ANGULO_OBJETIVO_GRADOS = 200f
 private enum class PantallaDieta { CATALOGO, DETALLE }
 
 @Composable
-fun DietaScreen(objetivo: ObjetivoCompetencia? = null) {
+fun DietaScreen(objetivo: ObjetivoCompetencia? = null, onOcultarBurbujaArgos: (Boolean) -> Unit = {}) {
     var mostrarNutricion by remember { mutableStateOf(false) }
     if (mostrarNutricion) {
         NutricionScreen(onVolver = { mostrarNutricion = false })
@@ -90,6 +91,24 @@ fun DietaScreen(objetivo: ObjetivoCompetencia? = null) {
     // todavía no hay nada publicado, o Firebase no está configurado en el
     // celular, se queda con el catálogo de ejemplo.
     val platos = DatosRemotos.platos?.takeIf { it.isNotEmpty() } ?: PLATOS
+
+    // Cada vez que se abre Dieta: por si el nutricionista asignó o cambió la
+    // dieta (o el socio registró algo desde otro celular) con la app abierta.
+    LaunchedEffect(Unit) {
+        DatosRemotos.recargarDietaAsignada()
+        DatosRemotos.recargarComidas()
+    }
+
+    var registrando by remember { mutableStateOf<MomentoComida?>(null) }
+    // La burbuja flotante de Argos tapaba el botón "Guardar comida": se
+    // esconde mientras se registra una comida y vuelve al salir de Dieta.
+    LaunchedEffect(registrando) { onOcultarBurbujaArgos(registrando != null) }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { onOcultarBurbujaArgos(false) } }
+    val momentoRegistrando = registrando
+    if (momentoRegistrando != null) {
+        RegistrarComidaScreen(momentoRegistrando, objetivo, platos, onVolver = { registrando = null })
+        return
+    }
 
     var pantalla by remember { mutableStateOf(PantallaDieta.CATALOGO) }
     var platoActivo by remember { mutableIntStateOf(0) }
@@ -105,6 +124,7 @@ fun DietaScreen(objetivo: ObjetivoCompetencia? = null) {
             expandidos = expandidos,
             onToggleExpandir = { id -> if (id in expandidos) expandidos.remove(id) else expandidos.add(id) },
             onNutricion = { mostrarNutricion = true },
+            onRegistrar = { registrando = it },
             onVer = { idx -> platoActivo = idx; pantalla = PantallaDieta.DETALLE }
         )
         PantallaDieta.DETALLE -> DetalleDieta(
@@ -125,6 +145,7 @@ private fun CatalogoDietas(
     expandidos: List<String>,
     onToggleExpandir: (String) -> Unit,
     onNutricion: () -> Unit,
+    onRegistrar: (MomentoComida) -> Unit,
     onVer: (Int) -> Unit
 ) {
     val query = busqueda.trim().lowercase()
@@ -132,9 +153,12 @@ private fun CatalogoDietas(
         p.nombre.lowercase().contains(query) ||
         p.tags.any { it.lowercase().contains(query) }
 
+    // "Asignadas" = los platos de la dieta que le armó SU nutricionista
+    // (por horario, ver DietaAsignada) — ya no un tilde global en el plato.
+    val idsAsignados = DatosRemotos.dietaAsignada?.platoIds.orEmpty()
     val indexados = platos.withIndex().toList()
-    val asignadasBase = indexados.filter { it.value.asignada }
-    val catalogoBase = indexados.filter { !it.value.asignada }
+    val asignadasBase = indexados.filter { it.value.id in idsAsignados }
+    val catalogoBase = indexados.filter { it.value.id !in idsAsignados }
     val catalogo = catalogoBase.filter { coincide(it.value) }
     val asignadas = asignadasBase.filter { coincide(it.value) }
 
@@ -179,6 +203,8 @@ private fun CatalogoDietas(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
+            SeccionMiDia(objetivo, platos, onRegistrar)
+
             SeccionLabel("Catálogo")
             if (catalogo.isEmpty()) {
                 EstadoVacioDietas(

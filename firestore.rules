@@ -180,6 +180,51 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Dietas asignadas: la arma un nutricionista/dueño desde el sistema de
+    // empleados (Admin SDK, no pasa por estas reglas — ver
+    // dietas_asignadas_repo.py), un documento por socio (id = su uid) con
+    // qué platos le tocan en Desayuno, Almuerzo y Cena. El socio solo la
+    // lee, nunca la escribe desde la app móvil.
+    match /dietas_asignadas/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Comidas registradas: un documento por socio y por día (id =
+    // "{uid}_{aaaammdd}") con los macros de lo que comió en cada horario
+    // (sin la foto: esa va aparte, en fotos_comidas, para que traer todo
+    // el historial de días — que hace falta para la racha — pese poco).
+    // Cada socio solo lee/escribe/borra los propios.
+    match /comidas_dia/{docId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create, update: if request.auth != null
+                            && request.resource.data.socio_id == request.auth.uid
+                            && docId == request.auth.uid + '_' + request.resource.data.fecha;
+      allow delete: if request.auth != null && resource.data.socio_id == request.auth.uid;
+    }
+
+    // Fotos de las comidas: una por documento (id = "{uid}_{aaaammdd}_{horario}"),
+    // guardadas como Base64 igual que las fotos de progreso (no hay Firebase
+    // Storage). Se piden de a una, solo cuando hace falta mostrarlas.
+    match /fotos_comidas/{docId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow create, update: if request.auth != null
+                            && request.resource.data.socio_id == request.auth.uid
+                            && docId.matches(request.auth.uid + '_.*')
+                            && request.resource.data.imagen is string
+                            && request.resource.data.imagen.size() < 900000;
+      allow delete: if request.auth != null && resource.data.socio_id == request.auth.uid;
+    }
+
+    // Tablón del club: avisos, eventos y promociones que publica SOLO el
+    // dueño desde el sistema de empleados (Admin SDK, no pasa por estas
+    // reglas — ver tablon_repo.py). La app móvil lo lee (solo lo publicado)
+    // y nunca lo escribe: ningún socio puede crear, editar ni borrar nada.
+    match /tablon/{postId} {
+      allow read: if request.auth != null && resource.data.publicado == true;
+      allow write: if false;
+    }
+
     // Configuración de la app (por ahora, solo la base de conocimiento de
     // Argos — ver argos_repo.py). La edita el dueño/admin desde el sistema
     // de empleados (Admin SDK, no pasa por estas reglas); la app móvil y el

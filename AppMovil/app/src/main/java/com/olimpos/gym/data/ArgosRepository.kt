@@ -77,6 +77,9 @@ fun construirContextoPersonalArgos(): String {
  *  excepción con un mensaje ya listo para mostrar si algo falla (sin
  *  sesión, cupo diario agotado del lado del Worker, error de red). */
 suspend fun preguntarArgos(mensaje: String, historial: List<MensajeArgos>): String {
+    if (!planIncluyeArgos(DatosRemotos.membresia?.plan)) {
+        throw Exception("Argos es parte de los planes ${PLANES_CON_ARGOS.joinToString(" y ")}.")
+    }
     return withContext(Dispatchers.IO) {
         val idToken = Firebase.auth.currentUser?.getIdToken(false)?.await()?.token
             ?: throw Exception("Tu sesión no es válida — volvé a iniciar sesión.")

@@ -36,27 +36,45 @@ data class DatosFisicos(
      *  ArenaScreen para dónde se actualiza cada uno). */
     val vioPlano: Boolean = false,
     val vistasBodygraph: Int = 0,
-    val seccionesArenaVisitadas: Set<String> = emptySet()
+    val seccionesArenaVisitadas: Set<String> = emptySet(),
+    /** El objetivo que eligió al iniciar (o cambió después en Configuración).
+     *  Vive acá además de en el celular para que el nutricionista lo vea al
+     *  armar la dieta y para no volver a pedirlo si entra desde otro
+     *  dispositivo. `null` = todavía no eligió. */
+    val objetivo: ObjetivoCompetencia? = null
 )
 
 private const val COLECCION_DATOS_FISICOS = "datos_fisicos"
 
 suspend fun guardarDatosFisicos(datos: DatosFisicos): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId()).set(
-            mapOf(
-                "peso_kg" to datos.pesoKg,
-                "edad" to datos.edad,
-                "sexo" to datos.sexo.name,
-                "experiencia" to datos.experiencia,
-                "condicion_medica" to datos.condicionMedica,
-                "oculto_clasificacion" to datos.ocultoClasificacion,
-                "vio_plano" to datos.vioPlano,
-                "vistas_bodygraph" to datos.vistasBodygraph,
-                "secciones_arena_visitadas" to datos.seccionesArenaVisitadas.toList(),
-                "actualizado_ms" to System.currentTimeMillis()
-            )
-        ).await()
+        val campos = mutableMapOf<String, Any>(
+            "peso_kg" to datos.pesoKg,
+            "edad" to datos.edad,
+            "sexo" to datos.sexo.name,
+            "experiencia" to datos.experiencia,
+            "condicion_medica" to datos.condicionMedica,
+            "oculto_clasificacion" to datos.ocultoClasificacion,
+            "vio_plano" to datos.vioPlano,
+            "vistas_bodygraph" to datos.vistasBodygraph,
+            "secciones_arena_visitadas" to datos.seccionesArenaVisitadas.toList(),
+            "actualizado_ms" to System.currentTimeMillis()
+        )
+        datos.objetivo?.let { campos["objetivo"] = it.name }
+        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId()).set(campos).await()
+        true
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/** Guarda el objetivo sin tocar el resto del documento (merge) — para
+ *  cuando lo elige por primera vez (cuentas que ya habían hecho el
+ *  onboarding) o lo cambia en Configuración. */
+suspend fun guardarObjetivoEnFirebase(objetivo: ObjetivoCompetencia): Boolean {
+    return try {
+        Firebase.firestore.collection(COLECCION_DATOS_FISICOS).document(socioActualId())
+            .set(mapOf("objetivo" to objetivo.name), com.google.firebase.firestore.SetOptions.merge()).await()
         true
     } catch (e: Exception) {
         false
@@ -120,7 +138,8 @@ private fun documentoADatosFisicos(doc: com.google.firebase.firestore.DocumentSn
         vioPlano = doc.getBoolean("vio_plano") ?: false,
         vistasBodygraph = doc.getLong("vistas_bodygraph")?.toInt() ?: 0,
         seccionesArenaVisitadas = (doc.get("secciones_arena_visitadas") as? List<*>)
-            ?.mapNotNull { it as? String }?.toSet() ?: emptySet()
+            ?.mapNotNull { it as? String }?.toSet() ?: emptySet(),
+        objetivo = ObjetivoCompetencia.entries.firstOrNull { it.name == doc.getString("objetivo") }
     )
 }
 

@@ -427,9 +427,10 @@ fun OpcionGrande(emoji: String, texto: String, seleccionado: Boolean, onClick: (
     }
 }
 
-/** Insignia compacta con el objetivo elegido en la Arena. Se muestra arriba
- *  a la izquierda tanto en Arena como en Dieta; pasar [onClick] la vuelve
- *  tocable para cambiar el objetivo (solo tiene sentido desde Arena). */
+/** Insignia compacta con el objetivo del socio. Se muestra arriba a la
+ *  izquierda tanto en Arena como en Dieta. El objetivo se cambia desde
+ *  Configuración, no desde la insignia (por eso [onClick] es opcional y hoy
+ *  nadie lo usa). */
 @Composable
 fun BadgeObjetivo(objetivo: ObjetivoCompetencia, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     Box(

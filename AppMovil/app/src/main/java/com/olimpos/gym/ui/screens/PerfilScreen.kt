@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,8 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.SocioAuth
 import com.olimpos.gym.data.clasesReservadasEstaSemana
+import com.olimpos.gym.data.planIncluyeArgos
 import com.olimpos.gym.data.rachaActualDeDias
 import com.olimpos.gym.data.visitasEnElMesActual
 import com.olimpos.gym.ui.theme.Olimpos
@@ -46,9 +49,21 @@ fun PerfilScreen(
     onAbrirPlano: () -> Unit,
     themeMode: ThemeMode,
     onThemeMode: (ThemeMode) -> Unit,
+    objetivo: ObjetivoCompetencia?,
+    onObjetivo: (ObjetivoCompetencia) -> Unit,
+    /** Se pone en true desde afuera (ver el bloqueo de Argos) para abrir
+     *  directo "Mi membresía"; [onMembresiaAbierta] apaga el pedido. */
+    abrirMembresia: Boolean,
+    onMembresiaAbierta: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
     var vista by remember { mutableStateOf(PerfilVista.HOME) }
+    LaunchedEffect(abrirMembresia) {
+        if (abrirMembresia) {
+            vista = PerfilVista.MEMBRESIA
+            onMembresiaAbierta()
+        }
+    }
 
     when (vista) {
         PerfilVista.HOME -> PerfilHome(
@@ -67,11 +82,16 @@ fun PerfilScreen(
         PerfilVista.LOCKERS -> LockersScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.PROGRESO -> ProgresoScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.COMPANEROS -> CompanerosScreen(onVolver = { vista = PerfilVista.HOME })
-        PerfilVista.ARGOS -> ArgosScreen(onVolver = { vista = PerfilVista.HOME })
+        PerfilVista.ARGOS -> ArgosScreen(
+            onVolver = { vista = PerfilVista.HOME },
+            onVerPlanes = { vista = PerfilVista.MEMBRESIA }
+        )
         PerfilVista.CONFIGURACION -> ConfiguracionScreen(
             onVolver = { vista = PerfilVista.HOME },
             themeMode = themeMode,
-            onThemeMode = onThemeMode
+            onThemeMode = onThemeMode,
+            objetivo = objetivo,
+            onObjetivo = onObjetivo
         )
     }
 }
@@ -137,7 +157,11 @@ private fun PerfilHome(
         ItemMenu("🔒", "Mis lockers") { onLockers() }
         ItemMenu("📈", "Mi progreso") { onProgreso() }
         ItemMenu("🤝", "Mis compañeros de entrenamiento") { onCompaneros() }
-        ItemMenu("🐕", "Argos, tu asistente de IA") { onArgos() }
+        ItemMenu(
+            "🐕",
+            if (planIncluyeArgos(DatosRemotos.membresia?.plan)) "Argos, tu asistente de IA"
+            else "Argos, tu asistente de IA  🔒 Plan Oro"
+        ) { onArgos() }
         ItemMenu("📅", "Mis turnos y reservas") { aviso = "Spinning hoy 19:30 · confirmado" }
 
         SeccionLabel("Cuenta")

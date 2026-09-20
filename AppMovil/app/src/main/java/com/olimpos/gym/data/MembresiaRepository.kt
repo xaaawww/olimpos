@@ -14,6 +14,15 @@ import kotlinx.coroutines.tasks.await
  */
 data class MembresiaAsignada(val plan: String, val fechaInicioMs: Long)
 
+/** Argos (el asistente de IA) es un beneficio de pago: solo lo incluyen los
+ *  planes de este conjunto — el intermedio (Oro) y el superior (Platino). El
+ *  Worker de Argos lo verifica también del lado del servidor (ver
+ *  ArgosWorker/src/index.ts) — este chequeo de la app es solo para mostrar
+ *  el bloqueo sin ir a preguntarle al servidor. */
+val PLANES_CON_ARGOS = setOf("Oro", "Platino")
+
+fun planIncluyeArgos(plan: String?): Boolean = plan in PLANES_CON_ARGOS
+
 suspend fun cargarMembresiaDesdeFirebase(): MembresiaAsignada? {
     return try {
         val doc = Firebase.firestore.collection("membresias").document(socioActualId()).get().await()

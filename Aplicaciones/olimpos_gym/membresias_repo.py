@@ -25,6 +25,12 @@ COLECCION = "membresias"
 # de la app.
 PLANES = ["Bronce", "Oro", "Platino"]
 
+# Argos (el asistente de IA de la app móvil) es un beneficio de pago: solo lo
+# tienen los socios con uno de estos planes (mismo criterio que
+# PLANES_CON_ARGOS en la app móvil y que el Worker de Argos, que lo verifica
+# del lado del servidor leyendo este mismo documento "membresias").
+PLANES_CON_ARGOS = ("Oro", "Platino")
+
 _cache_membresias: dict[str, dict] | None = None
 
 

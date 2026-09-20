@@ -147,7 +147,14 @@ class EditorMembresiasView:
                 actions=[action_button("← Volver al listado", "outline", on_click=self._volver_lista)],
             ),
             *avisos,
-            section_card(ft.Row([dropdown_plan, campo_fecha], spacing=14), padding=16),
+            section_card(ft.Column([
+                ft.Row([dropdown_plan, campo_fecha], spacing=14),
+                ft.Text(
+                    "🐕 Los planes " + " y ".join(repo.PLANES_CON_ARGOS) +
+                    " incluyen Argos (el asistente de IA de la app móvil). Con el plan Bronce, o sin plan, "
+                    "Argos queda bloqueado para el socio.",
+                    size=11.5, color=TEXT_MUTED),
+            ], spacing=10), padding=16),
             ft.Row([
                 action_button("💾 Guardar", "gold", on_click=self._guardar),
                 self._boton_texto("🗑️ Quitar membresía", RED, self._quitar) if existente else ft.Container(),

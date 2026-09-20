@@ -3,6 +3,8 @@ package com.olimpos.gym.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import com.google.firebase.firestore.firestore
 import com.google.firebase.Firebase
@@ -65,6 +67,21 @@ suspend fun eliminarFotoProgresoEnFirebase(fotoId: String): Boolean {
     }
 }
 
+private fun rotacionExif(context: Context, uri: Uri): Int {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { flujo ->
+            when (ExifInterface(flujo).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                else -> 0
+            }
+        } ?: 0
+    } catch (e: Exception) {
+        0
+    }
+}
+
 /**
  * Achica y comprime la foto elegida en el picker ANTES de mandarla a
  * Firestore: una foto de celular sin tocar puede pesar varios MB, muy
@@ -77,9 +94,13 @@ fun comprimirImagenABase64(context: Context, uri: Uri, ladoMaximoPx: Int = 720):
     return try {
         val resolver = context.contentResolver
 
+        // Con inJustDecodeBounds = true, decodeStream devuelve null A PROPÓSITO
+        // (solo llena outWidth/outHeight) — antes ese null se trataba como
+        // error y la función devolvía null siempre, así que ninguna foto se
+        // podía subir. Se mira el tamaño leído, no el valor de retorno.
         val limites = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, limites) }
-            ?: return null
+        if (limites.outWidth <= 0 || limites.outHeight <= 0) return null
 
         var muestreo = 1
         while (limites.outWidth / muestreo > ladoMaximoPx * 2 || limites.outHeight / muestreo > ladoMaximoPx * 2) {
@@ -90,7 +111,7 @@ fun comprimirImagenABase64(context: Context, uri: Uri, ladoMaximoPx: Int = 720):
             ?: return null
 
         val escala = ladoMaximoPx.toFloat() / maxOf(bitmapCrudo.width, bitmapCrudo.height)
-        val bitmapFinal = if (escala < 1f) {
+        val bitmapEscalado = if (escala < 1f) {
             Bitmap.createScaledBitmap(
                 bitmapCrudo,
                 (bitmapCrudo.width * escala).toInt().coerceAtLeast(1),
@@ -98,6 +119,17 @@ fun comprimirImagenABase64(context: Context, uri: Uri, ladoMaximoPx: Int = 720):
                 true
             )
         } else bitmapCrudo
+
+        // Las fotos de la cámara guardan "está girada 90°" en el EXIF en vez
+        // de girar los píxeles, y recomprimir descarta ese dato: sin este
+        // paso una foto sacada en vertical quedaba acostada.
+        val rotacion = rotacionExif(context, uri)
+        val bitmapFinal = if (rotacion != 0) {
+            Bitmap.createBitmap(
+                bitmapEscalado, 0, 0, bitmapEscalado.width, bitmapEscalado.height,
+                Matrix().apply { postRotate(rotacion.toFloat()) }, true
+            )
+        } else bitmapEscalado
 
         // Baja la calidad JPEG hasta que entre cómodo en un documento de
         // Firestore (dejando margen para el resto de los campos y el

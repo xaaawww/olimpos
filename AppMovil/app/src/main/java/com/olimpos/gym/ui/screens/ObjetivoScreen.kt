@@ -30,10 +30,11 @@ private val NEGRO_A = Color(0xFF0B0900)
 private val NEGRO_B = Color(0xFF000000)
 
 /**
- * Pantalla a pantalla completa para elegir el objetivo de competencia en
- * la Arena. Se muestra la primera vez que el socio entra a Arena (cuando
- * todavía no hay nada guardado en [com.olimpos.gym.data.leerObjetivoArena]),
- * y también al tocar la insignia de objetivo para cambiarlo más adelante.
+ * Pantalla a pantalla completa para elegir el objetivo. Se muestra al
+ * iniciar la app cuando el socio todavía no tiene uno guardado (cuentas que
+ * ya habían hecho el onboarding antes de que el objetivo se guardara — las
+ * nuevas lo eligen en el paso 2 del onboarding). Después se cambia desde
+ * Configuración, nunca desde la Arena.
  */
 @Composable
 fun ObjetivoScreen(objetivoActual: ObjetivoCompetencia?, onElegido: (ObjetivoCompetencia) -> Unit) {
@@ -47,14 +48,15 @@ fun ObjetivoScreen(objetivoActual: ObjetivoCompetencia?, onElegido: (ObjetivoCom
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        Text("⚔️", fontSize = 40.sp)
+        Text("🎯", fontSize = 40.sp)
         Spacer(Modifier.height(14.dp))
         Text(
-            "¿Cuál es tu objetivo\nen la Arena?",
+            "¿Cuál es tu\nobjetivo?",
             fontSize = 27.sp, fontWeight = FontWeight.Black, color = Color(0xFFFAFAF0), lineHeight = 33.sp
         )
         Text(
-            "Vamos a adaptar tus rankings, tu galería y tus metas de competencia.",
+            "Vamos a adaptar tus rankings, tu dieta, tu racha y tus metas de competencia. " +
+                "Lo podés cambiar cuando quieras desde Configuración.",
             fontSize = 13.sp, color = Color(0xFF9C9880),
             modifier = Modifier.padding(top = 8.dp, bottom = 26.dp)
         )

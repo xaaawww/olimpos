@@ -32,12 +32,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.guardarNotificacionesLogrosActivas
 import com.olimpos.gym.ui.theme.Olimpos
 import com.olimpos.gym.ui.theme.ThemeMode
 
 @Composable
-fun ConfiguracionScreen(onVolver: () -> Unit, themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
+fun ConfiguracionScreen(
+    onVolver: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeMode: (ThemeMode) -> Unit,
+    objetivo: ObjetivoCompetencia?,
+    onObjetivo: (ObjetivoCompetencia) -> Unit
+) {
     val contexto = LocalContext.current
     var notificacionesLogros by remember { mutableStateOf(LogrosToastState.notificacionesActivas) }
 
@@ -46,9 +53,20 @@ fun ConfiguracionScreen(onVolver: () -> Unit, themeMode: ThemeMode, onThemeMode:
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        EncabezadoVolver("Configuración", "Apariencia y preferencias", onVolver)
+        EncabezadoVolver("Configuración", "Objetivo, apariencia y preferencias", onVolver)
 
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
+            SeccionLabel("Mi objetivo")
+            Text(
+                "Adapta tus rankings, tu dieta y la racha de dieta. Lo elegiste al empezar y lo podés cambiar cuando quieras.",
+                fontSize = 12.5.sp, color = Olimpos.Muted,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            ObjetivoCompetencia.entries.forEach { opcion ->
+                OpcionGrande(opcion.emoji, opcion.etiqueta, objetivo == opcion) { onObjetivo(opcion) }
+                Spacer(Modifier.height(10.dp))
+            }
+
             SeccionLabel("Apariencia")
             Text(
                 "Elegí cómo se ve OlimpΩs en tu celular.",

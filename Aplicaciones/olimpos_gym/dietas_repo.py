@@ -28,7 +28,8 @@
 #   "crop_x": 0.0, "crop_y": 0.0,  # -1..1, punto de recorte de la imagen (0,0 = centro)
 #   "descripcion": "Alto en proteína, ideal para definición.",  # breve, se ve en la tarjeta del catálogo
 #   "tags": ["Definición", "Alta proteína"],  # hasta 3, palabras cortas (objetivo de la dieta)
-#   "asignada": False,  # True = aparece en "Asignadas por tu nutricionista" en vez del catálogo general
+#   "asignada": False,  # en desuso: la asignación real es por socio y por horario (ver dietas_asignadas_repo.py)
+#   "macros": {"kcal": 450, "proteinas": 35, "carbs": 40, "grasas": 14},  # por porción del plato completo (enteros); de acá salen las metas y el registro diario de la app móvil
 #   "publicado": False,
 #   "actualizado": "2026-09-09T10:00:00",
 #   "puntos": [
@@ -119,6 +120,7 @@ def nuevo_plato(nombre: str = "Nuevo plato") -> dict:
         "descripcion": "",
         "tags": [],
         "asignada": False,
+        "macros": {"kcal": 0, "proteinas": 0, "carbs": 0, "grasas": 0},
         "publicado": False,
         "actualizado": datetime.now().isoformat(timespec="seconds"),
         "puntos": [],

@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,18 +49,23 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.SocioAuth
 import com.olimpos.gym.data.cargarDatosFisicosPropios
-import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.guardarObjetivoArena
+import com.olimpos.gym.data.guardarObjetivoEnFirebase
+import com.olimpos.gym.data.leerObjetivoArena
+import com.olimpos.gym.data.planIncluyeArgos
+import com.olimpos.gym.data.resolverObjetivo
 import com.olimpos.gym.ui.screens.ArenaScreen
-import com.olimpos.gym.ui.screens.ArgosBurbujaFlotante
+import com.olimpos.gym.ui.screens.ArgosBurbujaMovil
 import com.olimpos.gym.ui.screens.ArgosScreen
 import com.olimpos.gym.ui.screens.CambiarPasswordScreen
 import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
 import com.olimpos.gym.ui.screens.LoginScreen
+import com.olimpos.gym.ui.screens.ObjetivoScreen
 import com.olimpos.gym.ui.screens.ObservadorDeLogros
 import com.olimpos.gym.ui.screens.ToastLogroOverlay
 import com.olimpos.gym.ui.screens.OnboardingScreen
@@ -70,6 +76,7 @@ import com.olimpos.gym.ui.theme.OlimposTheme
 import com.olimpos.gym.ui.theme.ThemeMode
 import com.olimpos.gym.ui.theme.guardarThemeMode
 import com.olimpos.gym.ui.theme.leerThemeMode
+import kotlinx.coroutines.launch
 
 enum class Tab(val label: String, val icon: String) {
     INICIO("Inicio", "🏛️"),
@@ -83,8 +90,9 @@ enum class Tab(val label: String, val icon: String) {
  *  autenticación → cambio de contraseña obligatorio (solo en el primer
  *  login, ver [SocioAuth.debeCambiarPassword]) → onboarding obligatorio
  *  (solo si todavía no cargó sus datos físicos, ver
- *  [cargarDatosFisicosPropios]) → app principal. */
-private enum class Etapa { VERIFICANDO, LOGIN, CAMBIAR_PASSWORD, ONBOARDING, APP }
+ *  [cargarDatosFisicosPropios]) → elegir objetivo (solo si todavía no tiene
+ *  uno, ver [resolverObjetivo]) → app principal. */
+private enum class Etapa { VERIFICANDO, LOGIN, CAMBIAR_PASSWORD, ONBOARDING, OBJETIVO, APP }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +125,8 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
     // Se incrementa para forzar una nueva verificación (arranque de la app
     // y cada login exitoso) sin duplicar la lógica en dos lados.
     var verificacion by remember { mutableIntStateOf(0) }
+    val contexto = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(verificacion) {
         etapa = when {
@@ -124,10 +134,18 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
             // Contraseña temporal generada por el empleado, todavía no
             // reemplazada por el propio socio (ver auth_repo.py).
             SocioAuth.debeCambiarPassword() -> Etapa.CAMBIAR_PASSWORD
-            // Sin datos físicos todavía (cuenta recién creada por un
-            // empleado) → onboarding obligatorio antes de dejarlo entrar.
-            cargarDatosFisicosPropios() == null -> Etapa.ONBOARDING
-            else -> Etapa.APP
+            else -> {
+                val datos = cargarDatosFisicosPropios()
+                when {
+                    // Sin datos físicos todavía (cuenta recién creada por un
+                    // empleado) → onboarding obligatorio antes de dejarlo entrar.
+                    datos == null -> Etapa.ONBOARDING
+                    // Sin objetivo (cuenta que hizo el onboarding antes de que
+                    // el objetivo se guardara): se le pide una sola vez.
+                    resolverObjetivo(contexto, datos) == null -> Etapa.OBJETIVO
+                    else -> Etapa.APP
+                }
+            }
         }
     }
 
@@ -144,12 +162,22 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
                 }
                 Etapa.LOGIN -> LoginScreen(onIngresar = { verificacion++ })
                 Etapa.CAMBIAR_PASSWORD -> CambiarPasswordScreen(onListo = { verificacion++ })
-                Etapa.ONBOARDING -> OnboardingScreen(onFinalizar = { etapa = Etapa.APP })
+                Etapa.ONBOARDING -> OnboardingScreen(onFinalizar = { verificacion++ })
+                Etapa.OBJETIVO -> ObjetivoScreen(objetivoActual = null) { elegido ->
+                    guardarObjetivoArena(contexto, elegido)
+                    scope.launch {
+                        guardarObjetivoEnFirebase(elegido)
+                        verificacion++
+                    }
+                }
                 Etapa.APP -> OlimposAppPrincipal(
                     themeMode = themeMode,
                     onThemeMode = onThemeMode,
                     onCerrarSesion = {
                         SocioAuth.cerrarSesion()
+                        // Sin esto, la próxima cuenta que inicie sesión en este
+                        // mismo celular vería la membresía, marcas y comidas de la anterior.
+                        DatosRemotos.limpiar()
                         etapa = Etapa.LOGIN
                     }
                 )
@@ -166,9 +194,22 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
     // Argos también: burbuja flotante sobre cualquier pestaña, en vez de
     // que haga falta ir hasta Perfil para preguntarle algo.
     var mostrarArgos by remember { mutableStateOf(false) }
+    // Pantallas con botones abajo (registrar una comida) le piden esconderse.
+    var ocultarBurbujaArgos by remember { mutableStateOf(false) }
 
     val contexto = LocalContext.current
+    val scope = rememberCoroutineScope()
     var objetivoArena by remember { mutableStateOf(leerObjetivoArena(contexto)) }
+    // Lo pide el bloqueo de Argos para llevar directo a "Mi membresía".
+    var abrirMembresia by remember { mutableStateOf(false) }
+
+    // El objetivo se elige al iniciar la app y se cambia solo desde
+    // Configuración — la Arena ya no lo cambia.
+    val cambiarObjetivo: (ObjetivoCompetencia) -> Unit = { nuevo ->
+        objetivoArena = nuevo
+        guardarObjetivoArena(contexto, nuevo)
+        scope.launch { guardarObjetivoEnFirebase(nuevo) }
+    }
 
     // Precarga marcas/platos/ejercicios/ranking apenas se entra a la app,
     // para que Bodygraph, Dieta y Galería ya tengan los datos reales listos
@@ -201,18 +242,19 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
                         onIrDieta = { tab = Tab.DIETA }
                     )
                     Tab.ENTRENAR -> EntrenarScreen()
-                    Tab.ARENA -> ArenaScreen(
+                    Tab.ARENA -> ArenaScreen(objetivo = objetivoArena)
+                    Tab.DIETA -> DietaScreen(
                         objetivo = objetivoArena,
-                        onObjetivo = { nuevo ->
-                            objetivoArena = nuevo
-                            guardarObjetivoArena(contexto, nuevo)
-                        }
+                        onOcultarBurbujaArgos = { ocultarBurbujaArgos = it }
                     )
-                    Tab.DIETA -> DietaScreen(objetivo = objetivoArena)
                     Tab.PERFIL -> PerfilScreen(
                         onAbrirPlano = { mostrarPlano = true },
                         themeMode = themeMode,
                         onThemeMode = onThemeMode,
+                        objetivo = objetivoArena,
+                        onObjetivo = cambiarObjetivo,
+                        abrirMembresia = abrirMembresia,
+                        onMembresiaAbierta = { abrirMembresia = false },
                         onCerrarSesion = onCerrarSesion
                     )
                 }
@@ -221,21 +263,14 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
 
         // ── Burbuja flotante de Argos: se tapa sola en cuanto se abre el
         // Plano o el propio chat, por estar antes que esos dos en el Stack.
-        // navigationBarsPadding() primero (el inset real del gesto/barra del
-        // sistema, lo mismo que ya usa BarraInferior) y recién después el
-        // alto fijo de nuestra propia barra de pestañas (66.dp) + margen —
-        // sin esto, en un celular con navegación por botones la burbuja
-        // terminaba tapando el botón "Perfil". ──
-        androidx.compose.animation.AnimatedVisibility(
-            visible = !mostrarPlano && !mostrarArgos,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = 16.dp, bottom = 82.dp),
-            enter = fadeIn(), exit = fadeOut()
-        ) {
-            ArgosBurbujaFlotante(onClick = { mostrarArgos = true })
-        }
+        // Se puede arrastrar por la pantalla (ver ArgosBurbujaMovil, que
+        // también se ocupa de respetar la barra de navegación del sistema para
+        // no arrancar tapando el botón "Perfil"). ──
+        ArgosBurbujaMovil(
+            visible = !mostrarPlano && !mostrarArgos && !ocultarBurbujaArgos,
+            bloqueado = !planIncluyeArgos(DatosRemotos.membresia?.plan),
+            onClick = { mostrarArgos = true }
+        )
 
         // ── Plano interactivo: pantalla completa aparte ──
         androidx.compose.animation.AnimatedVisibility(
@@ -252,7 +287,14 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
             enter = slideInVertically { it } + fadeIn(),
             exit = slideOutVertically { it } + fadeOut()
         ) {
-            ArgosScreen(onVolver = { mostrarArgos = false })
+            ArgosScreen(
+                onVolver = { mostrarArgos = false },
+                onVerPlanes = {
+                    mostrarArgos = false
+                    tab = Tab.PERFIL
+                    abrirMembresia = true
+                }
+            )
         }
 
         // ── Toast de logro desbloqueado: por encima de todo, incluido el Plano ──

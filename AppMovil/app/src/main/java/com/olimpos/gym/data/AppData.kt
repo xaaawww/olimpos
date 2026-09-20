@@ -35,7 +35,13 @@ data class Plato(
     val imagen: Any,
     val descripcion: String = "",
     val tags: List<String> = emptyList(),
+    /** En desuso: la asignación real es por socio y por horario (ver
+     *  DietaAsignada en DietaDiaria.kt). Se conserva solo porque los platos
+     *  viejos en Firestore todavía traen el campo. */
     val asignada: Boolean = false,
+    /** Kcal/proteínas/carbs/grasas por porción, cargados por el nutricionista
+     *  en el Editor Visual de Dietas. `null` = el plato todavía no los tiene. */
+    val macros: Macros? = null,
     val items: List<Ingrediente>
 )
 

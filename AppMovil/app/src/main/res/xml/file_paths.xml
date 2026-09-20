@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carpeta donde la app deja el archivo vacío que la cámara del celular
+     llena al sacar la foto de una comida (ver MiDiaScreen.kt). -->
+<paths>
+    <cache-path name="fotos_comidas" path="fotos_comidas/" />
+</paths>

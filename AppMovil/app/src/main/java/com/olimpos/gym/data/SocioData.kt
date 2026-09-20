@@ -15,7 +15,7 @@ data class PlanMembresia(
 
 val PLANES_MEMBRESIA = listOf(
     PlanMembresia("Bronce", "$18.000/mes", listOf("Acceso a sala de pesas", "Clases grupales limitadas", "1 evaluación física/año")),
-    PlanMembresia("Oro", "$28.000/mes", listOf("Acceso total al club", "Clases grupales ilimitadas", "Spa 2x/mes", "Rutina personalizada"), destacado = true),
+    PlanMembresia("Oro", "$28.000/mes", listOf("Acceso total al club", "Clases grupales ilimitadas", "Spa 2x/mes", "Rutina personalizada", "Argos: tu asistente de IA"), destacado = true),
     PlanMembresia("Platino", "$42.000/mes", listOf("Todo lo de Oro", "Spa ilimitado", "1 sesión c/ entrenador personal/sem.", "Plan nutricional incluido"))
 )
 

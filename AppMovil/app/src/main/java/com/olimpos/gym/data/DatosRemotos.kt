@@ -43,6 +43,14 @@ object DatosRemotos {
     var registrosAgua by mutableStateOf<List<Long>?>(null); private set
     var fotosProgreso by mutableStateOf<List<FotoProgreso>?>(null); private set
     var companeros by mutableStateOf<List<Companero>?>(null); private set
+    /** La dieta que le asignó su nutricionista por horario (ver
+     *  DietaDiaria.kt) — `null` = todavía no le asignaron ninguna. */
+    var dietaAsignada by mutableStateOf<DietaAsignada?>(null); private set
+    /** Historial de comidas registradas, un elemento por día (ver
+     *  ComidasRepository.kt). `null` = todavía no llegó nada de Firebase. */
+    var diasComidas by mutableStateOf<List<DiaComidas>?>(null); private set
+    /** Publicaciones del tablón del club (solo las publicadas, fijadas primero). */
+    var tablon by mutableStateOf<List<PublicacionTablon>?>(null); private set
     /** Cuántos días entrenó junto a algún compañero — ver
      *  [contarDiasEntrenadosConCompaneros]. Se recalcula junto con la lista
      *  de compañeros porque depende de ella. */
@@ -55,6 +63,22 @@ object DatosRemotos {
     var listo by mutableStateOf(false); private set
 
     private var yaPrecargado = false
+
+    /** Al cerrar sesión: tira todo lo cargado y permite que [precargar] vuelva
+     *  a correr con la cuenta siguiente — si no, otra cuenta en el mismo
+     *  celular vería (y basaría, por ejemplo, el bloqueo de Argos en) la
+     *  membresía y los datos de la anterior hasta reiniciar la app. */
+    fun limpiar() {
+        marcas = null; platos = null; ejercicios = null; rangosSocios = null
+        datosFisicosPropios = null; seriesEntrenamiento = null; rutinaAsignada = null
+        ingresos = null; reservasClase = null; lockersOcupados = null
+        perfilNutricional = null; membresia = null; platosProbados = null
+        registrosAgua = null; fotosProgreso = null; companeros = null
+        diasEntrenadosConCompaneros = 0
+        dietaAsignada = null; diasComidas = null; tablon = null
+        listo = false
+        yaPrecargado = false
+    }
 
     suspend fun precargar() {
         if (yaPrecargado) return
@@ -75,6 +99,9 @@ object DatosRemotos {
             launch { platosProbados = cargarPlatosProbadosDesdeFirebase() }
             launch { registrosAgua = cargarRegistrosAguaDesdeFirebase() }
             launch { fotosProgreso = cargarFotosProgresoDesdeFirebase() }
+            launch { dietaAsignada = cargarDietaAsignada() }
+            launch { diasComidas = cargarDiasComidasDesdeFirebase() }
+            launch { tablon = cargarTablonDesdeFirebase() }
             launch {
                 val lista = cargarCompanerosDesdeFirebase()
                 companeros = lista
@@ -87,6 +114,29 @@ object DatosRemotos {
     /** Se llama al subir o borrar una foto de progreso. */
     suspend fun recargarFotosProgreso() {
         fotosProgreso = cargarFotosProgresoDesdeFirebase()
+    }
+
+    /** Al abrir Dieta: por si el nutricionista asignó o cambió la dieta
+     *  mientras el socio ya tenía la app abierta. Si la dieta usa platos que
+     *  todavía no están cargados (recién publicados), también los trae. */
+    suspend fun recargarDietaAsignada() {
+        val nueva = cargarDietaAsignada()
+        dietaAsignada = nueva
+        val conocidos = platos.orEmpty().map { it.id }.toSet()
+        if (nueva != null && !conocidos.containsAll(nueva.platoIds)) {
+            platos = cargarPlatosDesdeFirebase() ?: platos
+        }
+    }
+
+    /** Se llama después de registrar o borrar una comida. */
+    suspend fun recargarComidas() {
+        diasComidas = cargarDiasComidasDesdeFirebase() ?: diasComidas
+    }
+
+    /** Al abrir Inicio: para que un aviso nuevo del dueño aparezca sin
+     *  tener que reiniciar la app. */
+    suspend fun recargarTablon() {
+        tablon = cargarTablonDesdeFirebase() ?: tablon
     }
 
     /** Se llama al agregar o quitar un compañero de entrenamiento. */

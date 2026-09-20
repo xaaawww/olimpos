@@ -12,7 +12,10 @@
 // Cloud Functions). El texto real de la conversación (pregunta + historial
 // + contexto propio del socio + base de conocimiento) lo arma y manda la
 // app móvil — este Worker no lee Firestore por su cuenta, así se evita
-// necesitar una cuenta de servicio acá también.
+// necesitar una cuenta de servicio acá también. La única lectura que hace
+// es la del plan de membresía del socio (Argos es de pago: planes Oro y
+// Platino), y la hace con el propio token del socio, no con una cuenta de
+// servicio (ver planDelSocio).
 
 import { importX509, jwtVerify, decodeProtectedHeader } from "jose";
 
@@ -21,6 +24,12 @@ export interface Env {
   FIREBASE_PROJECT_ID: string;
   ARGOS_KV: KVNamespace;
 }
+
+// Argos es un beneficio de pago: solo los socios con uno de estos planes de
+// membresía pueden usarlo (mismo criterio que PLANES_CON_ARGOS en la app
+// móvil y en el sistema de empleados). Se verifica ACÁ, del lado del
+// servidor, porque el chequeo de la app se puede saltear modificando el APK.
+const PLANES_CON_ARGOS = ["Oro", "Platino"];
 
 const MODELO = "claude-haiku-4-5-20251001";
 const MAX_TOKENS_RESPUESTA = 600;
@@ -75,6 +84,21 @@ async function verificarTokenFirebase(token: string, projectId: string): Promise
   });
   if (!payload.sub) throw new Error("Token sin 'sub' (uid)");
   return payload.sub;
+}
+
+/** Plan de membresía del socio (documento "membresias/{uid}", ver
+ *  membresias_repo.py), leído con la API REST de Firestore usando el propio
+ *  ID token del socio como credencial: pasa por las reglas de seguridad como
+ *  el socio mismo (que puede leer solo su documento), así este Worker no
+ *  necesita ninguna cuenta de servicio. `null` = no tiene membresía asignada. */
+async function planDelSocio(token: string, uid: string, projectId: string): Promise<string | null> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/membresias/${encodeURIComponent(uid)}`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (resp.status === 404) return null;
+  if (!resp.ok) throw new Error(`Firestore devolvió ${resp.status}`);
+  const doc = (await resp.json()) as { fields?: { plan?: { stringValue?: string } } };
+  return doc.fields?.plan?.stringValue ?? null;
 }
 
 /** Cupo diario en Workers KV — no es un conteo perfectamente atómico (KV no
@@ -163,10 +187,30 @@ export default {
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!token) return json({ error: "Falta iniciar sesión" }, 401);
 
+    let uid: string;
     try {
-      await verificarTokenFirebase(token, env.FIREBASE_PROJECT_ID);
+      uid = await verificarTokenFirebase(token, env.FIREBASE_PROJECT_ID);
     } catch (ex) {
       return json({ error: "Sesión inválida o vencida" }, 401);
+    }
+
+    // Beneficio de pago: sin un plan que lo incluya, no se llama a Anthropic
+    // ni se gasta cupo. Si no se puede verificar el plan (Firestore caído),
+    // se rechaza también — nunca se deja pasar "por las dudas".
+    let plan: string | null;
+    try {
+      plan = await planDelSocio(token, uid, env.FIREBASE_PROJECT_ID);
+    } catch (ex) {
+      return json({ error: "No se pudo verificar tu plan de membresía. Probá de nuevo en un momento." }, 502);
+    }
+    if (!plan || !PLANES_CON_ARGOS.includes(plan)) {
+      return json(
+        {
+          error: `Argos es parte de los planes ${PLANES_CON_ARGOS.join(" y ")}. Pedile a recepción que te active uno.`,
+          codigo: "plan_requerido",
+        },
+        403
+      );
     }
 
     let body: {

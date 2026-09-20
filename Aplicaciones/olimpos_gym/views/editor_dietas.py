@@ -7,6 +7,7 @@
 # de dietas_repo — esta pantalla no sabe nada de esa capa, solo llama a sus
 # funciones.
 
+import re
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -200,10 +201,22 @@ class EditorDietasView:
             label="Publicado en la app", value=publicado,
             active_color=GOLD, on_change=self._alternar_publicado,
         )
-        switch_asignada = ft.Switch(
-            label="Asignada por nutricionista/dueño", value=self.plato.get("asignada", False),
-            active_color=GOLD, on_change=self._alternar_asignada,
-        )
+        macros = self.plato.setdefault("macros", {"kcal": 0, "proteinas": 0, "carbs": 0, "grasas": 0})
+
+        def campo_macro(clave: str, etiqueta: str) -> ft.TextField:
+            return ft.TextField(
+                label=etiqueta, value=str(macros.get(clave, 0) or 0), width=150,
+                keyboard_type=ft.KeyboardType.NUMBER,
+                on_change=lambda e, c=clave: self._set_macro(c, e.control.value),
+            )
+
+        fila_macros = ft.Row([
+            campo_macro("kcal", "Calorías (kcal)"),
+            campo_macro("proteinas", "Proteínas (g)"),
+            campo_macro("carbs", "Carbohidratos (g)"),
+            campo_macro("grasas", "Grasas (g)"),
+            action_button("Σ Sumar kcal de los ingredientes", "outline", on_click=self._sumar_kcal_puntos),
+        ], spacing=10, wrap=True, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         campo_descripcion = ft.TextField(
             label="Descripción breve (se ve en la tarjeta del catálogo)",
             value=self.plato.get("descripcion", ""), multiline=True, min_lines=2, max_lines=3,
@@ -269,10 +282,17 @@ class EditorDietasView:
             *avisos,
             section_card(ft.Column([
                 ft.Row([campo_nombre, ft.Container(expand=True), switch_publicar]),
-                ft.Row([switch_asignada]),
                 divider(),
                 campo_descripcion,
                 campo_tags,
+                divider(),
+                ft.Text("VALORES NUTRICIONALES DEL PLATO (por porción)", size=11,
+                        weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+                fila_macros,
+                ft.Text(
+                    "La app móvil los usa para la meta diaria y el registro de comidas de cada socio. "
+                    "A qué socio le toca este plato (y en qué horario) se decide en \"Asignar Dietas\".",
+                    size=11.5, color=TEXT_MUTED),
                 divider(),
                 acciones,
             ], spacing=14), padding=16),
@@ -480,15 +500,25 @@ class EditorDietasView:
             self.aviso = f"No se pudo guardar: {ex}"
         self._render()
 
-    def _alternar_asignada(self, e):
-        self.plato["asignada"] = e.control.value
+    def _set_macro(self, clave: str, valor: str):
+        # Sin re-render: escribir en estos campos no debe reconstruir la pantalla.
         try:
-            self.platos = repo.guardar_plato(self.platos, self.plato)
-            self.aviso = "Marcada como asignada ✓ Aparece en \"Asignadas por tu nutricionista\" en la app." \
-                         if e.control.value else \
-                         "Vuelve a aparecer en el catálogo general de la app."
-        except Exception as ex:
-            self.aviso = f"No se pudo guardar: {ex}"
+            numero = int(round(float((valor or "0").replace(",", "."))))
+        except ValueError:
+            numero = 0
+        self.plato.setdefault("macros", {"kcal": 0, "proteinas": 0, "carbs": 0, "grasas": 0})[clave] = max(0, numero)
+
+    def _sumar_kcal_puntos(self, e):
+        total = 0
+        for p in self.plato["puntos"]:
+            m = re.search(r"\d+", p.get("kcal", "") or "")
+            if m:
+                total += int(m.group())
+        self.plato.setdefault("macros", {"kcal": 0, "proteinas": 0, "carbs": 0, "grasas": 0})["kcal"] = total
+        self.aviso = (
+            f"Sumé las calorías de los ingredientes: {total} kcal."
+            if total else "Los ingredientes todavía no tienen calorías cargadas."
+        )
         self._render()
 
     async def _elegir_imagen(self, e):

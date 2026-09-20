@@ -969,7 +969,7 @@ fun ghostModeDeEjercicio(ejercicio: String, seriesHoy: List<SerieHecha>, histori
     )
 }
 
-/* ── Objetivo de la Arena ── */
+/* ── Objetivo del socio ── */
 enum class ObjetivoCompetencia(val etiqueta: String, val emoji: String) {
     FUERZA("Fuerza", "🏋️"),
     HIPERTROFIA("Hipertrofia", "💪"),
@@ -980,17 +980,32 @@ private const val PREFS_ARENA = "olimpos_prefs"
 private const val KEY_OBJETIVO = "objetivo_arena"
 private const val KEY_OBJETIVOS_HISTORICOS = "objetivos_historicos"
 
-/** null = todavía no eligió objetivo: dispara la pantalla de selección la primera vez que entra a Arena. */
+/** El objetivo es de cada socio, no del celular: si dos cuentas comparten el
+ *  mismo dispositivo, cada una tiene el suyo. */
+private fun claveObjetivo(): String = "${KEY_OBJETIVO}_${SocioAuth.uidActual ?: "anonimo"}"
+
+/** null = todavía no eligió objetivo: dispara la pantalla de selección al
+ *  iniciar la app (ver MainActivity, Etapa.OBJETIVO). */
 fun leerObjetivoArena(context: Context): ObjetivoCompetencia? {
-    val guardado = context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).getString(KEY_OBJETIVO, null)
+    val guardado = context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE).getString(claveObjetivo(), null)
     return ObjetivoCompetencia.entries.firstOrNull { it.name == guardado }
+}
+
+/** El objetivo guardado en este celular y, si no hay ninguno, el que el
+ *  socio ya había elegido en otro dispositivo (guardado en Firestore, ver
+ *  [DatosFisicos.objetivo]) — en ese caso se copia acá para la próxima. */
+fun resolverObjetivo(context: Context, datosFisicos: DatosFisicos?): ObjetivoCompetencia? {
+    leerObjetivoArena(context)?.let { return it }
+    val remoto = datosFisicos?.objetivo ?: return null
+    guardarObjetivoArena(context, remoto)
+    return remoto
 }
 
 fun guardarObjetivoArena(context: Context, objetivo: ObjetivoCompetencia) {
     val prefs = context.getSharedPreferences(PREFS_ARENA, Context.MODE_PRIVATE)
     val historicos = (prefs.getStringSet(KEY_OBJETIVOS_HISTORICOS, emptySet()) ?: emptySet()) + objetivo.name
     prefs.edit()
-        .putString(KEY_OBJETIVO, objetivo.name)
+        .putString(claveObjetivo(), objetivo.name)
         // Set nuevo (no el mismo mutado) — StringSet de SharedPreferences no
         // debe modificarse in-place, hay bugs documentados de Android si se
         // reusa la misma instancia.

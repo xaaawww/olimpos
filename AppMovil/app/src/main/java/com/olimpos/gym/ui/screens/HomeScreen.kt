@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,11 +55,15 @@ import com.olimpos.gym.R
 import com.olimpos.gym.data.CLASES_SEMANA
 import com.olimpos.gym.data.ClaseSemana
 import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.ReservaClase
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
 import com.olimpos.gym.data.guardarReservaClaseEnFirebase
 import com.olimpos.gym.data.kgMovidosEsteMes
+import com.olimpos.gym.data.leerObjetivoArena
+import com.olimpos.gym.data.metaDelDia
+import com.olimpos.gym.data.rachaDietaActual
 import com.olimpos.gym.data.socioActualNombre
 import com.olimpos.gym.data.yaReservadaEstaSemana
 import com.olimpos.gym.ui.theme.Olimpos
@@ -74,6 +79,14 @@ fun HomeScreen(
 ) {
     val nombreSocio = socioActualNombre()
     val primerNombre = nombreSocio.substringBefore(" ")
+    var mostrarTablon by remember { mutableStateOf(false) }
+    // Cada vez que se vuelve a Inicio se pide de nuevo: un aviso nuevo del
+    // dueño aparece sin tener que reiniciar la app.
+    LaunchedEffect(Unit) { DatosRemotos.recargarTablon() }
+    if (mostrarTablon) {
+        TablonScreen(onVolver = { mostrarTablon = false })
+        return
+    }
     Column(
         Modifier
             .fillMaxSize()
@@ -100,7 +113,7 @@ fun HomeScreen(
         // ── Saludo ──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Eyebrow("Lunes 6 · Julio")
+                Eyebrow(fechaDeHoyLegible())
                 Row {
                     Text("Hola, ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
                     Text(primerNombre, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
@@ -122,6 +135,10 @@ fun HomeScreen(
 
         // ── Carnet digital con medalla Ω ──
         CarnetMedalla()
+
+        // ── Tablón del club: lo publica solo el dueño desde el sistema de empleados ──
+        SeccionLabel("Tablón del club")
+        TablonResumen(onVerTodo = { mostrarTablon = true })
 
         // ── Ocupación en vivo ──
         SeccionLabel("Ahora en el club")
@@ -146,7 +163,16 @@ fun HomeScreen(
                 DatosRemotos.rutinaAsignada?.let { "${it.ejercicios.size} ejercicios hoy" } ?: "Todavía sin asignar",
                 Modifier.weight(1f), onIrEntrenar
             )
-            AccesoRapido("🥗", "Plato saludable", "Explorá tu dieta", Modifier.weight(1f), onIrDieta)
+            val objetivoDieta = leerObjetivoArena(LocalContext.current) ?: ObjetivoCompetencia.SALUD
+            val rachaDieta = rachaDietaActual(
+                DatosRemotos.diasComidas.orEmpty(), objetivoDieta,
+                metaDelDia(DatosRemotos.dietaAsignada, DatosRemotos.platos.orEmpty())
+            )
+            AccesoRapido(
+                "🥗", "Mi dieta",
+                if (rachaDieta > 0) "🔥 Racha: $rachaDieta ${if (rachaDieta == 1) "día" else "días"}" else "Registrá tus comidas",
+                Modifier.weight(1f), onIrDieta
+            )
         }
         Spacer(Modifier.height(12.dp))
         // El plano NO es sección principal: acceso secundario desde aquí
@@ -170,6 +196,11 @@ fun HomeScreen(
         }
     }
 }
+
+/** "Domingo 20 · septiembre" — antes el saludo mostraba siempre "Lunes 6 · Julio". */
+private fun fechaDeHoyLegible(): String =
+    java.text.SimpleDateFormat("EEEE d · MMMM", java.util.Locale("es", "AR"))
+        .format(java.util.Date())
 
 /* ───────────────────── Carnet / medalla Ω ───────────────────── */
 @Composable

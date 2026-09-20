@@ -30,20 +30,12 @@ import com.olimpos.gym.ui.theme.Olimpos
 
 private enum class ArenaVista { GRID, BODYGRAPH, CALCULADORA, GALERIA, MARCAS, LOGROS, CLASIFICACION }
 
+/** El objetivo ya no se elige ni se cambia desde acá: se elige al iniciar la
+ *  app (ver MainActivity, Etapa.OBJETIVO) y se cambia en Configuración. Acá
+ *  solo se muestra la insignia. */
 @Composable
-fun ArenaScreen(objetivo: ObjetivoCompetencia?, onObjetivo: (ObjetivoCompetencia) -> Unit) {
+fun ArenaScreen(objetivo: ObjetivoCompetencia?) {
     var vista by remember { mutableStateOf(ArenaVista.GRID) }
-    var mostrarSelector by remember { mutableStateOf(false) }
-
-    // Primera vez que entra a Arena (objetivo == null) o tocó la insignia
-    // para cambiarlo: pantalla completa de selección, antes que la grilla.
-    if (objetivo == null || mostrarSelector) {
-        ObjetivoScreen(objetivoActual = objetivo) { elegido ->
-            onObjetivo(elegido)
-            mostrarSelector = false
-        }
-        return
-    }
 
     // Para el logro "Explorador" (visitar las 6 secciones de la Arena) —
     // se dispara cada vez que se entra a una sección real (no al GRID, que
@@ -60,7 +52,6 @@ fun ArenaScreen(objetivo: ObjetivoCompetencia?, onObjetivo: (ObjetivoCompetencia
     when (vista) {
         ArenaVista.GRID -> ArenaGrid(
             objetivo = objetivo,
-            onCambiarObjetivo = { mostrarSelector = true },
             onBodygraph = { vista = ArenaVista.BODYGRAPH },
             onCalculadora = { vista = ArenaVista.CALCULADORA },
             onGaleria = { vista = ArenaVista.GALERIA },
@@ -79,8 +70,7 @@ fun ArenaScreen(objetivo: ObjetivoCompetencia?, onObjetivo: (ObjetivoCompetencia
 
 @Composable
 private fun ArenaGrid(
-    objetivo: ObjetivoCompetencia,
-    onCambiarObjetivo: () -> Unit,
+    objetivo: ObjetivoCompetencia?,
     onBodygraph: () -> Unit,
     onCalculadora: () -> Unit,
     onGaleria: () -> Unit,
@@ -96,8 +86,10 @@ private fun ArenaGrid(
             .padding(horizontal = 20.dp)
             .padding(top = 14.dp, bottom = 26.dp)
     ) {
-        BadgeObjetivo(objetivo, onClick = onCambiarObjetivo)
-        Spacer(Modifier.height(12.dp))
+        if (objetivo != null) {
+            BadgeObjetivo(objetivo)
+            Spacer(Modifier.height(12.dp))
+        }
         Eyebrow("Arena")
         Row {
             Text("Competí y ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)

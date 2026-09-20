@@ -45,6 +45,7 @@ suspend fun cargarPlatosDesdeFirebase(): List<Plato>? {
             @Suppress("UNCHECKED_CAST")
             val tags = (doc.get("tags") as? List<String>)?.take(3) ?: emptyList()
             val asignada = doc.getBoolean("asignada") ?: false
+            val macros = macrosDeMapa(doc.get("macros") as? Map<*, *>).takeUnless { it.esVacio }
 
             @Suppress("UNCHECKED_CAST")
             val puntosRaw = doc.get("puntos") as? List<Map<String, Any?>> ?: emptyList()
@@ -68,7 +69,7 @@ suspend fun cargarPlatosDesdeFirebase(): List<Plato>? {
             if (items.isEmpty()) return@mapNotNull null
             Plato(
                 id = doc.id, nombre = nombre, emoji = "🍽️", imagen = imagen,
-                descripcion = descripcion, tags = tags, asignada = asignada, items = items
+                descripcion = descripcion, tags = tags, asignada = asignada, macros = macros, items = items
             )
         }
         platos

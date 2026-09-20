@@ -33,11 +33,19 @@ def build_dashboard(role: str, navigate_fn) -> ft.Column:
         ],
         "nutricionista": [
             ("👥", "Mis Socios", "socios"),
-            ("🥗", "Planes Nutric.", "dietas"),
+            ("🍽️", "Asignar Dietas", "asignar-dietas"),
             ("📊", "Progreso", "progreso"),
             ("🔔", "Alertas", "notificaciones"),
-            ("📝", "Nuevo Plan", "dietas"),
+            ("🖼️", "Editor de Dietas", "editor-dietas"),
             ("📅", "Consultas", "asistencia"),
+        ],
+        "dueno": [
+            ("➕", "Nuevo Socio", "socios"),
+            ("📋", "Asignar Rutina", "rutinas"),
+            ("🍽️", "Asignar Dietas", "asignar-dietas"),
+            ("📌", "Tablón del club", "tablon"),
+            ("💰", "Registrar Pago", "pagos"),
+            ("📊", "Ver Reportes", "reportes"),
         ],
         "seguridad": [
             ("📅", "Control Acceso", "asistencia"),

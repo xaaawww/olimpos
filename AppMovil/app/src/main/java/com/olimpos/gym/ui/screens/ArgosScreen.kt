@@ -5,12 +5,26 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,11 +32,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,7 +56,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.MensajeArgos
+import com.olimpos.gym.data.PLANES_CON_ARGOS
+import com.olimpos.gym.data.planIncluyeArgos
 import com.olimpos.gym.data.preguntarArgos
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
@@ -47,9 +67,39 @@ import kotlinx.coroutines.launch
 /** Chat simple con Argos — el historial vive solo en memoria de esta
  *  pantalla (se pierde al volver), a propósito: es una charla puntual, no
  *  algo que haga falta guardar. Nunca ejecuta ninguna acción, solo
- *  responde texto (ver ArgosRepository.kt/ArgosWorker). */
+ *  responde texto (ver ArgosRepository.kt/ArgosWorker).
+ *
+ *  Argos es un beneficio de pago (planes Oro y Platino, ver
+ *  [planIncluyeArgos]): sin uno de esos planes se muestra el bloqueo en vez
+ *  del chat. [onVerPlanes] lleva a "Mi membresía". */
 @Composable
-fun ArgosScreen(onVolver: () -> Unit) {
+fun ArgosScreen(onVolver: () -> Unit, onVerPlanes: () -> Unit) {
+    val membresia = DatosRemotos.membresia
+    var actualizandoPlan by remember { mutableStateOf(true) }
+    val scopePlan = rememberCoroutineScope()
+    // Al abrir Argos se vuelve a pedir la membresía: si recepción acaba de
+    // activarle el plan con la app abierta, se desbloquea solo.
+    LaunchedEffect(Unit) {
+        DatosRemotos.recargarMembresia()
+        actualizandoPlan = false
+    }
+    if (!planIncluyeArgos(membresia?.plan)) {
+        ArgosBloqueado(
+            planActual = membresia?.plan,
+            actualizando = actualizandoPlan,
+            onVolver = onVolver,
+            onVerPlanes = onVerPlanes,
+            onActualizar = {
+                actualizandoPlan = true
+                scopePlan.launch {
+                    DatosRemotos.recargarMembresia()
+                    actualizandoPlan = false
+                }
+            }
+        )
+        return
+    }
+
     val scope = rememberCoroutineScope()
     var mensajes by remember { mutableStateOf(listOf<MensajeArgos>()) }
     var textoActual by remember { mutableStateOf("") }
@@ -205,13 +255,145 @@ private fun aTextoConNegrita(texto: String, color: androidx.compose.ui.graphics.
     append(texto.substring(ultimo))
 }
 
-/** Burbuja flotante siempre visible (cualquier pestaña) para abrir el chat
- *  de Argos sin tener que ir hasta Perfil. */
+/** Pantalla que reemplaza al chat cuando el plan del socio no incluye Argos. */
 @Composable
-fun ArgosBurbujaFlotante(onClick: () -> Unit) {
-    Box(
+private fun ArgosBloqueado(
+    planActual: String?,
+    actualizando: Boolean,
+    onVolver: () -> Unit,
+    onVerPlanes: () -> Unit,
+    onActualizar: () -> Unit
+) {
+    Column(
         Modifier
-            .size(58.dp)
+            .fillMaxSize()
+            .background(Brush.linearGradient(listOf(Olimpos.FondoA, Olimpos.FondoB, Olimpos.FondoC)))
+            // Mismo motivo que en el chat: no dejar pasar toques a la pestaña de abajo.
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+    ) {
+        EncabezadoVolver("🐕 Argos", "Tu asistente de IA en OlimpΩs", onVolver)
+
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(top = 12.dp, bottom = 26.dp)
+        ) {
+            TarjetaOro(Modifier.fillMaxWidth()) {
+                Text("🔒", fontSize = 34.sp)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Argos es parte del plan ${PLANES_CON_ARGOS.first()}",
+                    fontSize = 19.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream
+                )
+                Text(
+                    "Incluido en los planes ${PLANES_CON_ARGOS.joinToString(" y ")}.",
+                    fontSize = 12.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
+                )
+                listOf(
+                    "Respuestas sobre horarios, clases, membresías y el catálogo de comidas",
+                    "Datos de tu propio progreso, tu racha y tus reservas",
+                    "Consejos de entrenamiento y hábitos saludables, 24/7"
+                ).forEach { beneficio ->
+                    Row(Modifier.padding(bottom = 6.dp)) {
+                        Text("✓ ", fontSize = 12.5.sp, color = Olimpos.Gold, fontWeight = FontWeight.Black)
+                        Text(beneficio, fontSize = 12.5.sp, color = Olimpos.Muted)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Text(
+                if (planActual != null) "Tu plan actual es $planActual y no incluye a Argos."
+                else "Todavía no tenés ningún plan asignado.",
+                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight
+            )
+            Text(
+                "Pedile a recepción que te active el plan ${PLANES_CON_ARGOS.first()} (o Platino) y Argos se desbloquea acá mismo.",
+                fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(Modifier.height(20.dp))
+            BotonPrincipal("Ver planes de membresía") { onVerPlanes() }
+            Spacer(Modifier.height(10.dp))
+            BotonSecundario(if (actualizando) "Actualizando…" else "Ya me lo activaron — actualizar") {
+                if (!actualizando) onActualizar()
+            }
+        }
+    }
+}
+
+/** La burbuja de Argos, arrastrable: se puede llevar a cualquier lugar de la
+ *  pantalla para que no tape información (un botón, un número, una comida).
+ *  Arranca en su esquina de siempre (abajo a la derecha, por encima de la
+ *  barra de pestañas) y de ahí se mide cuánto se corrió — así, si la pantalla
+ *  cambia de tamaño (rotación), la burbuja queda en un lugar razonable. Los
+ *  límites la mantienen siempre entera adentro de la pantalla: no se puede
+ *  "perder" fuera del borde. Un toque corto sigue abriendo el chat; solo un
+ *  arrastre la mueve. Ocupa toda la pantalla pero no intercepta toques:
+ *  solo la burbuja en sí reacciona. */
+@Composable
+fun ArgosBurbujaMovil(visible: Boolean, bloqueado: Boolean, onClick: () -> Unit) {
+    val density = LocalDensity.current
+    // Corrimiento respecto de la esquina inferior derecha, en píxeles
+    // (negativo = hacia la izquierda / hacia arriba). rememberSaveable para
+    // que sobreviva a girar el celular.
+    var corrimientoX by rememberSaveable { mutableStateOf(0f) }
+    var corrimientoY by rememberSaveable { mutableStateOf(0f) }
+
+    // statusBarsPadding + navigationBarsPadding: los límites se calculan sobre
+    // la zona realmente usable, sin la barra de estado ni la de navegación.
+    BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        val tamano = with(density) { TAMANO_BURBUJA.toPx() }
+        val margenDerecho = with(density) { MARGEN_DERECHO_BURBUJA.toPx() }
+        val margenInferior = with(density) { MARGEN_INFERIOR_BURBUJA.toPx() }
+        val respiro = with(density) { 6.dp.toPx() }  // separación mínima con el borde
+
+        // Cuánto puede correrse hacia cada lado a partir de la posición inicial.
+        val minX = -(constraints.maxWidth - tamano - margenDerecho - respiro)
+        val maxX = margenDerecho - respiro
+        val minY = -(constraints.maxHeight - tamano - margenInferior - respiro)
+        val maxY = margenInferior - respiro
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = visible,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = MARGEN_DERECHO_BURBUJA, bottom = MARGEN_INFERIOR_BURBUJA),
+            enter = fadeIn(), exit = fadeOut()
+        ) {
+            ArgosBurbujaFlotante(
+                bloqueado = bloqueado,
+                onClick = onClick,
+                modifier = Modifier
+                    .offset { IntOffset(corrimientoX.roundToInt(), corrimientoY.roundToInt()) }
+                    .pointerInput(minX, maxX, minY, maxY) {
+                        detectDragGestures { cambio, arrastre ->
+                            cambio.consume()
+                            corrimientoX = (corrimientoX + arrastre.x).coerceIn(minX, maxX)
+                            corrimientoY = (corrimientoY + arrastre.y).coerceIn(minY, maxY)
+                        }
+                    }
+            )
+        }
+    }
+}
+
+private val TAMANO_BURBUJA = 58.dp
+private val MARGEN_DERECHO_BURBUJA = 16.dp
+// Alto de la barra de pestañas (66.dp) + aire, para no tapar "Perfil" de arranque.
+private val MARGEN_INFERIOR_BURBUJA = 82.dp
+
+/** Burbuja flotante siempre visible (cualquier pestaña) para abrir el chat
+ *  de Argos sin tener que ir hasta Perfil. Si el plan del socio no lo
+ *  incluye, lleva un candado y al tocarla se ve el bloqueo. Para poder
+ *  moverla ver [ArgosBurbujaMovil], que la envuelve. */
+@Composable
+fun ArgosBurbujaFlotante(bloqueado: Boolean = false, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier
+            .size(TAMANO_BURBUJA)
             .shadow(8.dp, CircleShape)
             .clip(CircleShape)
             .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark)))
@@ -220,5 +402,8 @@ fun ArgosBurbujaFlotante(onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Text("🐕", fontSize = 26.sp)
+        if (bloqueado) {
+            Text("🔒", fontSize = 13.sp, modifier = Modifier.align(Alignment.TopEnd).padding(top = 7.dp, end = 7.dp))
+        }
     }
 }

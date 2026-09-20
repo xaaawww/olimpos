@@ -14,6 +14,8 @@ from views.editor_dietas import build_editor_dietas
 from views.editor_ejercicios import build_editor_ejercicios
 from views.editor_rutinas import build_editor_rutinas
 from views.editor_membresias import build_editor_membresias
+from views.asignar_dietas import build_asignar_dietas
+from views.tablon import build_tablon
 from views.verificacion_marcas import build_verificacion_marcas
 from views.argos import build_argos
 
@@ -190,6 +192,8 @@ class AppShell:
             "mi-rutina":      build_rutinas,
             "dietas":         build_dietas,
             "editor-dietas":  lambda: build_editor_dietas(self.page),
+            "asignar-dietas": lambda: build_asignar_dietas(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
+            "tablon":         lambda: build_tablon(self.page, self.role, f"{self.role_data['name']} — {self.role_data['label']}"),
             "editor-ejercicios": lambda: build_editor_ejercicios(self.page),
             "verificacion-marcas": lambda: build_verificacion_marcas(self.page, self.role_data["name"]),
             "membresias":     lambda: build_editor_membresias(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
