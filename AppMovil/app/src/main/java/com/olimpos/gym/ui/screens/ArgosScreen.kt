@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import android.content.Context
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
@@ -332,15 +334,23 @@ private fun ArgosBloqueado(
  *  límites la mantienen siempre entera adentro de la pantalla: no se puede
  *  "perder" fuera del borde. Un toque corto sigue abriendo el chat; solo un
  *  arrastre la mueve. Ocupa toda la pantalla pero no intercepta toques:
- *  solo la burbuja en sí reacciona. */
+ *  solo la burbuja en sí reacciona.
+ *
+ *  La posición se guarda en SharedPreferences (ver [leerCorrimientoGuardado]/
+ *  [guardarCorrimiento]) al soltar el dedo, no en cada píxel arrastrado, así
+ *  que sobrevive a cerrar la app del todo y no solo a girar el celular (eso
+ *  ya lo cubre rememberSaveable por su cuenta). Es una preferencia del
+ *  dispositivo, no de la cuenta — no hace falta distinguir por socio. */
 @Composable
 fun ArgosBurbujaMovil(visible: Boolean, bloqueado: Boolean, onClick: () -> Unit) {
     val density = LocalDensity.current
+    val context = LocalContext.current
     // Corrimiento respecto de la esquina inferior derecha, en píxeles
     // (negativo = hacia la izquierda / hacia arriba). rememberSaveable para
-    // que sobreviva a girar el celular.
-    var corrimientoX by rememberSaveable { mutableStateOf(0f) }
-    var corrimientoY by rememberSaveable { mutableStateOf(0f) }
+    // que sobreviva a girar el celular; el valor inicial sale de la última
+    // posición guardada (si la había) en vez de siempre 0.
+    var corrimientoX by rememberSaveable { mutableStateOf(leerCorrimientoGuardado(context).first) }
+    var corrimientoY by rememberSaveable { mutableStateOf(leerCorrimientoGuardado(context).second) }
 
     // statusBarsPadding + navigationBarsPadding: los límites se calculan sobre
     // la zona realmente usable, sin la barra de estado ni la de navegación.
@@ -369,7 +379,9 @@ fun ArgosBurbujaMovil(visible: Boolean, bloqueado: Boolean, onClick: () -> Unit)
                 modifier = Modifier
                     .offset { IntOffset(corrimientoX.roundToInt(), corrimientoY.roundToInt()) }
                     .pointerInput(minX, maxX, minY, maxY) {
-                        detectDragGestures { cambio, arrastre ->
+                        detectDragGestures(
+                            onDragEnd = { guardarCorrimiento(context, corrimientoX, corrimientoY) }
+                        ) { cambio, arrastre ->
                             cambio.consume()
                             corrimientoX = (corrimientoX + arrastre.x).coerceIn(minX, maxX)
                             corrimientoY = (corrimientoY + arrastre.y).coerceIn(minY, maxY)
@@ -378,6 +390,25 @@ fun ArgosBurbujaMovil(visible: Boolean, bloqueado: Boolean, onClick: () -> Unit)
             )
         }
     }
+}
+
+// Mismo archivo de SharedPreferences que usa el objetivo de Arena/Configuración
+// (ver PREFS_ARENA en GamificacionData.kt) — no hace falta uno propio para
+// dos claves sueltas.
+private const val PREFS_BURBUJA = "olimpos_prefs"
+private const val KEY_BURBUJA_X = "burbuja_argos_x"
+private const val KEY_BURBUJA_Y = "burbuja_argos_y"
+
+private fun leerCorrimientoGuardado(context: Context): Pair<Float, Float> {
+    val prefs = context.getSharedPreferences(PREFS_BURBUJA, Context.MODE_PRIVATE)
+    return prefs.getFloat(KEY_BURBUJA_X, 0f) to prefs.getFloat(KEY_BURBUJA_Y, 0f)
+}
+
+private fun guardarCorrimiento(context: Context, x: Float, y: Float) {
+    context.getSharedPreferences(PREFS_BURBUJA, Context.MODE_PRIVATE).edit()
+        .putFloat(KEY_BURBUJA_X, x)
+        .putFloat(KEY_BURBUJA_Y, y)
+        .apply()
 }
 
 private val TAMANO_BURBUJA = 58.dp
