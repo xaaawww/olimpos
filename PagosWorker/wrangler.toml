@@ -1,0 +1,17 @@
+name = "pagos-olimpos"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# El nombre del proyecto de Firebase (olimpos-18320) — el token de la app
+# móvil se verifica contra este proyecto exacto, y las escrituras a
+# Firestore van a esta misma base. No es secreto, se puede dejar en el
+# archivo.
+[vars]
+FIREBASE_PROJECT_ID = "olimpos-18320"
+
+# Secretos (se cargan con "npx wrangler secret put <NOMBRE>", nunca acá):
+#   MP_ACCESS_TOKEN        — Access Token de PRUEBA de Mercado Pago (pestaña
+#                            "Credenciales de prueba" del panel de MP).
+#   FIREBASE_SA_EMAIL       — client_email de firebase_credentials.json.
+#   FIREBASE_SA_PRIVATE_KEY — private_key de firebase_credentials.json (con
+#                            los \n literales tal cual vienen en el JSON).

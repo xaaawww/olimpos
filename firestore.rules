@@ -131,6 +131,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Historial de pagos reales (Mercado Pago, modo prueba): el escribe
+    // únicamente el Worker de Pagos (cuenta de servicio, no pasa por estas
+    // reglas — ver PagosWorker/src/index.ts) después de confirmar el pago
+    // con la propia API de Mercado Pago. El socio solo lee los suyos; el id
+    // del documento es el id de pago de Mercado Pago, no el uid.
+    match /pagos_socios/{pagoId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.socio_id;
+      allow write: if false;
+    }
+
     // Platos probados: el socio marca "ya probé este plato" (ver
     // PlatosProbadosRepository.kt) — id del documento = "{uid}_{plato_id}",
     // así marcarlo dos veces no duplica. Solo lee/crea los propios.

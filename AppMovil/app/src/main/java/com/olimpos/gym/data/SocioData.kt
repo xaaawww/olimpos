@@ -19,17 +19,11 @@ val PLANES_MEMBRESIA = listOf(
     PlanMembresia("Platino", "$42.000/mes", listOf("Todo lo de Oro", "Spa ilimitado", "1 sesión c/ entrenador personal/sem.", "Plan nutricional incluido"))
 )
 
-data class MetodoPago(val tipo: String, val detalle: String, val emoji: String)
-
-// Sin métodos de pago de ejemplo: un socio nuevo todavía no cargó
-// ninguno — "+ Agregar método de pago" en Membresía es el camino real.
-val METODOS_PAGO = emptyList<MetodoPago>()
-
+/** Un pago real (Mercado Pago, modo prueba) — ver PagosRepository.kt y
+ *  DatosRemotos.historialPagos. Ya no hay una lista de "métodos de pago
+ *  guardados": el checkout de Mercado Pago pide la tarjeta cada vez, no
+ *  hace falta que OlimpOS la guarde. */
 data class PagoHistorial(val periodo: String, val monto: String, val estado: String)
-
-// Sin pagos de ejemplo: recién se ve algo acá cuando el socio paga una
-// cuota de verdad.
-val HISTORIAL_PAGOS = emptyList<PagoHistorial>()
 
 /* ── Lockers ── */
 enum class EstadoLocker { LIBRE, OCUPADO, RESERVADO_POR_MI }

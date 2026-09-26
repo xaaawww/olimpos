@@ -39,6 +39,9 @@ object DatosRemotos {
     var perfilNutricional by mutableStateOf<PerfilNutricional?>(null); private set
     /** `null` = todavía no le asignaron ninguna membresía. */
     var membresia by mutableStateOf<MembresiaAsignada?>(null); private set
+    /** Pagos reales aprobados (Mercado Pago, modo prueba) — ver
+     *  PagosRepository.kt. Lista vacía = todavía no pagó nada. */
+    var historialPagos by mutableStateOf<List<PagoHistorial>>(emptyList()); private set
     var platosProbados by mutableStateOf<Set<String>?>(null); private set
     var registrosAgua by mutableStateOf<List<Long>?>(null); private set
     var fotosProgreso by mutableStateOf<List<FotoProgreso>?>(null); private set
@@ -72,7 +75,7 @@ object DatosRemotos {
         marcas = null; platos = null; ejercicios = null; rangosSocios = null
         datosFisicosPropios = null; seriesEntrenamiento = null; rutinaAsignada = null
         ingresos = null; reservasClase = null; lockersOcupados = null
-        perfilNutricional = null; membresia = null; platosProbados = null
+        perfilNutricional = null; membresia = null; historialPagos = emptyList(); platosProbados = null
         registrosAgua = null; fotosProgreso = null; companeros = null
         diasEntrenadosConCompaneros = 0
         dietaAsignada = null; diasComidas = null; tablon = null
@@ -96,6 +99,7 @@ object DatosRemotos {
             launch { lockersOcupados = cargarLockersDesdeFirebase() }
             launch { perfilNutricional = cargarPerfilNutricionalDesdeFirebase() }
             launch { membresia = cargarMembresiaDesdeFirebase() }
+            launch { historialPagos = cargarHistorialPagos() }
             launch { platosProbados = cargarPlatosProbadosDesdeFirebase() }
             launch { registrosAgua = cargarRegistrosAguaDesdeFirebase() }
             launch { fotosProgreso = cargarFotosProgresoDesdeFirebase() }
@@ -150,6 +154,12 @@ object DatosRemotos {
      *  mientras el socio ya tenía la app abierta. */
     suspend fun recargarMembresia() {
         membresia = cargarMembresiaDesdeFirebase()
+    }
+
+    /** Se llama al volver del checkout de Mercado Pago (junto con
+     *  [recargarMembresia]) — por si el pago ya se acreditó. */
+    suspend fun recargarHistorialPagos() {
+        historialPagos = cargarHistorialPagos()
     }
 
     /** Se llama al marcar un plato como probado, en Dieta. */

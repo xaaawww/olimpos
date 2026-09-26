@@ -1,5 +1,7 @@
 package com.olimpos.gym.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,33 +22,55 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
-import com.olimpos.gym.data.HISTORIAL_PAGOS
-import com.olimpos.gym.data.METODOS_PAGO
 import com.olimpos.gym.data.PLANES_MEMBRESIA
 import com.olimpos.gym.data.PlanMembresia
+import com.olimpos.gym.data.crearPreferenciaDePago
 import com.olimpos.gym.data.fechaLegible
 import com.olimpos.gym.ui.theme.Olimpos
+import kotlinx.coroutines.launch
 
 @Composable
 fun MembresiaScreen(onVolver: () -> Unit) {
-    // Ya no se auto-asigna tocando un botón: la activa un empleado desde
-    // el sistema del gimnasio (con fecha de inicio real), igual que las
-    // rutinas — antes esto arrancaba en "Oro" con un vencimiento inventado
-    // apenas el socio tocaba un plan.
+    // Ya no se auto-asigna tocando un botón, ni queda como un "pedido" que
+    // un empleado tiene que ir a activar a mano: el socio paga de verdad
+    // (Mercado Pago, modo prueba — ver PagosRepository.kt) y la membresía
+    // se activa sola cuando el pago se confirma.
     val membresia = DatosRemotos.membresia
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var aviso by remember { mutableStateOf<String?>(null) }
+    var pagando by remember { mutableStateOf<String?>(null) }  // nombre del plan que se está por pagar
     var mostrarCancelar by remember { mutableStateOf(false) }
 
-    // LazyColumn en vez de Column+verticalScroll: planes, métodos de pago e
-    // historial se van sumando, y así solo se arma lo que está en pantalla.
+    fun pagarPlan(plan: String) {
+        if (pagando != null) return
+        pagando = plan
+        aviso = null
+        scope.launch {
+            try {
+                val url = crearPreferenciaDePago(plan)
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                aviso = "Te llevamos a Mercado Pago para pagar el plan $plan. Cuando el pago se apruebe, la membresía se activa sola — volvé acá y actualizá."
+            } catch (e: Exception) {
+                aviso = e.message ?: "No se pudo iniciar el pago. Probá de nuevo."
+            } finally {
+                pagando = null
+            }
+        }
+    }
+
+    // LazyColumn en vez de Column+verticalScroll: planes e historial se van
+    // sumando, y así solo se arma lo que está en pantalla.
     LazyColumn(Modifier.fillMaxSize()) {
         item(key = "encabezado") {
             EncabezadoVolver("Mi membresía", "Plan, pagos y vencimientos", onVolver)
@@ -63,16 +87,23 @@ fun MembresiaScreen(onVolver: () -> Unit) {
                             )
                             Text(
                                 membresia?.let { "Socio desde ${fechaLegible(it.fechaInicioMs)}" }
-                                    ?: "Pedile al gimnasio que te active un plan",
+                                    ?: "Elegí un plan más abajo para activarlo",
                                 fontSize = 12.sp, color = Olimpos.Muted
                             )
                         }
                         if (membresia != null) ChipOro("Vigente")
                     }
                 }
+                BotonSecundario("¿Ya pagaste? Actualizar") {
+                    scope.launch {
+                        DatosRemotos.recargarMembresia()
+                        DatosRemotos.recargarHistorialPagos()
+                        aviso = null
+                    }
+                }
                 SeccionLabel("Planes disponibles")
                 Text(
-                    "Elegí uno para pedirlo — un empleado lo activa y confirma la fecha de inicio.",
+                    "Elegí uno para pagarlo con Mercado Pago (modo prueba) — se activa solo apenas se confirma el pago.",
                     fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 4.dp)
                 )
             }
@@ -82,65 +113,23 @@ fun MembresiaScreen(onVolver: () -> Unit) {
             TarjetaPlan(
                 plan = p,
                 activo = p.nombre == membresia?.plan,
+                pagando = pagando == p.nombre,
                 modifier = Modifier.padding(horizontal = 20.dp)
             ) {
-                if (p.nombre != membresia?.plan) {
-                    aviso = "Pedido enviado — un empleado va a activarte el plan ${p.nombre}."
-                }
+                pagarPlan(p.nombre)
             }
         }
 
-        item(key = "label-pagos") {
+        item(key = "label-historial") {
             Column(Modifier.padding(horizontal = 20.dp)) {
-                SeccionLabel("Métodos de pago")
-                if (METODOS_PAGO.isEmpty()) {
-                    Text("Todavía no agregaste un método de pago.", fontSize = 12.sp, color = Olimpos.Muted)
-                }
-            }
-        }
-
-        items(METODOS_PAGO, key = { "${it.tipo}-${it.detalle}" }) { m ->
-            Row(
-                Modifier
-                    .padding(horizontal = 20.dp)
-                    .fillMaxWidth()
-                    .padding(bottom = 9.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Olimpos.Card)
-                    .border(1.dp, Olimpos.Line, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 15.dp, vertical = 13.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(m.emoji, fontSize = 20.sp)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(m.tipo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
-                    Text(m.detalle, fontSize = 11.5.sp, color = Olimpos.Muted)
-                }
-            }
-        }
-
-        item(key = "acciones") {
-            Column(Modifier.padding(horizontal = 20.dp)) {
-                BotonSecundario("+ Agregar método de pago") {
-                    aviso = "Método de pago agregado correctamente."
-                }
-                membresia?.let { m ->
-                    val precio = PLANES_MEMBRESIA.firstOrNull { it.nombre == m.plan }?.precio ?: ""
-                    Spacer(Modifier.height(6.dp))
-                    SeccionLabel("Pagar cuota de este mes")
-                    BotonPrincipal("Pagar $precio ahora") {
-                        aviso = "Pago procesado ✓ Comprobante enviado a tu email."
-                    }
-                }
                 SeccionLabel("Historial de pagos")
-                if (HISTORIAL_PAGOS.isEmpty()) {
+                if (DatosRemotos.historialPagos.isEmpty()) {
                     Text("Todavía no hay pagos registrados.", fontSize = 12.sp, color = Olimpos.Muted)
                 }
             }
         }
 
-        items(HISTORIAL_PAGOS, key = { it.periodo }) { h ->
+        items(DatosRemotos.historialPagos, key = { it.periodo }) { h ->
             Row(
                 Modifier
                     .padding(horizontal = 20.dp)
@@ -200,7 +189,13 @@ fun MembresiaScreen(onVolver: () -> Unit) {
 }
 
 @Composable
-private fun TarjetaPlan(plan: PlanMembresia, activo: Boolean, modifier: Modifier = Modifier, onElegir: () -> Unit) {
+private fun TarjetaPlan(
+    plan: PlanMembresia,
+    activo: Boolean,
+    pagando: Boolean = false,
+    modifier: Modifier = Modifier,
+    onElegir: () -> Unit
+) {
     TarjetaOro(modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -220,7 +215,9 @@ private fun TarjetaPlan(plan: PlanMembresia, activo: Boolean, modifier: Modifier
         if (activo) {
             ChipOro("Plan actual")
         } else {
-            BotonSecundario("Pedir este plan") { onElegir() }
+            BotonSecundario(if (pagando) "Abriendo Mercado Pago…" else "Pagar este plan") {
+                if (!pagando) onElegir()
+            }
         }
     }
 }
