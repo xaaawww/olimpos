@@ -1,9 +1,115 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from datetime import datetime
+
 import flet as ft
 from theme import *
 from components import stat_card, section_card, card_header, status_pill
+import ocupacion_repo
 
 
-def build_dashboard(role: str, navigate_fn) -> ft.Column:
+def _hace_cuanto(ms: int) -> str:
+    if not ms:
+        return "todavía no se cargó ningún valor"
+    minutos = max(0, int((datetime.now().timestamp() * 1000 - ms) / 60000))
+    if minutos < 1:
+        return "hace instantes"
+    if minutos < 60:
+        return f"hace {minutos} min"
+    horas = minutos // 60
+    return f"hace {horas} h"
+
+
+def _tarjeta_ocupacion_en_vivo(page: ft.Page | None) -> ft.Container:
+    """SOLO para el dueño: el número real que lee la tarjeta "Ocupación del
+    gimnasio" de Inicio en la app móvil (ver OcupacionEnVivo en
+    HomeScreen.kt) — antes era un número inventado que cambiaba solo. Acá
+    el dueño lo carga a mano (no hay ningún lector de accesos conectado a
+    Firestore) y queda guardado en configuracion_app/ocupacion."""
+    try:
+        actual = ocupacion_repo.obtener_ocupacion()
+        error = None
+    except Exception as ex:
+        actual = {"personas": 0, "actualizado_ms": 0}
+        error = str(ex)
+
+    campo = ft.TextField(
+        value=str(actual["personas"]), width=70, text_align=ft.TextAlign.CENTER,
+        height=42, content_padding=8, keyboard_type=ft.KeyboardType.NUMBER,
+    )
+    texto_estado = ft.Text(
+        f"Capacidad máxima: {ocupacion_repo.CAPACIDAD_MAXIMA} · Actualizado {_hace_cuanto(actual['actualizado_ms'])}",
+        size=11, color=TEXT_MUTED,
+    )
+    aviso = ft.Text("", size=11, color=GREEN, weight=ft.FontWeight.W_700)
+
+    def _clamp(n: int) -> int:
+        return max(0, min(ocupacion_repo.CAPACIDAD_MAXIMA, n))
+
+    def _sumar(delta: int):
+        try:
+            actual_n = int(campo.value or 0)
+        except ValueError:
+            actual_n = 0
+        campo.value = str(_clamp(actual_n + delta))
+        if page:
+            page.update()
+
+    def _guardar(e):
+        try:
+            n = _clamp(int(campo.value or 0))
+        except ValueError:
+            n = 0
+        try:
+            nuevo = ocupacion_repo.actualizar_ocupacion(n)
+            campo.value = str(nuevo["personas"])
+            texto_estado.value = f"Capacidad máxima: {ocupacion_repo.CAPACIDAD_MAXIMA} · Actualizado {_hace_cuanto(nuevo['actualizado_ms'])}"
+            aviso.value = "✓ Guardado — ya se actualizó en la app"
+            aviso.color = GREEN
+        except Exception as ex:
+            aviso.value = f"No se pudo guardar: {ex}"
+            aviso.color = RED
+        if page:
+            page.update()
+
+    contenido = ft.Column([
+        card_header("🟢 Ocupación en vivo (app móvil)"),
+        ft.Container(height=4),
+        ft.Text(
+            "Este número es el que ven TODOS los socios ahora mismo en Inicio. "
+            "No hay ningún lector de accesos conectado — lo cargás vos a mano.",
+            size=11, color=TEXT_MUTED,
+        ),
+        ft.Container(height=10),
+        ft.Row(
+            [
+                ft.IconButton(ft.Icons.REMOVE_CIRCLE_OUTLINE, on_click=lambda e: _sumar(-1)),
+                campo,
+                ft.IconButton(ft.Icons.ADD_CIRCLE_OUTLINE, on_click=lambda e: _sumar(1)),
+                ft.Text("personas", size=12.5, weight=ft.FontWeight.W_700),
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.CENTER, spacing=4,
+        ),
+        ft.Container(height=8),
+        ft.ElevatedButton(
+            "💾 Guardar", on_click=_guardar, expand=True,
+            style=ft.ButtonStyle(
+                color=DARK, bgcolor=GOLD,
+                shape=ft.RoundedRectangleBorder(radius=10),
+                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_700),
+            ),
+        ),
+        ft.Container(height=6),
+        texto_estado,
+        aviso,
+    ], spacing=0)
+    if error:
+        contenido.controls.append(ft.Text(f"⚠️ {error}", size=11, color=RED))
+    return section_card(contenido)
+
+
+def build_dashboard(role: str, navigate_fn, page: ft.Page | None = None) -> ft.Column:
     stats_data = DASH_STATS.get(role, DASH_STATS["dueno"])
 
     # Stats row
@@ -15,14 +121,6 @@ def build_dashboard(role: str, navigate_fn) -> ft.Column:
 
     # Quick access data per role
     quick_data = {
-        "socio": [
-            ("📋", "Mi Rutina", "mi-rutina"),
-            ("🥗", "Mi Dieta", "mi-dieta"),
-            ("📊", "Mi Progreso", "mi-progreso"),
-            ("👤", "Mi Perfil", "mi-perfil"),
-            ("💳", "Mis Pagos", "pagos"),
-            ("🔔", "Notificaciones", "notificaciones"),
-        ],
         "entrenador": [
             ("👥", "Mis Socios", "socios"),
             ("📋", "Rutinas", "rutinas"),
@@ -65,7 +163,7 @@ def build_dashboard(role: str, navigate_fn) -> ft.Column:
     qa_items = quick_data.get(role, [
         ("➕", "Nuevo Socio", "socios"),
         ("📋", "Asignar Rutina", "rutinas"),
-        ("🥗", "Plan Nutricional", "dietas"),
+        ("🍽️", "Asignar Dietas", "asignar-dietas"),
         ("👥", "Ver Personal", "personal"),
         ("💰", "Registrar Pago", "pagos"),
         ("📊", "Ver Reportes", "reportes"),
@@ -286,7 +384,13 @@ def build_dashboard(role: str, navigate_fn) -> ft.Column:
     )
 
     left_col = ft.Column([quick_card, chart_card, trainers_card], spacing=16, expand=True)
-    right_col = ft.Column([activity_card, classes_card], spacing=16, width=300)
+    right_col_controls = [activity_card, classes_card]
+    # Únicamente el dueño ve y controla la ocupación en vivo — ni el
+    # "admin" (mismo panel que el dueño en todo lo demás) ni ningún otro
+    # rol pueden tocar un dato que se muestra en la app de TODOS los socios.
+    if role == "dueno":
+        right_col_controls.insert(0, _tarjeta_ocupacion_en_vivo(page))
+    right_col = ft.Column(right_col_controls, spacing=16, width=300)
 
     return ft.Column([
         hero,

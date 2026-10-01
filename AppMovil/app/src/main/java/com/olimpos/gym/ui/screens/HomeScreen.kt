@@ -31,7 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,7 +55,9 @@ import com.olimpos.gym.data.CLASES_SEMANA
 import com.olimpos.gym.data.ClaseSemana
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.ObjetivoCompetencia
+import com.olimpos.gym.data.Ocupacion
 import com.olimpos.gym.data.ReservaClase
+import com.olimpos.gym.data.cargarOcupacionDesdeFirebase
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
 import com.olimpos.gym.data.guardarReservaClaseEnFirebase
@@ -69,7 +70,6 @@ import com.olimpos.gym.data.yaReservadaEstaSemana
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 @Composable
 fun HomeScreen(
@@ -289,17 +289,23 @@ private fun CarnetMedalla() {
 }
 
 /* ───────────────────── Ocupación en vivo ───────────────────── */
+/** Número real, cargado a mano por el dueño desde el sistema de empleados
+ *  (ver OcupacionRepository.kt) — no hay ningún lector de accesos
+ *  conectado a Firestore para calcularlo solo. Se vuelve a pedir cada 30
+ *  segundos mientras la pantalla está abierta, para que se sienta "en
+ *  vivo" sin golpear Firestore en cada recomposición. */
 @Composable
 private fun OcupacionEnVivo() {
-    var personas by remember { mutableIntStateOf(0) }
+    var ocupacion by remember { mutableStateOf<Ocupacion?>(null) }
     LaunchedEffect(Unit) {
-        delay(350)
         while (true) {
-            personas = 54 + Random.nextInt(27)
-            delay(7000)
+            cargarOcupacionDesdeFirebase()?.let { ocupacion = it }
+            delay(30_000)
         }
     }
-    val frac by animateFloatAsState(personas / 120f, tween(1100), label = "occ")
+    val personas = ocupacion?.personas ?: 0
+    val capacidad = ocupacion?.capacidadMaxima ?: 120
+    val frac by animateFloatAsState(if (capacidad > 0) personas / capacidad.toFloat() else 0f, tween(1100), label = "occ")
     val parpadeo by rememberInfiniteTransition(label = "live").animateFloat(
         1f, 0.25f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "dot"
     )
@@ -330,11 +336,11 @@ private fun OcupacionEnVivo() {
         Spacer(Modifier.height(8.dp))
         Row {
             Text(
-                if (personas == 0) "Conectando…" else "$personas personas entrenando",
+                if (ocupacion == null) "Conectando…" else "$personas personas entrenando",
                 fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted,
                 modifier = Modifier.weight(1f)
             )
-            Text("Capacidad 120", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
+            Text("Capacidad $capacidad", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
         }
     }
 }

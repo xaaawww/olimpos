@@ -79,7 +79,8 @@ ROLES = {
             {"s": "personal", "i": "👨‍💼", "l": "Personal"},
             {"s": "asistencia", "i": "📅", "l": "Asistencia"},
             {"sep": "Nutrición"},
-            {"s": "dietas", "i": "🥗", "l": "Planes Nutricionales"},
+            {"s": "asignar-dietas", "i": "🍽️", "l": "Asignar Dietas"},
+            {"s": "editor-dietas", "i": "🖼️", "l": "Editor Visual de Dietas"},
             {"sep": "Administración"},
             {"s": "membresias", "i": "💳", "l": "Membresías"},
             {"s": "pagos", "i": "💰", "l": "Pagos"},
@@ -157,43 +158,21 @@ ROLES = {
             {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "4"},
         ],
     },
-    "socio": {
-        "label": "Socio",
-        "name": "Martín López",
-        "initials": "ML",
-        "nav": [
-            {"s": "dashboard", "i": "🏠", "l": "Inicio"},
-            {"sep": "Mi Espacio"},
-            {"s": "mi-perfil", "i": "👤", "l": "Mi Perfil"},
-            {"s": "mi-rutina", "i": "📋", "l": "Mi Rutina"},
-            {"s": "mi-dieta", "i": "🥗", "l": "Mi Dieta"},
-            {"s": "mi-progreso", "i": "📊", "l": "Mi Progreso"},
-            {"sep": "Cuenta"},
-            {"s": "pagos", "i": "💳", "l": "Mis Pagos"},
-            {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "2"},
-        ],
-    },
 }
 
 TITLES = {
     "dashboard": "Dashboard",
-    "mi-perfil": "Mi Perfil",
     "socios": "Socios",
     "personal": "Personal",
     "asistencia": "Asistencia",
     "rutinas": "Rutinas",
-    "mi-rutina": "Mi Rutina",
-    "dietas": "Planes Nutricionales",
     "editor-dietas": "Editor Visual de Dietas",
     "asignar-dietas": "Asignación de Dietas",
     "tablon": "Tablón del club",
     "editor-ejercicios": "Editor Visual de Ejercicios",
     "verificacion-marcas": "Verificación de Marcas",
     "membresias": "Asignación de Membresías",
-    "mi-dieta": "Mi Dieta",
     "progreso": "Progreso Físico",
-    "mi-progreso": "Mi Progreso",
     "pagos": "Pagos",
     "reportes": "Reportes",
     "notificaciones": "Notificaciones",
@@ -205,12 +184,6 @@ TITLES = {
 
 # Dashboard data per role
 DASH_STATS = {
-    "socio": [
-        ("Mi Plan", "Premium", "Anual", "gold"),
-        ("Vencimiento", "30/12", "✓ Al día", "green"),
-        ("Mi asistencia", "87%", "▲ Excelente", "green"),
-        ("Semanas activas", "6", "Consecutivas", "blue"),
-    ],
     "entrenador": [
         ("Mis socios", "22", "▲ +2 nuevos", "green"),
         ("Clases hoy", "3", "Programadas", "gold"),

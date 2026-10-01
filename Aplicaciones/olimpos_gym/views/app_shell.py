@@ -7,9 +7,9 @@ from theme import *
 from components import stat_badge, status_pill, avatar, section_card
 from views.dashboard import build_dashboard
 from views.socios import build_socios
-from views.personal import (build_personal, build_asistencia, build_rutinas, build_dietas,
+from views.personal import (build_personal, build_asistencia,
                              build_progreso, build_pagos, build_reportes, build_notificaciones,
-                             build_camaras, build_stock, build_configuracion, build_mi_perfil)
+                             build_camaras, build_stock, build_configuracion)
 from views.editor_dietas import build_editor_dietas
 from views.editor_ejercicios import build_editor_ejercicios
 from views.editor_rutinas import build_editor_rutinas
@@ -184,29 +184,24 @@ class AppShell:
 
     def _build_section(self, section_id: str) -> ft.Control:
         builders = {
-            "dashboard":      lambda: build_dashboard(self.role, lambda s: self._navigate(s)),
+            "dashboard":      lambda: build_dashboard(self.role, lambda s: self._navigate(s), self.page),
             "socios":         lambda: build_socios(self.page),
             "personal":       build_personal,
             "asistencia":     build_asistencia,
             "rutinas":        lambda: build_editor_rutinas(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
-            "mi-rutina":      build_rutinas,
-            "dietas":         build_dietas,
             "editor-dietas":  lambda: build_editor_dietas(self.page),
             "asignar-dietas": lambda: build_asignar_dietas(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
             "tablon":         lambda: build_tablon(self.page, self.role, f"{self.role_data['name']} — {self.role_data['label']}"),
             "editor-ejercicios": lambda: build_editor_ejercicios(self.page),
             "verificacion-marcas": lambda: build_verificacion_marcas(self.page, self.role_data["name"]),
             "membresias":     lambda: build_editor_membresias(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
-            "mi-dieta":       build_dietas,
             "progreso":       build_progreso,
-            "mi-progreso":    build_progreso,
             "pagos":          build_pagos,
             "reportes":       build_reportes,
             "notificaciones": build_notificaciones,
             "camaras":        build_camaras,
             "stock":          build_stock,
             "configuracion":  build_configuracion,
-            "mi-perfil":      build_mi_perfil,
             "argos":          lambda: build_argos(self.page, self.role),
         }
         builder = builders.get(section_id, lambda: ft.Text(f"Sección: {section_id}"))
