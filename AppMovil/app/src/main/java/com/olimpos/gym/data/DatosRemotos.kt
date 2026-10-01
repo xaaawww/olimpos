@@ -33,6 +33,9 @@ object DatosRemotos {
     var rutinaAsignada by mutableStateOf<RutinaDelDia?>(null); private set
     var ingresos by mutableStateOf<List<IngresoRegistro>?>(null); private set
     var reservasClase by mutableStateOf<List<ReservaClase>?>(null); private set
+    /** clase_id -> cuántos socios (de cualquiera) la tienen reservada esta
+     *  semana — para el "X/cupo" real de Inicio. Vacío = todavía no llegó. */
+    var cuposClases by mutableStateOf<Map<String, Int>>(emptyMap()); private set
     /** uid del ocupante -> número de locker, de TODOS los socios (hace
      *  falta para saber qué lockers están libres/ocupados por otro). */
     var lockersOcupados by mutableStateOf<Map<Int, String>?>(null); private set
@@ -74,7 +77,7 @@ object DatosRemotos {
     fun limpiar() {
         marcas = null; platos = null; ejercicios = null; rangosSocios = null
         datosFisicosPropios = null; seriesEntrenamiento = null; rutinaAsignada = null
-        ingresos = null; reservasClase = null; lockersOcupados = null
+        ingresos = null; reservasClase = null; cuposClases = emptyMap(); lockersOcupados = null
         perfilNutricional = null; membresia = null; historialPagos = emptyList(); platosProbados = null
         registrosAgua = null; fotosProgreso = null; companeros = null
         diasEntrenadosConCompaneros = 0
@@ -96,6 +99,7 @@ object DatosRemotos {
             launch { rutinaAsignada = cargarRutinaAsignada() }
             launch { ingresos = cargarIngresosDesdeFirebase() }
             launch { reservasClase = cargarReservasClaseDesdeFirebase() }
+            launch { cuposClases = cargarCuposClasesDesdeFirebase() }
             launch { lockersOcupados = cargarLockersDesdeFirebase() }
             launch { perfilNutricional = cargarPerfilNutricionalDesdeFirebase() }
             launch { membresia = cargarMembresiaDesdeFirebase() }
@@ -180,6 +184,7 @@ object DatosRemotos {
     /** Se llama al tocar "Reservar" en una clase de Inicio. */
     suspend fun recargarReservasClase() {
         reservasClase = cargarReservasClaseDesdeFirebase()
+        cuposClases = cargarCuposClasesDesdeFirebase()
     }
 
     /** Se llama al reservar/liberar un locker en Mis lockers. */

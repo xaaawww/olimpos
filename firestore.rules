@@ -88,12 +88,49 @@ service cloud.firestore {
     }
 
     // Reservas de clase: el propio socio reserva un lugar en una clase de
-    // la semana (ver ClasesRepository.kt) — solo lee/crea las propias.
-    match /reservas_clase/{reservaId} {
-      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+    // la semana (ver ClasesRepository.kt) — solo lee/crea/borra las
+    // propias. El id del documento es "{uid}_{clase_id}_{semana}" (no al
+    // azar), así que reservar dos veces la misma clase la misma semana
+    // sobreescribe el mismo documento en vez de duplicarlo, y cancelar es
+    // simplemente borrar ese id conocido.
+    match /reservas_clase/{docId} {
+      // "resource == null" cubre la primera reserva de todas: antes de que
+      // el documento exista, el propio cliente lo "lee" dentro de la
+      // transacción para ver si ya estaba reservado (ver
+      // guardarReservaClaseEnFirebase) — sin este caso, leer un documento
+      // que todavía no existe siempre da PERMISSION_DENIED (resource.data
+      // sobre null), así que nunca se podía reservar nada la primera vez.
+      allow read: if request.auth != null
+                  && (resource == null || resource.data.socio_id == request.auth.uid);
       allow create: if request.auth != null
-                    && request.resource.data.socio_id == request.auth.uid;
-      allow update, delete: if false;
+                    && request.resource.data.socio_id == request.auth.uid
+                    && docId == request.auth.uid + '_' + request.resource.data.clase_id + '_' + request.resource.data.semana;
+      allow delete: if request.auth != null && resource.data.socio_id == request.auth.uid;
+      allow update: if false;
+    }
+
+    // Cupos de clase: cuántos socios (de cualquiera) tienen reservada cada
+    // clase esta semana — un contador aparte de "reservas_clase" porque
+    // esa colección cada socio solo puede leer la propia, y este número sí
+    // tiene que ser público para mostrar "X/cupo" en Inicio. El id del
+    // documento es "{clase_id}_{semana}". El tope máximo (cupo) NO vive
+    // acá — es un dato fijo en el código de la app (ClaseSemana.cupo) — así
+    // que esta regla solo valida que el contador suba o baje de a uno por
+    // vez, no que respete el tope: eso lo hace la propia app en una
+    // transacción (ver guardarReservaClaseEnFirebase). Es una limitación
+    // aceptada a propósito, igual que el cupo diario de Argos: no hay
+    // plata de por medio, así que no justifica una regla más compleja.
+    match /clases_cupos/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.reservados == 1
+                    && docId == request.resource.data.clase_id + '_' + request.resource.data.semana;
+      allow update: if request.auth != null
+                    && request.resource.data.clase_id == resource.data.clase_id
+                    && request.resource.data.semana == resource.data.semana
+                    && (request.resource.data.reservados == resource.data.reservados + 1
+                        || request.resource.data.reservados == resource.data.reservados - 1);
+      allow delete: if false;
     }
 
     // Rutinas asignadas: la arma un entrenador/dueño desde el sistema de

@@ -176,21 +176,29 @@ val PISOS = listOf(
 data class ClaseSemana(
     val id: String,
     val hora: String, val dia: String, val nombre: String,
-    val lugar: String, val descripcion: String
+    val lugar: String, val descripcion: String,
+    /** Cupo máximo real de esta clase — lo hace cumplir
+     *  guardarReservaClaseEnFirebase (ver ClasesRepository.kt). Es un dato
+     *  fijo acá, no en Firestore: cambiar el aforo de una clase es una
+     *  decisión del gimnasio, no algo que deba tocar un socio. */
+    val cupo: Int
 )
 
 val CLASES_SEMANA = listOf(
     ClaseSemana(
         "spinning-hoy", "19:30", "HOY", "Spinning Intenso", "Sala de Spinning · Piso 1 · Prof. Martina",
-        "Clase grupal en bicicleta fija con cambios de ritmo e intervalos guiados por la profesora. Foco en resistencia cardiovascular y piernas — llevá botella de agua y toalla."
+        "Clase grupal en bicicleta fija con cambios de ritmo e intervalos guiados por la profesora. Foco en resistencia cardiovascular y piernas — llevá botella de agua y toalla.",
+        cupo = 20
     ),
     ClaseSemana(
         "boxeo-mar", "18:00", "MAR", "Boxeo", "Sala de Boxeo · Piso 2",
-        "Técnica de golpes y combinaciones sobre bolsa, más trabajo de acondicionamiento físico. No hace falta experiencia previa; el gimnasio presta guantes y vendas."
+        "Técnica de golpes y combinaciones sobre bolsa, más trabajo de acondicionamiento físico. No hace falta experiencia previa; el gimnasio presta guantes y vendas.",
+        cupo = 15
     ),
     ClaseSemana(
         "danza-sab", "10:00", "SÁB", "Danza / Aeróbicos", "Sala de Danza · Piso 1",
-        "Rutina coreografiada de bajo impacto pensada para resistencia y coordinación. Clase apta para todo nivel, ritmo variado según la coreografía de la semana."
+        "Rutina coreografiada de bajo impacto pensada para resistencia y coordinación. Clase apta para todo nivel, ritmo variado según la coreografía de la semana.",
+        cupo = 20
     )
 )
 

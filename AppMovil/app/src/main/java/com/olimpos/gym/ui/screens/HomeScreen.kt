@@ -57,6 +57,8 @@ import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.ObjetivoCompetencia
 import com.olimpos.gym.data.Ocupacion
 import com.olimpos.gym.data.ReservaClase
+import com.olimpos.gym.data.ResultadoReserva
+import com.olimpos.gym.data.cancelarReservaClaseEnFirebase
 import com.olimpos.gym.data.cargarOcupacionDesdeFirebase
 import com.olimpos.gym.data.cantidadEquivalencia
 import com.olimpos.gym.data.equivalenciaDeCarga
@@ -148,7 +150,7 @@ fun HomeScreen(
         SeccionLabel("Clases de la semana")
         val reservasClase = DatosRemotos.reservasClase ?: emptyList()
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase, reservasClase) }
+            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase, reservasClase, DatosRemotos.cuposClases) }
         }
 
         // ── Equivalencia de carga movida ──
@@ -387,10 +389,13 @@ private fun EquivalenciaCarga() {
    Tocar la fila (fuera del botón de reservar) despliega la descripción de
    la clase, para saber de qué se trata antes de anotarse. */
 @Composable
-fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>) {
+fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposClases: Map<String, Int>) {
     var expandida by remember { mutableStateOf(false) }
-    var reservando by remember { mutableStateOf(false) }
-    val reservado = reservando || yaReservadaEstaSemana(reservasClase, clase.id)
+    var procesando by remember { mutableStateOf(false) }
+    var aviso by remember { mutableStateOf<String?>(null) }
+    val reservado = yaReservadaEstaSemana(reservasClase, clase.id)
+    val ocupados = cuposClases[clase.id] ?: 0
+    val completa = !reservado && ocupados >= clase.cupo
     val scope = rememberCoroutineScope()
     TarjetaOro(
         Modifier
@@ -416,33 +421,52 @@ fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>) {
             Column(Modifier.weight(1f)) {
                 Text(clase.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = Olimpos.Cream)
                 Text(clase.lugar, fontSize = 11.5.sp, color = Olimpos.Muted)
+                Text(
+                    "$ocupados/${clase.cupo} reservados",
+                    fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
+                    color = if (completa) Olimpos.Red else Olimpos.Muted
+                )
             }
             Box(
                 Modifier
                     .clip(RoundedCornerShape(100.dp))
-                    .background(if (reservado) Color.Transparent else Olimpos.Gold)
+                    .background(if (reservado || completa) Color.Transparent else Olimpos.Gold)
                     .border(
                         1.dp,
-                        if (reservado) Olimpos.Green else Color.Transparent,
+                        if (reservado) Olimpos.Green else if (completa) Olimpos.Muted else Color.Transparent,
                         RoundedCornerShape(100.dp)
                     )
                     .clickable(
-                        enabled = !reservado,
+                        enabled = !procesando && !completa,
                         interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                         indication = null
                     ) {
-                        reservando = true
+                        procesando = true
+                        aviso = null
                         scope.launch {
-                            guardarReservaClaseEnFirebase(clase.id)
+                            if (reservado) {
+                                cancelarReservaClaseEnFirebase(clase.id)
+                            } else {
+                                when (guardarReservaClaseEnFirebase(clase.id, clase.cupo)) {
+                                    ResultadoReserva.CLASE_LLENA -> aviso = "Justo se llenó — probá con otra clase."
+                                    ResultadoReserva.ERROR -> aviso = "No se pudo reservar. Probá de nuevo."
+                                    else -> {}
+                                }
+                            }
                             DatosRemotos.recargarReservasClase()
+                            procesando = false
                         }
                     }
                     .padding(horizontal = 13.dp, vertical = 9.dp)
             ) {
                 Text(
-                    if (reservado) "Reservado ✓" else "Reservar",
+                    when {
+                        reservado -> "Reservado ✓ · Cancelar"
+                        completa -> "Completo"
+                        else -> "Reservar"
+                    },
                     fontSize = 11.sp, fontWeight = FontWeight.Black,
-                    color = if (reservado) Olimpos.Green else Olimpos.Dark
+                    color = if (reservado) Olimpos.Green else if (completa) Olimpos.Muted else Olimpos.Dark
                 )
             }
         }
@@ -451,6 +475,10 @@ fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>) {
                 clase.descripcion, fontSize = 12.sp, color = Olimpos.Muted, lineHeight = 17.sp,
                 modifier = Modifier.padding(top = 11.dp)
             )
+        }
+        aviso?.let {
+            Text(it, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Red,
+                modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
