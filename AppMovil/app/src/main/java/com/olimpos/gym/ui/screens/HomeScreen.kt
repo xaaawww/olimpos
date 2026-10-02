@@ -162,7 +162,7 @@ fun HomeScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             AccesoRapido(
                 "🏋️", "Mi rutina",
-                DatosRemotos.rutinaAsignada?.let { "${it.ejercicios.size} ejercicios hoy" } ?: "Todavía sin asignar",
+                DatosRemotos.rutinaActiva?.let { "${it.ejercicios.size} ejercicios hoy" } ?: "Todavía sin asignar",
                 Modifier.weight(1f), onIrEntrenar
             )
             val objetivoDieta = leerObjetivoArena(LocalContext.current) ?: ObjetivoCompetencia.SALUD

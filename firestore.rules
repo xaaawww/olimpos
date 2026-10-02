@@ -133,13 +133,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Rutinas asignadas: la arma un entrenador/dueño desde el sistema de
-    // empleados (Admin SDK, no pasa por estas reglas — ver rutinas_repo.py),
-    // un documento por socio (id = su uid). El socio solo la lee, nunca la
-    // escribe desde la app móvil.
-    match /rutinas_asignadas/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
+    // Rutinas asignadas: antes había una sola por socio (id = su uid),
+    // armada solo por un entrenador desde el sistema de empleados. Ahora
+    // puede haber varias — las que arma un entrenador/dueño (Admin SDK,
+    // "origen" = "entrenador", no pasan por estas reglas para crearse o
+    // editarse) y las que arma el propio socio desde la app ("origen" =
+    // "socio") — por eso el id de documento pasó a ser uno autogenerado
+    // (ya no el uid) y cada rutina guarda su "socio_id". El socio elige
+    // cuál seguir en Entrenar marcando "activa" en una sola a la vez —
+    // puede tocar ese campo en CUALQUIERA de las suyas (incluida una hecha
+    // por el entrenador), pero solo puede crear/editar/borrar el contenido
+    // de las que armó él mismo.
+    match /rutinas_asignadas/{docId} {
+      allow read: if request.auth != null && resource.data.socio_id == request.auth.uid;
+
+      allow create: if request.auth != null
+                    && request.resource.data.socio_id == request.auth.uid
+                    && request.resource.data.origen == 'socio';
+
+      allow update: if request.auth != null && resource.data.socio_id == request.auth.uid && (
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activa'])
+                      || (resource.data.origen == 'socio'
+                          && request.resource.data.socio_id == request.auth.uid
+                          && request.resource.data.origen == 'socio')
+                    );
+
+      allow delete: if request.auth != null
+                    && resource.data.socio_id == request.auth.uid
+                    && resource.data.origen == 'socio';
     }
 
     // Lockers: un documento por socio (id = su uid), el locker que tiene

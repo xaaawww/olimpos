@@ -69,6 +69,7 @@ private fun repsSugeridas(detalle: DetalleEjercicio?): Int =
 fun EntrenarScreen() {
     var detalleEjercicio by remember { mutableStateOf<EjercicioRutina?>(null) }
     var mostrarEntrenador by remember { mutableStateOf(false) }
+    var mostrarMisRutinas by remember { mutableStateOf(false) }
 
     detalleEjercicio?.let { ej ->
         DetalleTecnicaRutina(ej, onVolver = { detalleEjercicio = null })
@@ -78,11 +79,18 @@ fun EntrenarScreen() {
         EntrenadorScreen(onVolver = { mostrarEntrenador = false })
         return
     }
+    if (mostrarMisRutinas) {
+        MisRutinasScreen(onVolver = { mostrarMisRutinas = false })
+        return
+    }
 
     val scope = rememberCoroutineScope()
-    val rutina = DatosRemotos.rutinaAsignada
+    val rutina = DatosRemotos.rutinaActiva
     if (rutina == null) {
-        SinRutinaAsignada(onActualizar = { scope.launch { DatosRemotos.recargarRutinaAsignada() } })
+        SinRutinaAsignada(
+            onActualizar = { scope.launch { DatosRemotos.recargarMisRutinas() } },
+            onMisRutinas = { mostrarMisRutinas = true },
+        )
         return
     }
 
@@ -130,7 +138,16 @@ fun EntrenarScreen() {
                 )
             }
         }
-        Text("Rutina creada por ${rutina.creadaPor}", fontSize = 12.5.sp, color = Olimpos.Muted)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Rutina creada por ${rutina.creadaPor}", fontSize = 12.5.sp, color = Olimpos.Muted,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                "Cambiar rutina →", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.GoldLight,
+                modifier = Modifier.clickable { mostrarMisRutinas = true }
+            )
+        }
 
         SeccionLabel("Ejercicios")
         rutina.ejercicios.forEachIndexed { i, ej ->
@@ -193,17 +210,20 @@ fun EntrenarScreen() {
     }
 }
 
-/** Estado vacío de Entrenar: todavía ningún entrenador armó una rutina real
- *  para este socio (antes acá se mostraba siempre la misma rutina fija,
- *  "Empuje pesado", para cualquiera que abriera la app — ver
- *  cargarRutinaAsignada). */
+/** Estado vacío de Entrenar: ninguna rutina marcada como activa todavía —
+ *  ni asignada por un entrenador ni armada por el propio socio (antes acá
+ *  se mostraba siempre la misma rutina fija, "Empuje pesado", para
+ *  cualquiera que abriera la app — ver cargarMisRutinas en
+ *  RutinasRepository.kt). */
 @Composable
-private fun SinRutinaAsignada(onActualizar: () -> Unit) {
+private fun SinRutinaAsignada(onActualizar: () -> Unit, onMisRutinas: () -> Unit) {
     var mostrarEntrenador by remember { mutableStateOf(false) }
     if (mostrarEntrenador) {
         EntrenadorScreen(onVolver = { mostrarEntrenador = false })
         return
     }
+
+    val tieneAlgunaSinSeguir = !DatosRemotos.misRutinas.isNullOrEmpty()
 
     Column(
         Modifier
@@ -218,16 +238,22 @@ private fun SinRutinaAsignada(onActualizar: () -> Unit) {
             Text("🏋️", fontSize = 44.sp)
             Spacer(Modifier.height(14.dp))
             Text(
-                "Todavía no tenés una rutina asignada", fontSize = 17.sp, fontWeight = FontWeight.Black,
+                if (tieneAlgunaSinSeguir) "Todavía no elegiste qué rutina seguir" else "Todavía no tenés una rutina",
+                fontSize = 17.sp, fontWeight = FontWeight.Black,
                 color = Olimpos.Cream, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Pedile a tu entrenador que te arme una desde el sistema del gimnasio — en cuanto la guarde, la vas a ver acá.",
+                if (tieneAlgunaSinSeguir)
+                    "Tenés rutinas guardadas en \"Mis rutinas\" — entrá y elegí cuál seguir."
+                else
+                    "Pedile a tu entrenador que te arme una, o armate la tuya propia en \"Mis rutinas\".",
                 fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center, lineHeight = 17.sp
             )
         }
         Spacer(Modifier.height(24.dp))
+        BotonPrincipal("📋 Mis rutinas") { onMisRutinas() }
+        Spacer(Modifier.height(10.dp))
         BotonSecundario("🔄 Ya me la asignaron, actualizar") { onActualizar() }
         Spacer(Modifier.height(20.dp))
         TarjetaOro(

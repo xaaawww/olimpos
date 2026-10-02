@@ -97,7 +97,7 @@ class EditorRutinasView:
 
     def _fila_socio(self, socio: dict) -> ft.Container:
         uid = socio["uid"]
-        rutina = self.rutinas.get(uid)
+        rutina = repo.obtener_rutina_entrenador(uid)
         nombre = socio.get("nombre", "?")
         iniciales = "".join(p[0] for p in nombre.split()[:2]).upper() or "?"
         estado = status_pill(f"✓ {rutina['nombre']}", "active") if rutina else status_pill("Sin rutina asignada", "pending")
@@ -129,7 +129,7 @@ class EditorRutinasView:
     # ══════════════════════════ EDITOR ══════════════════════════
     def _abrir_editor(self, socio_id: str):
         self.socio_id = socio_id
-        self.rutina = repo.obtener_rutina(socio_id) or repo.nueva_rutina(socio_id, self.nombre_entrenador)
+        self.rutina = repo.obtener_rutina_entrenador(socio_id) or repo.nueva_rutina(socio_id, self.nombre_entrenador)
         # Copia superficial de la lista de ejercicios para poder editar sin
         # tocar la caché hasta que se guarde de verdad.
         self.rutina = {**self.rutina, "ejercicios": [dict(ej) for ej in self.rutina["ejercicios"]]}
@@ -163,7 +163,8 @@ class EditorRutinasView:
                 size=12.5, color=TEXT_MUTED,
             )]
 
-        return ft.Column([
+        rutinas_propias = repo.obtener_rutinas_propias(self.socio_id)
+        bloques = [
             page_header(
                 f"Rutina de {self._nombre_socio(self.socio_id)}", "Armá los ejercicios, series y peso de partida",
                 actions=[action_button("← Volver al listado", "outline", on_click=self._volver_lista)],
@@ -180,9 +181,32 @@ class EditorRutinasView:
             ], spacing=10), padding=16),
             ft.Row([
                 action_button("💾 Guardar rutina", "gold", on_click=self._guardar),
-                self._boton_texto("🗑️ Eliminar rutina asignada", RED, self._eliminar) if repo.obtener_rutina(self.socio_id) else ft.Container(),
+                self._boton_texto("🗑️ Eliminar rutina asignada", RED, self._eliminar) if repo.obtener_rutina_entrenador(self.socio_id) else ft.Container(),
             ], spacing=8),
-        ], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True)
+        ]
+        if rutinas_propias:
+            bloques.append(section_card(ft.Column([
+                ft.Text("RUTINAS PROPIAS DEL SOCIO", size=11, weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+                ft.Text("Armadas por él mismo desde la app — de solo lectura acá.", size=11.5, color=TEXT_MUTED),
+                divider(),
+                ft.Column([self._fila_rutina_propia(r) for r in rutinas_propias], spacing=8),
+            ], spacing=8), padding=16))
+        return ft.Column(bloques, spacing=16, scroll=ft.ScrollMode.AUTO, expand=True)
+
+    def _fila_rutina_propia(self, rutina: dict) -> ft.Container:
+        return ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    ft.Text(rutina.get("nombre", "?"), size=13, weight=ft.FontWeight.W_700, color=DARK, expand=True),
+                    status_pill("✓ Activa" if rutina.get("activa") else "No seguida", "active" if rutina.get("activa") else "pending"),
+                ]),
+                ft.Text(
+                    ", ".join(ej.get("nombre", "?") for ej in rutina.get("ejercicios", [])) or "Sin ejercicios todavía",
+                    size=11.5, color=TEXT_MUTED,
+                ),
+            ], spacing=4),
+            bgcolor=CREAM, border=ft.border.all(1, GRAY_LIGHT), border_radius=10, padding=10,
+        )
 
     # ── Fila de un ejercicio: dos estados — buscando (sin elegir todavía)
     # o ya elegido (con su bodygraph y campos de series/peso). ──
@@ -411,7 +435,7 @@ class EditorRutinasView:
 
     def _eliminar(self, e):
         try:
-            self.rutinas = repo.eliminar_rutina(self.socio_id)
+            self.rutinas = repo.eliminar_rutina(self.rutina["id"], self.socio_id)
         except Exception as ex:
             self.aviso = f"No se pudo eliminar: {ex}"
             self._render()

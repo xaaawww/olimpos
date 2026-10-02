@@ -206,8 +206,8 @@ val CLASES_SEMANA = listOf(
    Serie a serie, con un peso de partida ajustable (ver botones +/- en la
    tarjeta): el socio registra cada serie a medida que la hace, y esa carga
    es la que se compara contra el Ghost Mode. La rutina real de cada socio
-   se arma desde el sistema de empleados y se lee vía
-   cargarRutinaAsignada() (EntrenamientoRepository.kt) — acá solo viven las
+   se arma desde el sistema de empleados o desde la propia app y se lee vía
+   cargarMisRutinas() (RutinasRepository.kt) — acá solo viven las
    formas de los datos, no un ejemplo fijo. */
 data class EjercicioRutina(
     val nombre: String,
@@ -225,4 +225,17 @@ data class EjercicioRutina(
     val ejercicioId: String? = null
 )
 
-data class RutinaDelDia(val nombre: String, val creadaPor: String, val ejercicios: List<EjercicioRutina>)
+/** Antes había una sola rutina por socio. Ahora puede tener varias — como
+ *  mucho una con [origen] "entrenador" (armada desde el sistema de
+ *  empleados) y cero o más "socio" (armadas por él mismo desde la app, ver
+ *  RutinasRepository.kt) — y sigue en Entrenar la que tenga [activa] en
+ *  `true`. Una rutina propia puede tener ejercicios con [EjercicioRutina.ejercicioId]
+ *  nulo (nombre libre, sin ficha de técnica real); una del entrenador no. */
+data class RutinaCompleta(
+    val id: String,
+    val nombre: String,
+    val creadaPor: String,
+    val origen: String,
+    val activa: Boolean,
+    val ejercicios: List<EjercicioRutina>
+)

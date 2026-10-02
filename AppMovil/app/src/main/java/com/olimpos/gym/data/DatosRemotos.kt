@@ -26,11 +26,16 @@ object DatosRemotos {
     var rangosSocios by mutableStateOf<List<SocioRango>?>(null); private set
     var datosFisicosPropios by mutableStateOf<DatosFisicos?>(null); private set
     var seriesEntrenamiento by mutableStateOf<List<SerieEntrenamiento>?>(null); private set
-    /** `null` = todavía no se sabe (recién arrancando) O ya se sabe que no
-     *  hay ninguna asignada — misma ambigüedad que [datosFisicosPropios],
-     *  aceptable porque [precargar] ya corrió antes de que el socio llegue
-     *  a abrir Entrenar (ver MainActivity). */
-    var rutinaAsignada by mutableStateOf<RutinaDelDia?>(null); private set
+    /** TODAS las rutinas del socio (de cualquier origen) — `null` = todavía
+     *  no se sabe (recién arrancando) O ya se sabe que no tiene ninguna,
+     *  misma ambigüedad que [datosFisicosPropios], aceptable porque
+     *  [precargar] ya corrió antes de que el socio llegue a abrir Entrenar
+     *  (ver MainActivity). */
+    var misRutinas by mutableStateOf<List<RutinaCompleta>?>(null); private set
+
+    /** La que sigue hoy en Entrenar — la que tenga `activa == true`, si hay
+     *  alguna (ver [marcarRutinaActiva]). */
+    val rutinaActiva: RutinaCompleta? get() = misRutinas?.firstOrNull { it.activa }
     var ingresos by mutableStateOf<List<IngresoRegistro>?>(null); private set
     var reservasClase by mutableStateOf<List<ReservaClase>?>(null); private set
     /** clase_id -> cuántos socios (de cualquiera) la tienen reservada esta
@@ -76,7 +81,7 @@ object DatosRemotos {
      *  membresía y los datos de la anterior hasta reiniciar la app. */
     fun limpiar() {
         marcas = null; platos = null; ejercicios = null; rangosSocios = null
-        datosFisicosPropios = null; seriesEntrenamiento = null; rutinaAsignada = null
+        datosFisicosPropios = null; seriesEntrenamiento = null; misRutinas = null
         ingresos = null; reservasClase = null; cuposClases = emptyMap(); lockersOcupados = null
         perfilNutricional = null; membresia = null; historialPagos = emptyList(); platosProbados = null
         registrosAgua = null; fotosProgreso = null; companeros = null
@@ -96,7 +101,7 @@ object DatosRemotos {
             launch { datosFisicosPropios = cargarDatosFisicosPropios() }
             launch { rangosSocios = cargarRangosDeSocios() }
             launch { seriesEntrenamiento = cargarSeriesDesdeFirebase() }
-            launch { rutinaAsignada = cargarRutinaAsignada() }
+            launch { misRutinas = cargarMisRutinas() }
             launch { ingresos = cargarIngresosDesdeFirebase() }
             launch { reservasClase = cargarReservasClaseDesdeFirebase() }
             launch { cuposClases = cargarCuposClasesDesdeFirebase() }
@@ -204,9 +209,10 @@ object DatosRemotos {
     }
 
     /** Botón manual en Entrenar, por si el entrenador asignó o cambió la
-     *  rutina mientras el socio ya tenía la app abierta. */
-    suspend fun recargarRutinaAsignada() {
-        rutinaAsignada = cargarRutinaAsignada()
+     *  rutina (o el socio armó/editó/eligió una) mientras ya tenía la app
+     *  abierta. */
+    suspend fun recargarMisRutinas() {
+        misRutinas = cargarMisRutinas()
     }
 
     /** Se llama después de cargar una marca nueva (ver [MarcasScreen]), para
