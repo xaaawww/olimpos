@@ -4,31 +4,30 @@
 // la clave de Anthropic en ArgosWorker, un secreto adentro de un APK
 // instalado no es un secreto. La app le pide a ESTE Worker "quiero pagar el
 // plan Oro" (con su propio token de Firebase Auth), el Worker arma el cobro
-// en Mercado Pago con el precio que él mismo conoce —nunca el que mande la
-// app— y devuelve el link de pago (Checkout Pro).
+// en Mercado Pago con el precio que él mismo conoce —el de la tabla
+// "membresias" de la base de datos, nunca el que mande la app— y devuelve el
+// link de pago (Checkout Pro).
 //
 // Cuando el pago se aprueba, Mercado Pago le avisa a este mismo Worker
-// (webhook). Ahí, y SOLO ahí, se activa la membresía en Firestore — nunca
-// se confía en que la app "avise" que pagó, porque eso se podría simular
-// sin pagar nada. El webhook tampoco confía en lo que dice el aviso en sí
-// (alguien podría mandar uno falso): vuelve a preguntarle a la API de
+// (webhook). Ahí, y SOLO ahí, se activa la membresía en la base de datos —
+// nunca se confía en que la app "avise" que pagó, porque eso se podría
+// simular sin pagar nada. El webhook tampoco confía en lo que dice el aviso
+// en sí (alguien podría mandar uno falso): vuelve a preguntarle a la API de
 // Mercado Pago, con el propio Access Token, si ESE pago está realmente
-// aprobado, antes de tocar Firestore.
+// aprobado, antes de tocar la base.
 //
-// Para escribir en Firestore hace falta la cuenta de servicio de Firebase
-// (mismas credenciales que ya usa el sistema de empleados en Python) —acá
-// no hay Admin SDK, así que se pide un access token de Google a mano
-// (JWT firmado con la clave privada de la cuenta de servicio, intercambiado
-// por un token en oauth2.googleapis.com). Es el mismo mecanismo que usan
-// las Admin SDK de Firebase por dentro, hecho a mano con Web Crypto.
+// El pago y el cambio de membresía se guardan en UNA transacción (o se
+// aplican los dos o ninguno), y son idempotentes: si Mercado Pago reintenta
+// el mismo aviso, el segundo intento no duplica nada.
 
-import { importPKCS8, SignJWT, importX509, jwtVerify, decodeProtectedHeader } from "jose";
+import { Pool, neon } from "@neondatabase/serverless";
+import { importX509, jwtVerify, decodeProtectedHeader } from "jose";
 
 export interface Env {
   MP_ACCESS_TOKEN: string;
   FIREBASE_PROJECT_ID: string;
-  FIREBASE_SA_EMAIL: string;
-  FIREBASE_SA_PRIVATE_KEY: string;
+  /** Cadena de conexión de Neon (secreto). */
+  DATABASE_URL: string;
 }
 
 const CERTS_URL =
@@ -40,16 +39,6 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Mismos 3 planes y precios que PLANES_MEMBRESIA en la app móvil (SocioData.kt)
-// y que PLANES en el sistema de empleados (membresias_repo.py). El precio
-// vive ACÁ, del lado del servidor, para que nadie pueda pagar un plan Platino
-// al precio de uno Bronce con una app modificada.
-const PRECIOS: Record<string, number> = {
-  Bronce: 18000,
-  Oro: 28000,
-  Platino: 42000,
-};
-
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -57,12 +46,11 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-/** Verifica un ID token de Firebase Auth contra el proyecto de OlimpΩs —
- *  mismo mecanismo que ArgosWorker/src/index.ts (ver ese archivo para más
- *  detalle). Devuelve el uid y el email del socio logueado — el email hace
- *  falta para armar la preferencia de pago (ver [crearPreferencia]):
- *  Mercado Pago necesita un "payer.email" para completar el checkout de
- *  invitado con tarjeta, si no, el pago se cae en el último paso. */
+/** Verifica un ID token de Firebase Auth contra el proyecto de OlimpΩs.
+ *  Devuelve el uid y el email del socio logueado — el email hace falta para
+ *  armar la preferencia de pago (ver [crearPreferencia]): Mercado Pago
+ *  necesita un "payer.email" para completar el checkout de invitado con
+ *  tarjeta, si no, el pago se cae en el último paso. */
 async function verificarTokenFirebase(
   token: string,
   projectId: string
@@ -85,86 +73,63 @@ async function verificarTokenFirebase(
   return { uid: payload.sub, email: typeof payload.email === "string" ? payload.email : null };
 }
 
-/** Access token de Google (OAuth2) para la cuenta de servicio de Firebase,
- *  vía el flujo "JWT bearer" — el mismo que usa por dentro cualquier Admin
- *  SDK. Alcance "datastore": lectura/escritura de Firestore, nada más
- *  (no hace falta "cloud-platform" completo para esto). */
-async function tokenDeServicioGoogle(env: Env): Promise<string> {
-  const clavePrivada = await importPKCS8(env.FIREBASE_SA_PRIVATE_KEY, "RS256");
-  const ahora = Math.floor(Date.now() / 1000);
-  const jwt = await new SignJWT({ scope: "https://www.googleapis.com/auth/datastore" })
-    .setProtectedHeader({ alg: "RS256" })
-    .setIssuer(env.FIREBASE_SA_EMAIL)
-    .setSubject(env.FIREBASE_SA_EMAIL)
-    .setAudience("https://oauth2.googleapis.com/token")
-    .setIssuedAt(ahora)
-    .setExpirationTime(ahora + 3600)
-    .sign(clavePrivada);
+/** Precio vigente de un plan, de la tabla "membresias" (única fuente de verdad:
+ *  la misma que usa la app y el sistema de empleados). `null` si no existe. */
+async function precioDelPlan(env: Env, plan: string): Promise<number | null> {
+  const sql = neon(env.DATABASE_URL);
+  const filas = (await sql.query("SELECT precio FROM membresias WHERE nombre = $1 AND estado = 'activa'", [plan])) as { precio: string }[];
+  return filas.length ? Math.round(Number(filas[0].precio)) : null;
+}
 
-  const resp = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const datos = (await resp.json()) as { access_token?: string; error?: string };
-  if (!resp.ok || !datos.access_token) {
-    throw new Error("No se pudo autenticar con Google: " + JSON.stringify(datos));
+/** Registra un pago aprobado y activa la membresía, todo en una transacción.
+ *  Idempotente: el id de pago de Mercado Pago es único en "pagos" (columna
+ *  numero_comprobante), así que un reintento del webhook no hace nada. */
+async function registrarPagoYActivarMembresia(env: Env, pagoId: string, uid: string, plan: string, monto: number): Promise<void> {
+  const pool = new Pool({ connectionString: env.DATABASE_URL });
+  const cliente = await pool.connect();
+  try {
+    await cliente.query("BEGIN");
+    const yaRegistrado = await cliente.query("SELECT 1 FROM pagos WHERE numero_comprobante = $1", [pagoId]);
+    if (yaRegistrado.rows.length) {
+      await cliente.query("ROLLBACK");
+      return;
+    }
+    const socio = await cliente.query("SELECT id_socio FROM socios WHERE firebase_uid = $1", [uid]);
+    const membresia = await cliente.query("SELECT id_membresia, duracion_dias FROM membresias WHERE nombre = $1", [plan]);
+    const planPago = await cliente.query("SELECT id_plan_pago FROM planespago WHERE nombre = 'Pago único'");
+    if (!socio.rows.length || !membresia.rows.length || !planPago.rows.length) {
+      await cliente.query("ROLLBACK");
+      throw new Error(`No se pudo registrar el pago ${pagoId}: socio, plan o forma de pago inexistente.`);
+    }
+    const idSocio = socio.rows[0].id_socio;
+    const { id_membresia, duracion_dias } = membresia.rows[0];
+
+    await cliente.query(
+      `INSERT INTO mediospago (id_socio, tipo, proveedor, estado) VALUES ($1, 'Mercado Pago', 'Mercado Pago', 'activo')
+       ON CONFLICT (id_socio, tipo, proveedor) DO NOTHING`, [idSocio]);
+    const medio = await cliente.query("SELECT id_medio_pago FROM mediospago WHERE id_socio = $1 AND tipo = 'Mercado Pago' AND proveedor = 'Mercado Pago'", [idSocio]);
+
+    // Una sola membresía activa por socio: la anterior queda como 'cancelada' (historial).
+    await cliente.query(
+      `UPDATE sociomembresia SET estado = 'cancelada', fecha_cancelacion = (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date
+       WHERE id_socio = $1 AND estado = 'activa'`, [idSocio]);
+    await cliente.query(
+      `INSERT INTO sociomembresia (id_socio, id_membresia, fecha_inicio, fecha_vencimiento, estado, asignado_por)
+       VALUES ($1, $2, (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date,
+               (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date + $3::int, 'activa', 'Mercado Pago (pago del socio)')`,
+      [idSocio, id_membresia, duracion_dias]);
+    await cliente.query(
+      `INSERT INTO pagos (id_socio, id_membresia, id_plan_pago, id_medio_pago, monto, fecha_pago, fecha_vencimiento, numero_comprobante, estado)
+       VALUES ($1, $2, $3, $4, $5, now(), (now() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date + $6::int, $7, 'Aprobado')`,
+      [idSocio, id_membresia, planPago.rows[0].id_plan_pago, medio.rows[0].id_medio_pago, monto, duracion_dias, pagoId]);
+    await cliente.query("COMMIT");
+  } catch (e) {
+    await cliente.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    cliente.release();
+    await pool.end();
   }
-  return datos.access_token;
-}
-
-/** Reemplaza por completo el documento "membresias/{uid}" — misma forma que
- *  usa asignar_membresia() en membresias_repo.py, así la app y el sistema
- *  de empleados leen exactamente lo mismo sin importar quién la activó. */
-async function activarMembresia(env: Env, accessToken: string, uid: string, plan: string): Promise<void> {
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/membresias/${encodeURIComponent(uid)}`;
-  const resp = await fetch(url, {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      fields: {
-        socio_id: { stringValue: uid },
-        plan: { stringValue: plan },
-        fecha_inicio_ms: { integerValue: String(Date.now()) },
-        asignado_por: { stringValue: "Mercado Pago (pago del socio)" },
-      },
-    }),
-  });
-  if (!resp.ok) throw new Error(`Firestore (membresias) devolvió ${resp.status}: ${await resp.text()}`);
-}
-
-/** Un documento por pago aprobado, id = el propio id de pago de Mercado
- *  Pago — así, si MP reintenta el mismo webhook (puede pasar), esto
- *  simplemente sobreescribe el mismo documento en vez de duplicarlo. */
-async function registrarPago(
-  env: Env,
-  accessToken: string,
-  pagoId: string,
-  uid: string,
-  plan: string,
-  monto: number
-): Promise<void> {
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/pagos_socios/${encodeURIComponent(pagoId)}`;
-  const resp = await fetch(url, {
-    method: "PATCH",
-    headers: { Authorization: `Bearer ${accessToken}`, "content-type": "application/json" },
-    body: JSON.stringify({
-      fields: {
-        socio_id: { stringValue: uid },
-        plan: { stringValue: plan },
-        monto: { integerValue: String(monto) },
-        estado: { stringValue: "Aprobado" },
-        fecha_ms: { integerValue: String(Date.now()) },
-        mp_payment_id: { stringValue: pagoId },
-      },
-    }),
-  });
-  if (!resp.ok) throw new Error(`Firestore (pagos_socios) devolvió ${resp.status}: ${await resp.text()}`);
 }
 
 /** POST /crear-preferencia — arma un cobro de Mercado Pago (Checkout Pro)
@@ -190,7 +155,12 @@ async function crearPreferencia(request: Request, env: Env): Promise<Response> {
     return json({ error: "Cuerpo de la solicitud inválido" }, 400);
   }
   const plan = body.plan || "";
-  const precio = PRECIOS[plan];
+  let precio: number | null;
+  try {
+    precio = await precioDelPlan(env, plan);
+  } catch {
+    return json({ error: "No se pudo consultar el precio del plan. Probá de nuevo en un momento." }, 502);
+  }
   if (!precio) return json({ error: "Plan inválido" }, 400);
 
   const origen = new URL(request.url).origin;
@@ -240,7 +210,7 @@ async function crearPreferencia(request: Request, env: Env): Promise<Response> {
 
 /** POST /webhook — lo llama Mercado Pago, no la app. Nunca confía en lo que
  *  diga el aviso: vuelve a preguntarle a la API de Mercado Pago por el
- *  estado real de ESE pago antes de tocar Firestore. */
+ *  estado real de ESE pago antes de tocar la base. */
 async function manejarWebhook(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const tipo = url.searchParams.get("type") || url.searchParams.get("topic") || "";
@@ -265,12 +235,11 @@ async function manejarWebhook(request: Request, env: Env): Promise<Response> {
     if (pago.status !== "approved") return new Response("ok", { status: 200 });
 
     const [uid, plan] = (pago.external_reference || "").split("|");
-    if (!uid || !plan || !PRECIOS[plan]) return new Response("ok", { status: 200 });
+    if (!uid || !plan) return new Response("ok", { status: 200 });
+    const precio = await precioDelPlan(env, plan);
+    if (!precio) return new Response("ok", { status: 200 });
 
-    const accessToken = await tokenDeServicioGoogle(env);
-    await activarMembresia(env, accessToken, uid, plan);
-    await registrarPago(env, accessToken, String(pagoId), uid, plan, pago.transaction_amount ?? PRECIOS[plan]);
-
+    await registrarPagoYActivarMembresia(env, String(pagoId), uid, plan, pago.transaction_amount ?? precio);
     return new Response("ok", { status: 200 });
   } catch (ex) {
     // 200 igual: un error de nuestro lado no debería hacer que Mercado Pago

@@ -6,38 +6,24 @@
 // —que sí puede guardar secretos, corre en Cloudflare, no en el celular de
 // nadie— es quien realmente llama a Anthropic.
 //
-// Verifica el token de Firebase (prueba que quien llama es un socio real y
-// logueado) y lleva el cupo diario de mensajes en Workers KV (gratis, sin
-// necesitar el plan pago de Firebase que ya se descartó para Storage/
-// Cloud Functions). El texto real de la conversación (pregunta + historial
-// + contexto propio del socio + base de conocimiento) lo arma y manda la
-// app móvil — este Worker no lee Firestore por su cuenta, así se evita
-// necesitar una cuenta de servicio acá también. La única lectura que hace
-// es la del plan de membresía del socio (Argos es de pago: planes Oro y
-// Platino), y la hace con el propio token del socio, no con una cuenta de
-// servicio (ver planDelSocio).
-
-import { importX509, jwtVerify, decodeProtectedHeader } from "jose";
+// El plan de membresía (Argos es de pago: planes Oro y Platino) y el cupo
+// diario de mensajes viven en la base de datos (Neon), y los maneja la API
+// del club: este Worker le pide permiso con el MISMO token del socio
+// (POST /v1/argos/consumir) antes de gastar plata en Anthropic. Así no
+// necesita ninguna credencial de base de datos, y el chequeo sigue estando
+// del lado del servidor (el de la app se puede saltear modificando el APK).
+// El texto real de la conversación (pregunta + historial + contexto propio
+// del socio + base de conocimiento) lo arma y manda la app móvil.
 
 export interface Env {
   ANTHROPIC_API_KEY: string;
-  FIREBASE_PROJECT_ID: string;
-  ARGOS_KV: KVNamespace;
+  /** URL de la API del club (Worker "api-olimpos"). */
+  API_URL: string;
 }
-
-// Argos es un beneficio de pago: solo los socios con uno de estos planes de
-// membresía pueden usarlo (mismo criterio que PLANES_CON_ARGOS en la app
-// móvil y en el sistema de empleados). Se verifica ACÁ, del lado del
-// servidor, porque el chequeo de la app se puede saltear modificando el APK.
-const PLANES_CON_ARGOS = ["Oro", "Platino"];
 
 const MODELO = "claude-haiku-4-5-20251001";
 const MAX_TOKENS_RESPUESTA = 600;
-const MAXIMO_DIARIO = 300;
 const MAX_HISTORIAL_MENSAJES = 20;
-
-const CERTS_URL =
-  "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -65,57 +51,26 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-/** Verifica un ID token de Firebase Auth contra el proyecto de OlimpΩs.
- *  Lanza si la firma, el emisor, la audiencia o la expiración no cierran. */
-async function verificarTokenFirebase(token: string, projectId: string): Promise<string> {
-  const { kid } = decodeProtectedHeader(token);
-  if (!kid) throw new Error("Token sin 'kid'");
-
-  const certsResp = await fetch(CERTS_URL);
-  if (!certsResp.ok) throw new Error("No se pudieron obtener las claves públicas de Google");
-  const certs = (await certsResp.json()) as Record<string, string>;
-  const cert = certs[kid];
-  if (!cert) throw new Error("No hay una clave pública que matchee este token");
-
-  const clavePublica = await importX509(cert, "RS256");
-  const { payload } = await jwtVerify(token, clavePublica, {
-    issuer: `https://securetoken.google.com/${projectId}`,
-    audience: projectId,
-  });
-  if (!payload.sub) throw new Error("Token sin 'sub' (uid)");
-  return payload.sub;
-}
-
-/** Plan de membresía del socio (documento "membresias/{uid}", ver
- *  membresias_repo.py), leído con la API REST de Firestore usando el propio
- *  ID token del socio como credencial: pasa por las reglas de seguridad como
- *  el socio mismo (que puede leer solo su documento), así este Worker no
- *  necesita ninguna cuenta de servicio. `null` = no tiene membresía asignada. */
-async function planDelSocio(token: string, uid: string, projectId: string): Promise<string | null> {
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/membresias/${encodeURIComponent(uid)}`;
-  const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (resp.status === 404) return null;
-  if (!resp.ok) throw new Error(`Firestore devolvió ${resp.status}`);
-  const doc = (await resp.json()) as { fields?: { plan?: { stringValue?: string } } };
-  return doc.fields?.plan?.stringValue ?? null;
-}
-
-/** Cupo diario en Workers KV — no es un conteo perfectamente atómico (KV no
- *  da transacciones), así que bajo mucha concurrencia podría dejar pasar
- *  algún mensaje de más, pero para el volumen de un gimnasio alcanza de
- *  sobra: la idea es no gastar de más "sin darse cuenta", no una barrera
- *  de seguridad dura. */
-async function consumirCupoDiario(env: Env): Promise<{ ok: boolean; restantes: number }> {
-  const hoy = new Date().toISOString().slice(0, 10);
-  const clave = `argos_count_${hoy}`;
-  const actualStr = await env.ARGOS_KV.get(clave);
-  const actual = actualStr ? parseInt(actualStr, 10) : 0;
-  if (actual >= MAXIMO_DIARIO) {
-    return { ok: false, restantes: 0 };
+/** Le pide permiso a la API del club: verifica el token, que el plan incluya
+ *  Argos y que no se haya agotado el tope diario, y anota el uso. Devuelve
+ *  `null` si todo está bien, o la respuesta de error lista para devolver. */
+async function pedirPermiso(env: Env, token: string): Promise<{ restantes: number } | Response> {
+  let resp: Response;
+  try {
+    resp = await fetch(`${env.API_URL}/v1/argos/consumir`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: "{}",
+    });
+  } catch {
+    return json({ error: "No se pudo verificar tu plan de membresía. Probá de nuevo en un momento." }, 502);
   }
-  await env.ARGOS_KV.put(clave, String(actual + 1), { expirationTtl: 60 * 60 * 30 });
-  return { ok: true, restantes: MAXIMO_DIARIO - (actual + 1) };
+  const datos = (await resp.json().catch(() => ({}))) as { error?: string; restantes?: number };
+  if (resp.ok) return { restantes: datos.restantes ?? 0 };
+  if (resp.status === 401 || resp.status === 403 || resp.status === 429) {
+    return json({ error: datos.error ?? "No tenés permiso para usar Argos.", ...(resp.status === 403 ? { codigo: "plan_requerido" } : {}) }, resp.status);
+  }
+  return json({ error: "No se pudo verificar tu plan de membresía. Probá de nuevo en un momento." }, 502);
 }
 
 interface MensajeHistorial {
@@ -187,32 +142,6 @@ export default {
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!token) return json({ error: "Falta iniciar sesión" }, 401);
 
-    let uid: string;
-    try {
-      uid = await verificarTokenFirebase(token, env.FIREBASE_PROJECT_ID);
-    } catch (ex) {
-      return json({ error: "Sesión inválida o vencida" }, 401);
-    }
-
-    // Beneficio de pago: sin un plan que lo incluya, no se llama a Anthropic
-    // ni se gasta cupo. Si no se puede verificar el plan (Firestore caído),
-    // se rechaza también — nunca se deja pasar "por las dudas".
-    let plan: string | null;
-    try {
-      plan = await planDelSocio(token, uid, env.FIREBASE_PROJECT_ID);
-    } catch (ex) {
-      return json({ error: "No se pudo verificar tu plan de membresía. Probá de nuevo en un momento." }, 502);
-    }
-    if (!plan || !PLANES_CON_ARGOS.includes(plan)) {
-      return json(
-        {
-          error: `Argos es parte de los planes ${PLANES_CON_ARGOS.join(" y ")}. Pedile a recepción que te active uno.`,
-          codigo: "plan_requerido",
-        },
-        403
-      );
-    }
-
     let body: {
       mensaje?: string;
       historial?: MensajeHistorial[];
@@ -233,17 +162,15 @@ export default {
     const contextoSocio = (body.contexto_socio || "").slice(0, 4000);
     const baseConocimiento = (body.base_conocimiento || "").slice(0, 6000);
 
-    const cupo = await consumirCupoDiario(env);
-    if (!cupo.ok) {
-      return json(
-        { error: `Se llegó al máximo de ${MAXIMO_DIARIO} mensajes de Argos hoy. Probá de nuevo mañana.` },
-        429
-      );
-    }
+    // Beneficio de pago con tope diario: sin plan que lo incluya, o con el
+    // tope agotado, no se llama a Anthropic. Si no se puede verificar, se
+    // rechaza — nunca se deja pasar "por las dudas".
+    const permiso = await pedirPermiso(env, token);
+    if (permiso instanceof Response) return permiso;
 
     try {
       const respuesta = await preguntarClaude(env, mensaje, historial, contextoSocio, baseConocimiento);
-      return json({ respuesta, restantes: cupo.restantes });
+      return json({ respuesta, restantes: permiso.restantes });
     } catch (ex) {
       return json({ error: ex instanceof Error ? ex.message : "Error inesperado" }, 502);
     }
