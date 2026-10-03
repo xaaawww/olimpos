@@ -87,7 +87,7 @@ fun MisRutinasScreen(onVolver: () -> Unit) {
             rutinas.forEach { r ->
                 TarjetaRutina(
                     rutina = r,
-                    onSeguir = { scope.launch { if (marcarRutinaActiva(r.id, rutinas)) DatosRemotos.recargarMisRutinas() } },
+                    onSeguir = { scope.launch { if (marcarRutinaActiva(r.id)) DatosRemotos.recargarMisRutinas() } },
                     onEditar = { editando = r },
                     onBorrar = { scope.launch { if (borrarRutinaPropia(r.id)) DatosRemotos.recargarMisRutinas() } },
                 )
@@ -229,7 +229,7 @@ private fun EditorRutinaScreen(rutinaExistente: RutinaCompleta?, onGuardado: () 
                 }
                 scope.launch {
                     val ok = if (rutinaExistente == null) {
-                        crearRutinaPropia(nombre.trim(), filas.toList(), yaTeniaAlguna = !DatosRemotos.misRutinas.isNullOrEmpty())
+                        crearRutinaPropia(nombre.trim(), filas.toList())
                     } else {
                         editarRutinaPropia(rutinaExistente.id, nombre.trim(), filas.toList())
                     }

@@ -6,36 +6,21 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 /**
- * Fotos de progreso del socio (colección "fotos_progreso") — para el
- * logro "Antes y después" y para poder comparar cómo cambió el cuerpo con
- * el tiempo. Igual que las fotos de los platos (ver DietasRepository.kt),
- * viajan como texto Base64 adentro del propio documento de Firestore —
- * este proyecto no tiene Firebase Storage configurado, así que en vez de
- * agregar esa pieza de infraestructura nueva se reutiliza el mismo
- * patrón que ya funciona para las dietas. Por eso hay que comprimir la
- * foto ANTES de subirla (ver [comprimirImagenABase64]): un documento de
- * Firestore no puede pesar más de 1MB.
+ * Fotos de progreso del socio (tabla "fotosprogreso") — para el logro "Antes
+ * y después" y para poder comparar cómo cambió el cuerpo con el tiempo. Viajan
+ * como texto Base64 (sin servicio de archivos aparte), por eso hay que comprimir
+ * la foto ANTES de subirla (ver [comprimirImagenABase64]).
  */
 data class FotoProgreso(val id: String, val imagenBase64: String, val timestamp: Long)
 
-private const val COLECCION_FOTOS_PROGRESO = "fotos_progreso"
-
 suspend fun subirFotoProgresoEnFirebase(imagenBase64: String): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_FOTOS_PROGRESO).document().set(
-            mapOf(
-                "socio_id" to socioActualId(),
-                "imagen" to imagenBase64,
-                "timestamp" to System.currentTimeMillis()
-            )
-        ).await()
+        Api.post("/v1/fotos-progreso", JSONObject().put("imagen", imagenBase64))
         true
     } catch (e: Exception) {
         false
@@ -44,15 +29,10 @@ suspend fun subirFotoProgresoEnFirebase(imagenBase64: String): Boolean {
 
 suspend fun cargarFotosProgresoDesdeFirebase(): List<FotoProgreso>? {
     return try {
-        val snapshot = Firebase.firestore.collection(COLECCION_FOTOS_PROGRESO)
-            .whereEqualTo("socio_id", socioActualId())
-            .get()
-            .await()
-        snapshot.documents.mapNotNull { doc ->
-            val imagen = doc.getString("imagen") ?: return@mapNotNull null
-            val timestamp = doc.getLong("timestamp") ?: return@mapNotNull null
-            FotoProgreso(doc.id, imagen, timestamp)
-        }
+        Api.get("/v1/fotos-progreso").optJSONArray("fotos")?.objetos()?.mapNotNull {
+            val imagen = it.optString("imagen").takeIf { s -> s.isNotEmpty() } ?: return@mapNotNull null
+            FotoProgreso(it.optString("id"), imagen, it.optLong("timestamp"))
+        } ?: emptyList()
     } catch (e: Exception) {
         null
     }
@@ -60,7 +40,7 @@ suspend fun cargarFotosProgresoDesdeFirebase(): List<FotoProgreso>? {
 
 suspend fun eliminarFotoProgresoEnFirebase(fotoId: String): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_FOTOS_PROGRESO).document(fotoId).delete().await()
+        Api.delete("/v1/fotos-progreso/$fotoId")
         true
     } catch (e: Exception) {
         false

@@ -2,7 +2,6 @@ package com.olimpos.gym.data
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -18,7 +17,7 @@ import java.net.URL
  * app) y este devuelve el link de pago de Mercado Pago.
  *
  * La membresía NO se activa acá ni al volver del navegador: se activa sola
- * en Firestore cuando Mercado Pago le confirma el pago al Worker (webhook,
+ * en la base cuando Mercado Pago le confirma el pago al Worker (webhook,
  * ver PagosWorker/src/index.ts) — por eso, después de volver del pago, hay
  * que llamar a [DatosRemotos.recargarMembresia] para verla actualizada
  * (puede tardar unos segundos si el pago quedó "pendiente").
@@ -61,32 +60,17 @@ suspend fun crearPreferenciaDePago(plan: String): String {
     }
 }
 
-private const val COLECCION_PAGOS = "pagos_socios"
-
-/** Historial de pagos reales del socio (los que escribió el webhook de
- *  Mercado Pago al confirmarse cada uno). Vacío mientras nunca pagó nada
- *  todavía. Se ordena en el celular, no en la consulta, para no necesitar
- *  un índice compuesto en Firestore por una lista que como mucho tiene
- *  unos pocos pagos por socio. */
+/** Historial de pagos reales del socio (los que registró el webhook de
+ *  Mercado Pago al confirmarse cada uno, tabla "pagos"). Vacío mientras
+ *  nunca pagó nada todavía. La API ya lo entrega del más nuevo al más viejo. */
 suspend fun cargarHistorialPagos(): List<PagoHistorial> {
     return try {
-        val snapshot = Firebase.firestore.collection(COLECCION_PAGOS)
-            .whereEqualTo("socio_id", socioActualId())
-            .get()
-            .await()
-        snapshot.documents
-            .mapNotNull { doc ->
-                val plan = doc.getString("plan") ?: return@mapNotNull null
-                val monto = doc.getLong("monto") ?: return@mapNotNull null
-                val estado = doc.getString("estado") ?: return@mapNotNull null
-                val fechaMs = doc.getLong("fecha_ms") ?: return@mapNotNull null
-                Triple(fechaMs, plan, monto) to estado
-            }
-            .sortedByDescending { it.first.first }
-            .map { (datos, estado) ->
-                val (fechaMs, plan, monto) = datos
-                PagoHistorial("Plan $plan — ${fechaLegible(fechaMs)}", "$$monto", estado)
-            }
+        Api.get("/v1/pagos").optJSONArray("pagos")?.objetos().orEmpty().mapNotNull { j ->
+            val plan = j.textoONull("plan") ?: return@mapNotNull null
+            val monto = j.numeroONull("monto")?.toLong() ?: return@mapNotNull null
+            val fechaMs = j.numeroONull("fecha_ms")?.toLong() ?: return@mapNotNull null
+            PagoHistorial("Plan $plan — ${fechaLegible(fechaMs)}", "$$monto", j.optString("estado", ""))
+        }
     } catch (e: Exception) {
         emptyList()
     }

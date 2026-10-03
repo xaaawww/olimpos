@@ -150,7 +150,7 @@ fun HomeScreen(
         SeccionLabel("Clases de la semana")
         val reservasClase = DatosRemotos.reservasClase ?: emptyList()
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase, reservasClase, DatosRemotos.cuposClases) }
+            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase, reservasClase, DatosRemotos.cuposClases, DatosRemotos.capacidadesClases) }
         }
 
         // ── Equivalencia de carga movida ──
@@ -389,13 +389,14 @@ private fun EquivalenciaCarga() {
    Tocar la fila (fuera del botón de reservar) despliega la descripción de
    la clase, para saber de qué se trata antes de anotarse. */
 @Composable
-fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposClases: Map<String, Int>) {
+fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposClases: Map<String, Int>, capacidades: Map<String, Int>) {
     var expandida by remember { mutableStateOf(false) }
     var procesando by remember { mutableStateOf(false) }
     var aviso by remember { mutableStateOf<String?>(null) }
     val reservado = yaReservadaEstaSemana(reservasClase, clase.id)
     val ocupados = cuposClases[clase.id] ?: 0
-    val completa = !reservado && ocupados >= clase.cupo
+    val cupo = capacidades[clase.id] ?: clase.cupo
+    val completa = !reservado && ocupados >= cupo
     val scope = rememberCoroutineScope()
     TarjetaOro(
         Modifier
@@ -422,7 +423,7 @@ fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposCla
                 Text(clase.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = Olimpos.Cream)
                 Text(clase.lugar, fontSize = 11.5.sp, color = Olimpos.Muted)
                 Text(
-                    "$ocupados/${clase.cupo} reservados",
+                    "$ocupados/$cupo reservados",
                     fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
                     color = if (completa) Olimpos.Red else Olimpos.Muted
                 )
@@ -447,7 +448,7 @@ fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposCla
                             if (reservado) {
                                 cancelarReservaClaseEnFirebase(clase.id)
                             } else {
-                                when (guardarReservaClaseEnFirebase(clase.id, clase.cupo)) {
+                                when (guardarReservaClaseEnFirebase(clase.id)) {
                                     ResultadoReserva.CLASE_LLENA -> aviso = "Justo se llenó — probá con otra clase."
                                     ResultadoReserva.ERROR -> aviso = "No se pudo reservar. Probá de nuevo."
                                     else -> {}

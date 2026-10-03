@@ -27,7 +27,7 @@ export interface Contexto {
 export type Manejador = (c: Contexto) => Promise<unknown>;
 
 export interface Ruta {
-  metodo: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  metodo: "GET" | "POST" | "PUT" | "DELETE";
   patron: RegExp;
   manejador: Manejador;
   /** true = no pide token (por ejemplo el formulario de contacto de la web). */

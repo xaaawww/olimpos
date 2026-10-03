@@ -1,8 +1,7 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Perfil nutricional del socio (colección "perfiles_nutricionales", un
@@ -12,16 +11,12 @@ import kotlinx.coroutines.tasks.await
  */
 data class PerfilNutricional(val preferencias: Set<String>, val excluidos: Set<String>)
 
-private const val COLECCION_PERFILES_NUTRICIONALES = "perfiles_nutricionales"
-
 suspend fun guardarPerfilNutricionalEnFirebase(preferencias: Set<String>, excluidos: Set<String>): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_PERFILES_NUTRICIONALES).document(socioActualId()).set(
-            mapOf(
-                "preferencias" to preferencias.toList(),
-                "excluidos" to excluidos.toList()
-            )
-        ).await()
+        Api.put(
+            "/v1/perfil-nutricional",
+            JSONObject().put("preferencias", JSONArray(preferencias.toList())).put("excluidos", JSONArray(excluidos.toList()))
+        )
         true
     } catch (e: Exception) {
         false
@@ -30,13 +25,12 @@ suspend fun guardarPerfilNutricionalEnFirebase(preferencias: Set<String>, exclui
 
 suspend fun cargarPerfilNutricionalDesdeFirebase(): PerfilNutricional? {
     return try {
-        val doc = Firebase.firestore.collection(COLECCION_PERFILES_NUTRICIONALES).document(socioActualId()).get().await()
-        if (!doc.exists()) return null
-        @Suppress("UNCHECKED_CAST")
-        val preferencias = (doc.get("preferencias") as? List<String>)?.toSet() ?: emptySet()
-        @Suppress("UNCHECKED_CAST")
-        val excluidos = (doc.get("excluidos") as? List<String>)?.toSet() ?: emptySet()
-        PerfilNutricional(preferencias, excluidos)
+        val j = Api.get("/v1/perfil-nutricional")
+        if (!j.optBoolean("existe", false)) return null
+        PerfilNutricional(
+            preferencias = j.optJSONArray("preferencias")?.textos()?.toSet() ?: emptySet(),
+            excluidos = j.optJSONArray("excluidos")?.textos()?.toSet() ?: emptySet()
+        )
     } catch (e: Exception) {
         null
     }

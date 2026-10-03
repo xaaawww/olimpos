@@ -72,11 +72,11 @@ check("el peso queda como historial", (await q("SELECT count(*)::int n FROM prog
 check("un solo objetivo activo", (await q("SELECT count(*)::int n FROM objetivos WHERE estado='activo' AND id_socio = (SELECT id_socio FROM socios WHERE firebase_uid=$1)", [PRUEBA2]))[0].n === 1);
 check("validación: peso absurdo → 400", (await api("PUT", "/v1/datos-fisicos", PRUEBA2, { peso_kg: 5, edad: 30, sexo: "MASCULINO" })).s === 400);
 check("validación: sexo inválido → 400", (await api("PUT", "/v1/datos-fisicos", PRUEBA2, { peso_kg: 70, edad: 30, sexo: "X" })).s === 400);
-await api("PATCH", "/v1/datos-fisicos", PRUEBA2, { vio_plano: true, incrementar_vista_bodygraph: true, seccion_arena: "ranking", oculto_clasificacion: true });
-await api("PATCH", "/v1/datos-fisicos", PRUEBA2, { incrementar_vista_bodygraph: true });
+await api("POST", "/v1/datos-fisicos/parcial", PRUEBA2, { vio_plano: true, incrementar_vista_bodygraph: true, seccion_arena: "ranking", oculto_clasificacion: true });
+await api("POST", "/v1/datos-fisicos/parcial", PRUEBA2, { incrementar_vista_bodygraph: true });
 r = await api("GET", "/v1/datos-fisicos", PRUEBA2);
 check("PATCH flags", r.j.vio_plano === true && r.j.vistas_bodygraph === 2 && r.j.oculto_clasificacion === true && r.j.secciones_arena_visitadas.includes("ranking"));
-await api("PATCH", "/v1/datos-fisicos", PRUEBA2, { oculto_clasificacion: false });
+await api("POST", "/v1/datos-fisicos/parcial", PRUEBA2, { oculto_clasificacion: false });
 
 // ───── clasificación ─────
 r = await api("GET", "/v1/clasificacion", MATIAS);

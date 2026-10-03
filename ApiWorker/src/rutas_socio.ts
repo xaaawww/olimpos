@@ -127,7 +127,7 @@ const guardarDatosFisicos: Ruta = {
 };
 
 const actualizarDatosFisicos: Ruta = {
-  metodo: "PATCH", patron: /^\/v1\/datos-fisicos$/,
+  metodo: "POST", patron: /^\/v1\/datos-fisicos\/parcial$/,
   async manejador(c) {
     const b = c.body;
     await c.db.tx(async (db) => {

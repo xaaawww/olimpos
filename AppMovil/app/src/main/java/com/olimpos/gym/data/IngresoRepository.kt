@@ -1,8 +1,6 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 
 /**
  * Ingresos al gimnasio (colección "ingresos"). Hoy no hay ningún torniquete
@@ -13,22 +11,12 @@ import kotlinx.coroutines.tasks.await
  * racha de días y las visitas del mes en Perfil, y varios Logros —
  * ninguno inventado.
  */
-private const val COLECCION_INGRESOS = "ingresos"
-
-/** [metodo]: "qr" | "biometrico" | "manual" — el que el socio tenía
- *  activado al tocar el botón (ver AccesoScreen), no un dato leído de un
- *  lector real. Sirve para los logros "Puntualidad"/"Biométrico". */
 data class IngresoRegistro(val timestamp: Long, val metodo: String)
 
+/** Cada ingreso es una fila de la tabla "accesos" del club. */
 suspend fun registrarIngresoEnFirebase(metodo: String): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_INGRESOS).document().set(
-            mapOf(
-                "socio_id" to socioActualId(),
-                "timestamp" to System.currentTimeMillis(),
-                "metodo" to metodo
-            )
-        ).await()
+        Api.post("/v1/ingresos", JSONObject().put("metodo", metodo))
         true
     } catch (e: Exception) {
         false
@@ -37,21 +25,14 @@ suspend fun registrarIngresoEnFirebase(metodo: String): Boolean {
 
 suspend fun cargarIngresosDesdeFirebase(): List<IngresoRegistro>? {
     return try {
-        val snapshot = Firebase.firestore.collection(COLECCION_INGRESOS)
-            .whereEqualTo("socio_id", socioActualId())
-            .get()
-            .await()
-        snapshot.documents.mapNotNull { doc ->
-            val ts = doc.getLong("timestamp") ?: return@mapNotNull null
-            IngresoRegistro(ts, doc.getString("metodo") ?: "manual")
-        }
+        Api.get("/v1/ingresos").optJSONArray("ingresos")?.objetos()?.map {
+            IngresoRegistro(it.optLong("timestamp"), it.optString("metodo", "manual"))
+        } ?: emptyList()
     } catch (e: Exception) {
         null
     }
 }
 
-/** `true` si ya hay un ingreso marcado en el día calendario de hoy — para
- *  deshabilitar el botón y no permitir marcar dos veces el mismo día. */
 fun yaIngresoHoy(ingresos: List<IngresoRegistro>): Boolean {
     val hoy = java.util.Calendar.getInstance()
     return ingresos.any { ingreso ->

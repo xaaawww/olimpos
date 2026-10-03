@@ -1,22 +1,18 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.SetOptions
-import com.google.firebase.firestore.firestore
-import kotlinx.coroutines.tasks.await
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Base64
 
 /**
- * Comidas que el socio registra con una foto. Se guardan en DOS colecciones
- * a propósito:
- *  - "comidas_dia": un documento por día (id = "{uid}_{aaaammdd}") con los
- *    macros de cada horario y un resumen de la meta de ese día. Pesa muy
- *    poco, así que se trae TODO el historial de una vez — hace falta para
+ * Comidas que el socio registra con una foto. En la base viven en tablas
+ * separadas a propósito:
+ *  - "comidasdia" + "comidasregistradas" (+ "comidaregistradaplatos"): un día
+ *    con los macros de cada horario y un resumen de la meta de ese día. Pesa
+ *    muy poco, así que se trae TODO el historial de una vez — hace falta para
  *    calcular la racha.
- *  - "fotos_comidas": una foto por documento (id = "{uid}_{aaaammdd}_{horario}"),
- *    en Base64 como las fotos de progreso (no hay Firebase Storage). Se pide
- *    de a una, solo cuando hay que mostrarla.
+ *  - "fotoscomidas": una foto por horario, en Base64. Se pide de a una, solo
+ *    cuando hay que mostrarla.
  */
 data class ComidaRegistrada(
     val momento: MomentoComida,
@@ -38,45 +34,32 @@ data class DiaComidas(
     val totales: Macros get() = comidas.values.fold(Macros()) { acc, c -> acc + c.macros }
 }
 
-private const val COLECCION_DIAS = "comidas_dia"
-private const val COLECCION_FOTOS = "fotos_comidas"
-
-private fun mapaDeMacros(m: Macros) = mapOf(
-    "kcal" to m.kcal, "proteinas" to m.proteinas, "carbs" to m.carbs, "grasas" to m.grasas
-)
+private fun jsonDeMacros(m: Macros) = JSONObject()
+    .put("kcal", m.kcal).put("proteinas", m.proteinas).put("carbs", m.carbs).put("grasas", m.grasas)
 
 suspend fun cargarDiasComidasDesdeFirebase(): List<DiaComidas>? {
     return try {
-        Firebase.firestore.collection(COLECCION_DIAS)
-            .whereEqualTo("socio_id", socioActualId())
-            .get().await()
-            .documents.mapNotNull { doc ->
-                val fecha = doc.getString("fecha") ?: return@mapNotNull null
-                val mapaComidas = doc.get("comidas") as? Map<*, *> ?: emptyMap<Any, Any>()
-                val comidas = MomentoComida.entries.mapNotNull { m ->
-                    val c = mapaComidas[m.clave] as? Map<*, *> ?: return@mapNotNull null
-                    m to ComidaRegistrada(
-                        momento = m,
-                        macros = macrosDeMapa(c),
-                        platoIds = (c["plato_ids"] as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
-                        nota = c["nota"] as? String ?: "",
-                        horaMs = (c["hora_ms"] as? Number)?.toLong() ?: 0L
-                    )
-                }.toMap()
-                val metaMapa = doc.get("meta") as? Map<*, *>
-                val meta = metaMapa?.let { mm ->
-                    val momentos = (mm["momentos"] as? List<*>).orEmpty()
-                        .mapNotNull { clave -> MomentoComida.entries.firstOrNull { it.clave == clave } }
-                        .toSet()
-                    MetaDia(macrosDeMapa(mm), momentos)
-                }
-                DiaComidas(
-                    fecha = fecha,
-                    comidas = comidas,
-                    meta = meta,
-                    objetivo = ObjetivoCompetencia.entries.firstOrNull { it.name == doc.getString("objetivo") }
+        Api.get("/v1/comidas").optJSONArray("dias")?.objetos()?.mapNotNull { dia ->
+            val fecha = dia.optString("fecha").takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val mapa = dia.optJSONObject("comidas") ?: JSONObject()
+            val comidas = MomentoComida.entries.mapNotNull { m ->
+                val c = mapa.optJSONObject(m.clave) ?: return@mapNotNull null
+                m to ComidaRegistrada(
+                    momento = m, macros = macrosDeJson(c),
+                    platoIds = c.optJSONArray("plato_ids")?.textos().orEmpty(),
+                    nota = c.optString("nota", ""), horaMs = c.optLong("hora_ms", 0L)
                 )
+            }.toMap()
+            val meta = dia.optJSONObject("meta")?.let { mm ->
+                val momentos = mm.optJSONArray("momentos")?.textos().orEmpty()
+                    .mapNotNull { clave -> MomentoComida.entries.firstOrNull { it.clave == clave } }.toSet()
+                MetaDia(macrosDeJson(mm), momentos)
             }
+            DiaComidas(
+                fecha = fecha, comidas = comidas, meta = meta,
+                objetivo = ObjetivoCompetencia.entries.firstOrNull { it.name == dia.textoONull("objetivo") }
+            )
+        } ?: emptyList()
     } catch (e: Exception) {
         null
     }
@@ -92,37 +75,16 @@ suspend fun registrarComidaEnFirebase(
     meta: MetaDia?,
     objetivo: ObjetivoCompetencia?
 ): Boolean {
-    val uid = socioActualId()
-    val fecha = fechaClave()
-    val ahora = System.currentTimeMillis()
     return try {
-        val db = Firebase.firestore
-        db.collection(COLECCION_FOTOS).document("${uid}_${fecha}_${momento.clave}").set(
-            mapOf(
-                "socio_id" to uid,
-                "fecha" to fecha,
-                "momento" to momento.clave,
-                "imagen" to imagenBase64,
-                "timestamp" to ahora
-            )
-        ).await()
-
-        val dia = mutableMapOf<String, Any>(
-            "socio_id" to uid,
-            "fecha" to fecha,
-            "actualizado_ms" to ahora,
-            "comidas" to mapOf(
-                momento.clave to (mapaDeMacros(macros) + mapOf(
-                    "plato_ids" to platoIds, "nota" to nota, "hora_ms" to ahora
-                ))
-            )
-        )
-        if (meta != null) {
-            dia["meta"] = mapaDeMacros(meta.macros) + mapOf("momentos" to meta.momentos.map { it.clave })
-        }
-        if (objetivo != null) dia["objetivo"] = objetivo.name
-        // merge: no pisa las comidas de los otros horarios del mismo día.
-        db.collection(COLECCION_DIAS).document("${uid}_$fecha").set(dia, SetOptions.merge()).await()
+        val cuerpo = jsonDeMacros(macros)
+            .put("fecha", fechaClave())
+            .put("momento", momento.clave)
+            .put("plato_ids", JSONArray(platoIds))
+            .put("nota", nota)
+            .put("imagen", imagenBase64)
+        if (meta != null) cuerpo.put("meta", jsonDeMacros(meta.macros).put("momentos", JSONArray(meta.momentos.map { it.clave })))
+        if (objetivo != null) cuerpo.put("objetivo", objetivo.name)
+        Api.put("/v1/comidas", cuerpo)
         true
     } catch (e: Exception) {
         false
@@ -131,12 +93,8 @@ suspend fun registrarComidaEnFirebase(
 
 /** Borra la comida ya registrada de [fecha] en [momento] (por si se cargó mal). */
 suspend fun borrarComidaEnFirebase(fecha: String, momento: MomentoComida): Boolean {
-    val uid = socioActualId()
     return try {
-        val db = Firebase.firestore
-        db.collection(COLECCION_DIAS).document("${uid}_$fecha")
-            .update("comidas.${momento.clave}", FieldValue.delete()).await()
-        db.collection(COLECCION_FOTOS).document("${uid}_${fecha}_${momento.clave}").delete().await()
+        Api.delete("/v1/comidas/$fecha/${momento.clave}")
         true
     } catch (e: Exception) {
         false
@@ -146,9 +104,7 @@ suspend fun borrarComidaEnFirebase(fecha: String, momento: MomentoComida): Boole
 /** La foto de una comida ya registrada, lista para Coil; `null` si no hay. */
 suspend fun cargarFotoComida(fecha: String, momento: MomentoComida): ByteArray? {
     return try {
-        val doc = Firebase.firestore.collection(COLECCION_FOTOS)
-            .document("${socioActualId()}_${fecha}_${momento.clave}").get().await()
-        doc.getString("imagen")?.let { Base64.getDecoder().decode(it) }
+        Api.get("/v1/comidas/$fecha/${momento.clave}/foto").textoONull("imagen")?.let { Base64.getDecoder().decode(it) }
     } catch (e: Exception) {
         null
     }
