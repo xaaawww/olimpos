@@ -42,3 +42,6 @@ Thumbs.db
 
 # Neon (base de datos)
 **/neon_credentials.json
+
+# API Worker: salida de compilar las pruebas
+**/test/dist-test/

@@ -1266,8 +1266,23 @@ CREATE TABLE comidasdia (
     id_socio             INTEGER NOT NULL REFERENCES socios (id_socio) ON DELETE CASCADE,
     fecha                DATE NOT NULL,
     objetivo             VARCHAR(20) CHECK (objetivo IN ('FUERZA', 'HIPERTROFIA', 'SALUD')),
+    -- Meta del dia (la dieta vigente la ultima vez que se registro algo): asi un
+    -- dia pasado no cambia si despues el nutricionista cambia la dieta.
+    meta_kcal            INTEGER CHECK (meta_kcal >= 0),
+    meta_proteinas       INTEGER CHECK (meta_proteinas >= 0),
+    meta_carbs           INTEGER CHECK (meta_carbs >= 0),
+    meta_grasas          INTEGER CHECK (meta_grasas >= 0),
     fecha_actualizacion  TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (id_socio, fecha)
+);
+
+-- Que horarios tenian algo asignado en esa meta.
+CREATE TABLE comidasdiametamomentos (
+    id_socio  INTEGER NOT NULL,
+    fecha     DATE NOT NULL,
+    momento   VARCHAR(10) NOT NULL CHECK (momento IN ('desayuno', 'almuerzo', 'cena')),
+    PRIMARY KEY (id_socio, fecha, momento),
+    FOREIGN KEY (id_socio, fecha) REFERENCES comidasdia (id_socio, fecha) ON DELETE CASCADE
 );
 
 CREATE TABLE comidasregistradas (

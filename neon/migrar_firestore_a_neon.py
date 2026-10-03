@@ -203,7 +203,7 @@ def migrar(db, cx: psycopg.Connection, rep: Reporte):
             rep.ok("objetivos")
         if vacio_a_none(d.get("condicion_medica")):
             cur.execute("INSERT INTO salud (id_socio, fecha, observaciones) VALUES (%s,%s,%s)",
-                        (sid, f, "Condición médica declarada: " + d["condicion_medica"]))
+                        (sid, f, d["condicion_medica"]))
             rep.ok("salud")
         for sec in dict.fromkeys(d.get("secciones_arena_visitadas", [])):
             cur.execute("INSERT INTO perfilappsecciones (id_socio, seccion) VALUES (%s,%s)", (sid, sec))
@@ -388,9 +388,16 @@ def migrar(db, cx: psycopg.Connection, rep: Reporte):
             rep.descarta("comidasdia", f"socio inexistente o fecha invalida ({_id[:24]})")
             continue
         obj = d.get("objetivo") if d.get("objetivo") in ("FUERZA", "HIPERTROFIA", "SALUD") else None
-        cur.execute("INSERT INTO comidasdia (id_socio, fecha, objetivo, fecha_actualizacion) VALUES (%s,%s,%s,%s)"
-                    " ON CONFLICT DO NOTHING", (socio[uid], f, obj, ms(d.get("actualizado_ms")) or AHORA()))
+        meta = d.get("meta") or {}
+        cur.execute("INSERT INTO comidasdia (id_socio, fecha, objetivo, meta_kcal, meta_proteinas, meta_carbs, meta_grasas,"
+                    " fecha_actualizacion) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                    (socio[uid], f, obj, meta.get("kcal"), meta.get("proteinas"), meta.get("carbs"), meta.get("grasas"),
+                     ms(d.get("actualizado_ms")) or AHORA()))
         rep.ok("comidasdia")
+        for mom in dict.fromkeys(meta.get("momentos", [])):
+            if mom in HORARIOS:
+                cur.execute("INSERT INTO comidasdiametamomentos (id_socio, fecha, momento) VALUES (%s,%s,%s)", (socio[uid], f, mom))
+                rep.ok("comidasdiametamomentos")
         for momento, c in (d.get("comidas") or {}).items():
             if momento not in HORARIOS:
                 continue
