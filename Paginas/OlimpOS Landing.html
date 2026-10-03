@@ -344,7 +344,7 @@
   .crow .v a { color: inherit; text-decoration: none; }
   .crow .v a:hover { color: var(--gold); }
 
-  /* formulario de contacto real (guarda en Firestore, ver <script> al pie) */
+  /* formulario de contacto real (guarda en la base de datos vía la API, ver <script> al pie) */
   .contact-form { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
   .cf-eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
   .cf-input {
@@ -562,29 +562,17 @@
     </div>
   </footer>
 
-<!-- Firebase (mismo proyecto que la app móvil y el sistema de empleados,
-     olimpos-18320) — solo para que el formulario de Contacto guarde el
-     mensaje en la colección "contactos_web" (ver firestore.rules: acá no
-     hay login, así que solo se permite "crear", nunca leer/editar/borrar
-     desde el navegador de nadie). -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Formulario de Contacto: manda el mensaje a la API del club, que lo guarda
+     en la tabla "contactosweb" de la base de datos (acá no hay login, así que
+     la API solo acepta CREAR mensajes, validados: nunca leer ni borrar). -->
 <script>
-  firebase.initializeApp({
-    apiKey: "AIzaSyBha_0V6QCuID5yosqf9ZqtpcNRVj2McM8",
-    authDomain: "olimpos-18320.firebaseapp.com",
-    projectId: "olimpos-18320",
-    storageBucket: "olimpos-18320.firebasestorage.app",
-    messagingSenderId: "422807004523",
-    appId: "1:422807004523:web:e6dc00de79811545ce582e",
-  });
-  const dbWeb = firebase.firestore();
+  const API_CONTACTO = "https://api-olimpos.argosolimpo.workers.dev/v1/contacto";
 
   const contactForm = document.getElementById("contactForm");
   if (contactForm) {
     const cfSubmit = document.getElementById("cfSubmit");
     const cfStatus = document.getElementById("cfStatus");
-    contactForm.addEventListener("submit", (e) => {
+    contactForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nombre = document.getElementById("cfNombre").value.trim();
       const contacto = document.getElementById("cfContacto").value.trim();
@@ -595,22 +583,23 @@
       cfStatus.textContent = "Enviando…";
       cfStatus.className = "cf-status";
 
-      dbWeb.collection("contactos_web").add({
-        nombre,
-        contacto,
-        mensaje,
-        creado: firebase.firestore.FieldValue.serverTimestamp(),
-      }).then(() => {
+      try {
+        const resp = await fetch(API_CONTACTO, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nombre, contacto, mensaje: mensaje || "(sin mensaje)" }),
+        });
+        if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).error || resp.status);
         cfStatus.textContent = "¡Listo! Te vamos a contactar pronto.";
         cfStatus.className = "cf-status ok";
         contactForm.reset();
-      }).catch((err) => {
+      } catch (err) {
         cfStatus.textContent = "No se pudo enviar — probá de nuevo en un momento.";
         cfStatus.className = "cf-status err";
-        console.error("contactos_web", err);
-      }).finally(() => {
+        console.error("contacto", err);
+      } finally {
         cfSubmit.disabled = false;
-      });
+      }
     });
   }
 </script>
