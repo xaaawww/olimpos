@@ -25,6 +25,9 @@ _conexion: psycopg.Connection | None = None
 
 
 def _url() -> str:
+    # Variable de entorno: permite apuntar a otra base (por ejemplo una de prueba) sin tocar el archivo.
+    if os.environ.get("OLIMPOS_DATABASE_URL"):
+        return os.environ["OLIMPOS_DATABASE_URL"]
     if not os.path.exists(CRED_PATH):
         raise RuntimeError(
             "Falta el archivo 'neon_credentials.json' en la carpeta del sistema. "

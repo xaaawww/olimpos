@@ -2,15 +2,13 @@
 #
 # El tablón son los avisos, eventos y promociones que ven los socios al abrir
 # la app móvil (Inicio > "Tablón del club"). Lo publica y edita únicamente el
-# dueño desde el sistema de empleados; la app móvil solo lo lee — las reglas
-# de Firestore no le dejan a ningún socio crear, editar ni borrar nada (ver
-# firestore.rules). Que solo el dueño pueda editarlo desde ACÁ lo garantiza
-# la pantalla (views/tablon.py), ya que el sistema de empleados no usa
-# Firebase Auth sino su propio login local por rol.
+# dueño desde el sistema de empleados; la app móvil solo lo lee (la API no
+# expone ninguna forma de escribirlo). Que solo el dueño pueda editarlo desde
+# ACÁ lo garantiza la pantalla (views/tablon.py).
 #
-# Forma en Firestore (colección "tablon", un documento por publicación):
+# En la base es la tabla "tablonpublicaciones". La pantalla la maneja como:
 # {
-#   "id": "pub_xxxxxxxx", "titulo": "Cerrado el 25/12",
+#   "id": "5", "titulo": "Cerrado el 25/12",       # id_publicacion (texto); "nueva_xxx" si no se guardó
 #   "mensaje": "El club abre de nuevo el 26 desde las 8:00.",
 #   "categoria": "Aviso",        # Aviso | Evento | Promoción | Importante
 #   "fijado": False,             # True = aparece arriba de todo
@@ -22,9 +20,7 @@
 import time
 import uuid
 
-from dietas_repo import _db
-
-COLECCION = "tablon"
+import neon_db
 
 # Mismas categorías que reconoce la app móvil (TablonRepository.kt) para
 # elegir el ícono y el color de cada publicación.
@@ -45,7 +41,13 @@ def _ordenar(publicaciones: list[dict]) -> list[dict]:
 def cargar_publicaciones(forzar: bool = False) -> list[dict]:
     global _cache_publicaciones
     if _cache_publicaciones is None or forzar:
-        _cache_publicaciones = _ordenar([d.to_dict() for d in _db().collection(COLECCION).stream()])
+        filas = neon_db.consulta("SELECT * FROM tablonpublicaciones")
+        _cache_publicaciones = _ordenar([{
+            "id": str(f["id_publicacion"]), "titulo": f["titulo"], "mensaje": f["mensaje"], "categoria": f["categoria"],
+            "fijado": f["fijado"], "publicado": f["publicado"], "autor": f["autor"],
+            "creado_ms": int(f["fecha_creacion"].timestamp() * 1000),
+            "actualizado_ms": int(f["fecha_actualizacion"].timestamp() * 1000),
+        } for f in filas])
     return _cache_publicaciones
 
 
@@ -56,7 +58,7 @@ def obtener_publicacion(publicaciones: list[dict], pub_id: str) -> dict | None:
 def nueva_publicacion(autor: str) -> dict:
     ahora = int(time.time() * 1000)
     return {
-        "id": f"pub_{uuid.uuid4().hex[:10]}",
+        "id": f"nueva_{uuid.uuid4().hex[:10]}",
         "titulo": "",
         "mensaje": "",
         "categoria": CATEGORIAS[0],
@@ -71,7 +73,19 @@ def nueva_publicacion(autor: str) -> dict:
 def guardar_publicacion(publicaciones: list[dict], pub: dict) -> list[dict]:
     global _cache_publicaciones
     pub["actualizado_ms"] = int(time.time() * 1000)
-    _db().collection(COLECCION).document(pub["id"]).set(pub)
+    if str(pub["id"]).isdigit():
+        neon_db.ejecutar(
+            "UPDATE tablonpublicaciones SET titulo=%s, mensaje=%s, categoria=%s, autor=%s, fijado=%s, publicado=%s,"
+            " fecha_actualizacion=now() WHERE id_publicacion=%s",
+            (pub["titulo"], pub["mensaje"], pub["categoria"], pub["autor"], pub["fijado"], pub["publicado"], int(pub["id"])),
+        )
+    else:
+        fila = neon_db.una_fila(
+            "INSERT INTO tablonpublicaciones (titulo, mensaje, categoria, autor, fijado, publicado) VALUES (%s,%s,%s,%s,%s,%s)"
+            " RETURNING id_publicacion",
+            (pub["titulo"], pub["mensaje"], pub["categoria"], pub["autor"], pub["fijado"], pub["publicado"]),
+        )
+        pub["id"] = str(fila["id_publicacion"])
     resto = [p for p in publicaciones if p["id"] != pub["id"]]
     _cache_publicaciones = _ordenar(resto + [pub])
     return _cache_publicaciones
@@ -79,6 +93,7 @@ def guardar_publicacion(publicaciones: list[dict], pub: dict) -> list[dict]:
 
 def eliminar_publicacion(publicaciones: list[dict], pub_id: str) -> list[dict]:
     global _cache_publicaciones
-    _db().collection(COLECCION).document(pub_id).delete()
+    if pub_id.isdigit():
+        neon_db.ejecutar("DELETE FROM tablonpublicaciones WHERE id_publicacion = %s", (int(pub_id),))
     _cache_publicaciones = [p for p in publicaciones if p["id"] != pub_id]
     return _cache_publicaciones

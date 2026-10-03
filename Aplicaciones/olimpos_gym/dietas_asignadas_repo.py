@@ -1,34 +1,32 @@
 # OLIMPOS GYM — Repositorio de dietas asignadas por horario (Nutricionista / Dueño)
 #
-# Hasta ahora "asignada" era un tilde suelto en cada plato (igual para todos
-# los socios) — nadie le asignaba de verdad una dieta a un socio puntual.
 # Acá el nutricionista/dueño elige, para CADA socio, qué platos le tocan en
-# cada horario del día: Desayuno, Almuerzo y Cena. La app móvil lee este
-# documento por su propio uid (ver AsignacionDietaRepository.kt) y de ahí
-# salen "Mi día" (qué comer y cuándo), las metas diarias de kcal/macros y la
-# racha de dieta.
+# cada horario del día: Desayuno, Almuerzo y Cena. En la base es una "dieta"
+# vigente del socio, con su plan alimentario y los platos por momento
+# (tablas dietas -> planalimentario -> planplato). La app móvil la lee por su
+# propio usuario y de ahí salen "Mi día" (qué comer y cuándo), las metas
+# diarias de kcal/macros y la racha de dieta.
 #
-# Forma en Firestore (colección "dietas_asignadas", un documento por socio):
+# La pantalla la maneja como un diccionario por socio:
 # {
 #   "socio_id": "uid123",
 #   "asignada_por": "Sandra Villar — Nutricionista",
 #   "actualizado": "2026-09-19T10:00:00",
 #   "comidas": {
-#       "desayuno": ["plato_abc", "plato_def"],
-#       "almuerzo": ["plato_xyz"],
+#       "desayuno": ["12", "15"],
+#       "almuerzo": ["7"],
 #       "cena": []
 #   }
 # }
-# Los ids son los de los platos de "dietas" (ver dietas_repo.py) — tienen
-# que estar publicados para que el socio pueda verlos (ver firestore.rules).
+# Los ids son los de los platos (ver dietas_repo.py) — tienen que estar
+# publicados para que el socio pueda verlos.
 
-from datetime import datetime
+from datetime import date, datetime
 
-from dietas_repo import _db
+import neon_db
+from empleados_credenciales import id_empleado_actual
 
-COLECCION = "dietas_asignadas"
-
-# clave en Firestore, etiqueta visible, emoji — mismo orden que MomentoComida
+# clave en la base, etiqueta visible, emoji — mismo orden que MomentoComida
 # en la app móvil (ComidasRepository.kt).
 MOMENTOS = [
     ("desayuno", "Desayuno", "🌅"),
@@ -46,8 +44,27 @@ _cache_asignaciones: dict[str, dict] | None = None
 def cargar_asignaciones(forzar: bool = False) -> dict[str, dict]:
     global _cache_asignaciones
     if _cache_asignaciones is None or forzar:
-        docs = _db().collection(COLECCION).stream()
-        _cache_asignaciones = {d.id: d.to_dict() for d in docs}
+        dietas = neon_db.consulta(
+            "SELECT d.cod_dieta, s.firebase_uid, d.fecha_actualizacion, pa.id_plan_alimentario,"
+            " trim(e.nombre || ' ' || e.apellido) || ' — ' || r.descripcion AS asignada_por"
+            " FROM dietas d JOIN socios s USING (id_socio) JOIN planalimentario pa USING (cod_dieta)"
+            " JOIN empleados e ON e.id_empleado = d.id_empleado JOIN rol r ON r.id_rol = e.rol"
+            " WHERE d.estado = 'vigente' AND pa.estado = 'vigente' AND s.firebase_uid IS NOT NULL"
+        )
+        platos = neon_db.consulta(
+            "SELECT id_plan_alimentario, momento, id_plato FROM planplato ORDER BY id_plan_alimentario, momento, orden"
+        )
+        por_plan: dict[int, dict[str, list[str]]] = {}
+        for p in platos:
+            por_plan.setdefault(p["id_plan_alimentario"], {c: [] for c in CLAVES_MOMENTOS})[p["momento"]].append(str(p["id_plato"]))
+        _cache_asignaciones = {
+            d["firebase_uid"]: {
+                "socio_id": d["firebase_uid"], "asignada_por": d["asignada_por"],
+                "actualizado": d["fecha_actualizacion"].replace(tzinfo=None).isoformat(timespec="seconds"),
+                "comidas": por_plan.get(d["id_plan_alimentario"], {c: [] for c in CLAVES_MOMENTOS}),
+            }
+            for d in dietas
+        }
     return _cache_asignaciones
 
 
@@ -77,20 +94,39 @@ def horarios_con_platos(asignacion: dict | None) -> int:
 
 
 def guardar_asignacion(asignacion: dict) -> dict[str, dict]:
-    global _cache_asignaciones
     asignacion["actualizado"] = datetime.now().isoformat(timespec="seconds")
-    _db().collection(COLECCION).document(asignacion["socio_id"]).set(asignacion)
-    cache = cargar_asignaciones()
-    cache[asignacion["socio_id"]] = asignacion
-    return cache
+    with neon_db.transaccion() as cur:
+        cur.execute("SELECT id_socio FROM socios WHERE firebase_uid = %s", (asignacion["socio_id"],))
+        id_socio = cur.fetchone()["id_socio"]
+        cur.execute(
+            "SELECT d.cod_dieta, pa.id_plan_alimentario FROM dietas d JOIN planalimentario pa USING (cod_dieta)"
+            " WHERE d.id_socio = %s AND d.estado = 'vigente' AND pa.estado = 'vigente'", (id_socio,))
+        existente = cur.fetchone()
+        if existente:
+            plan = existente["id_plan_alimentario"]
+            cur.execute("UPDATE dietas SET id_empleado = COALESCE(%s, id_empleado), fecha_actualizacion = now() WHERE cod_dieta = %s",
+                        (id_empleado_actual(), existente["cod_dieta"]))
+            cur.execute("DELETE FROM planplato WHERE id_plan_alimentario = %s", (plan,))
+        else:
+            cur.execute("INSERT INTO dietas (id_socio, id_empleado, nombre, estado) VALUES (%s,%s,'Dieta asignada','vigente')"
+                        " RETURNING cod_dieta", (id_socio, id_empleado_actual()))
+            cod = cur.fetchone()["cod_dieta"]
+            cur.execute("INSERT INTO planalimentario (cod_dieta, nombre, fecha_inicio, estado) VALUES (%s,'Plan diario',%s,'vigente')"
+                        " RETURNING id_plan_alimentario", (cod, date.today()))
+            plan = cur.fetchone()["id_plan_alimentario"]
+        for momento in CLAVES_MOMENTOS:
+            for i, plato_id in enumerate(dict.fromkeys(asignacion["comidas"].get(momento, []))):
+                cur.execute("INSERT INTO planplato (id_plan_alimentario, id_plato, momento, orden) VALUES (%s,%s,%s,%s)",
+                            (plan, int(plato_id), momento, i))
+    return cargar_asignaciones(forzar=True)
 
 
 def eliminar_asignacion(socio_id: str) -> dict[str, dict]:
-    global _cache_asignaciones
-    _db().collection(COLECCION).document(socio_id).delete()
-    cache = cargar_asignaciones()
-    cache.pop(socio_id, None)
-    return cache
+    neon_db.ejecutar(
+        "DELETE FROM dietas WHERE estado = 'vigente' AND id_socio = (SELECT id_socio FROM socios WHERE firebase_uid = %s)",
+        (socio_id,),
+    )
+    return cargar_asignaciones(forzar=True)
 
 
 # ══════════════ Macros ══════════════
@@ -114,12 +150,16 @@ def sumar_macros(platos: list[dict]) -> dict:
 # ══════════════ Objetivo y peso de cada socio (los carga el propio socio) ══════════════
 
 def cargar_perfiles_fisicos() -> dict[str, dict]:
-    """uid -> {"objetivo": "HIPERTROFIA"|..., "peso_kg": 80.0} leído de
-    "datos_fisicos" (lo escribe el socio en el onboarding/Configuración de la
-    app móvil). Solo para que el nutricionista vea con qué objetivo está
-    armando la dieta — el Admin SDK no pasa por las reglas de Firestore."""
-    perfiles = {}
-    for d in _db().collection("datos_fisicos").stream():
-        datos = d.to_dict() or {}
-        perfiles[d.id] = {"objetivo": datos.get("objetivo"), "peso_kg": datos.get("peso_kg")}
-    return perfiles
+    """uid -> {"objetivo": "HIPERTROFIA"|..., "peso_kg": 80.0}: el objetivo
+    activo (tabla objetivos) y el último peso (tabla progresopeso), que carga
+    el socio en el onboarding/Configuración de la app móvil. Solo para que el
+    nutricionista vea con qué objetivo está armando la dieta."""
+    filas = neon_db.consulta(
+        "SELECT s.firebase_uid, o.tipo AS objetivo,"
+        " (SELECT pp.peso FROM progresopeso pp WHERE pp.id_socio = s.id_socio"
+        "  ORDER BY pp.fecha DESC, pp.id_progreso_peso DESC LIMIT 1) AS peso_kg"
+        " FROM socios s LEFT JOIN objetivos o ON o.id_socio = s.id_socio AND o.estado = 'activo'"
+        " WHERE s.firebase_uid IS NOT NULL"
+    )
+    return {f["firebase_uid"]: {"objetivo": f["objetivo"], "peso_kg": float(f["peso_kg"]) if f["peso_kg"] is not None else None}
+            for f in filas}

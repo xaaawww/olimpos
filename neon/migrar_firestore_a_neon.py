@@ -33,8 +33,18 @@ sys.path.insert(0, CARPETA_EMPLEADOS)
 sys.stdout.reconfigure(encoding="utf-8")
 
 import neon_db  # noqa: E402  (hash de contraseñas)
-from empleados_credenciales import CREDENCIALES  # noqa: E402
 from theme import ROLES  # noqa: E402
+
+# Los 6 usuarios que antes estaban escritos a mano en empleados_credenciales.py:
+# se cargan una sola vez en la tabla "empleados" (con la contraseña cifrada).
+CREDENCIALES = {
+    "cgarcia":    {"password": "Garcia2026",    "role": "dueno"},
+    "sramirez":   {"password": "Ramirez2026",   "role": "admin"},
+    "crodriguez": {"password": "Rodriguez2026", "role": "entrenador"},
+    "svillar":    {"password": "Villar2026",    "role": "nutricionista"},
+    "rflores":    {"password": "Flores2026",    "role": "seguridad"},
+    "pacosta":    {"password": "Acosta2026",    "role": "recepcionista"},
+}
 
 HORARIOS = ("desayuno", "almuerzo", "cena")
 AHORA = lambda: datetime.now(timezone.utc)  # noqa: E731

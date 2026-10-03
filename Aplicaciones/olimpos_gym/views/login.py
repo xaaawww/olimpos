@@ -22,7 +22,11 @@ class LoginView:
             self._mostrar_error("Completá usuario y contraseña")
             return
 
-        role = _creds.validar(usuario, password)
+        try:
+            role = _creds.validar(usuario, password)
+        except RuntimeError as ex:
+            self._mostrar_error(str(ex))
+            return
         if role is None:
             self._mostrar_error("Usuario o contraseña incorrectos")
             return
@@ -44,13 +48,8 @@ class LoginView:
                     ft.Text(fila["nombre"], size=10.5,
                             color=ft.Colors.with_opacity(0.5, ft.Colors.WHITE)),
                 ], spacing=1, expand=True),
-                ft.Column([
-                    ft.Text(fila["usuario"], size=12.5, weight=ft.FontWeight.W_700,
-                            color=ft.Colors.WHITE, font_family="Consolas, monospace"),
-                    ft.Text(fila["password"], size=11,
-                            color=ft.Colors.with_opacity(0.55, ft.Colors.WHITE),
-                            font_family="Consolas, monospace"),
-                ], spacing=1, horizontal_alignment=ft.CrossAxisAlignment.END),
+                ft.Text(fila["usuario"], size=12.5, weight=ft.FontWeight.W_700,
+                        color=ft.Colors.WHITE, font_family="Consolas, monospace"),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=ft.padding.symmetric(vertical=9, horizontal=4),
             border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.with_opacity(0.08, ft.Colors.WHITE))),
@@ -114,9 +113,9 @@ class LoginView:
 
         credenciales_panel = ft.Container(
             content=ft.Column([
-                ft.Text("🔑 CREDENCIALES DE ACCESO", size=12, weight=ft.FontWeight.W_800,
+                ft.Text("🔑 USUARIOS DEL SISTEMA", size=12, weight=ft.FontWeight.W_800,
                         color=GOLD, font_family="Poppins", style=ft.TextStyle(letter_spacing=1)),
-                ft.Text("Para la demo — un usuario por rol", size=10.5,
+                ft.Text("Un usuario por rol — la contraseña está cifrada en la base de datos", size=10.5,
                         color=ft.Colors.with_opacity(0.45, ft.Colors.WHITE)),
                 ft.Container(height=6),
                 ft.Column(

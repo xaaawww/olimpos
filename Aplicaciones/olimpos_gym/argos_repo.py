@@ -23,12 +23,12 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import date
 
 import requests
-from firebase_admin import firestore
 
-import dietas_repo as repo  # reutiliza db_cliente(): ya inicializa Firebase una sola vez
+import neon_db
+from empleados_credenciales import id_empleado_actual
 
 BASE_DIR = os.path.dirname(__file__)
 CRED_PATH = os.path.join(BASE_DIR, "anthropic_credentials.json")
@@ -36,10 +36,6 @@ CRED_PATH = os.path.join(BASE_DIR, "anthropic_credentials.json")
 MODELO = "claude-haiku-4-5-20251001"
 MAX_TOKENS_RESPUESTA = 600
 MAXIMO_DIARIO = 300
-
-COLECCION_CONFIG = "configuracion_app"
-DOC_ARGOS = "argos"
-COLECCION_USO_DIARIO = "argos_uso_diario"
 
 INSTRUCCIONES_BASE = (
     "Sos Argos, el asistente de IA del gimnasio OlimpΩs. Respondés ÚNICAMENTE "
@@ -72,23 +68,28 @@ def _api_key() -> str:
 # ══════════════ Base de conocimiento (editable por dueño/admin) ══════════════
 
 def cargar_base_conocimiento() -> str:
-    doc = repo.db_cliente().collection(COLECCION_CONFIG).document(DOC_ARGOS).get()
-    return doc.to_dict().get("base_conocimiento", "") if doc.exists else ""
+    fila = neon_db.una_fila("SELECT contenido FROM argosbaseconocimiento WHERE estado = 'activa'")
+    return fila["contenido"] if fila else ""
 
 
 def guardar_base_conocimiento(texto: str):
-    repo.db_cliente().collection(COLECCION_CONFIG).document(DOC_ARGOS).set({
-        "base_conocimiento": texto,
-        "actualizado": datetime.now().isoformat(timespec="seconds"),
-    })
+    """Hay una sola base de conocimiento activa (índice único en la tabla)."""
+    actualizadas = neon_db.ejecutar(
+        "UPDATE argosbaseconocimiento SET contenido = %s, id_empleado = COALESCE(%s, id_empleado), fecha_actualizacion = now()"
+        " WHERE estado = 'activa'", (texto, id_empleado_actual()))
+    if not actualizadas:
+        neon_db.ejecutar("INSERT INTO argosbaseconocimiento (id_empleado, titulo, contenido) VALUES (%s, 'Base de conocimiento', %s)",
+                         (id_empleado_actual(), texto))
 
 
 # ══════════════ Cupo diario ══════════════
+# Una fila por empleado y por día en "argoscupodiario"; el tope (MAXIMO_DIARIO)
+# es entre todos los empleados juntos.
 
 def usos_hoy() -> int:
-    doc_id = datetime.now().strftime("%Y-%m-%d")
-    doc = repo.db_cliente().collection(COLECCION_USO_DIARIO).document(doc_id).get()
-    return doc.to_dict().get("cantidad", 0) if doc.exists else 0
+    fila = neon_db.una_fila("SELECT COALESCE(SUM(mensajes_enviados), 0) AS total FROM argoscupodiario"
+                            " WHERE fecha = %s AND id_empleado IS NOT NULL", (date.today(),))
+    return int(fila["total"])
 
 
 def usos_restantes_hoy() -> int:
@@ -96,9 +97,11 @@ def usos_restantes_hoy() -> int:
 
 
 def _registrar_uso():
-    doc_id = datetime.now().strftime("%Y-%m-%d")
-    repo.db_cliente().collection(COLECCION_USO_DIARIO).document(doc_id).set(
-        {"fecha": doc_id, "cantidad": firestore.Increment(1)}, merge=True
+    neon_db.ejecutar(
+        "INSERT INTO argoscupodiario (id_empleado, fecha, mensajes_enviados, limite_diario) VALUES (%s, %s, 1, %s)"
+        " ON CONFLICT (id_empleado, fecha) WHERE id_empleado IS NOT NULL"
+        " DO UPDATE SET mensajes_enviados = argoscupodiario.mensajes_enviados + 1",
+        (id_empleado_actual(), date.today(), MAXIMO_DIARIO),
     )
 
 

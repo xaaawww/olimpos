@@ -1,23 +1,12 @@
 # OLIMPOS GYM — Ocupación en vivo del gimnasio
 #
-# No hay ningún lector de accesos conectado a Firestore (ver "ingresos" en
-# app móvil: el socio solo marca que entró, nunca que salió, así que no
-# alcanza para calcular "cuántos hay ADENTRO ahora mismo"). Antes, la
-# tarjeta "Ocupación del gimnasio" de Inicio en la app móvil mostraba un
-# número inventado que cambiaba solo cada pocos segundos (ver
-# OcupacionEnVivo en HomeScreen.kt) — ahora ese número es real: lo carga el
-# dueño desde acá, y queda guardado en Firestore para que la app lo lea.
-#
-# Vive en la colección "configuracion_app" (mismo lugar que la base de
-# conocimiento de Argos) — es, ni más ni menos, otro dato de configuración
-# del club.
+# No hay ningún lector de accesos conectado (el socio solo marca que entró,
+# nunca que salió, así que no alcanza para calcular "cuántos hay ADENTRO
+# ahora mismo"). Por eso el número lo carga el dueño desde acá. Cada vez que
+# lo actualiza se agrega una fila a la tabla "aforo" (así queda el historial
+# de ocupación) y la app móvil muestra siempre la fila más reciente.
 
-from datetime import datetime
-
-from dietas_repo import _db
-
-COLECCION = "configuracion_app"
-DOC_OCUPACION = "ocupacion"
+import neon_db
 
 CAPACIDAD_MAXIMA = 120
 
@@ -25,21 +14,19 @@ CAPACIDAD_MAXIMA = 120
 def obtener_ocupacion() -> dict:
     """{"personas": int, "actualizado_ms": int} — personas=0 y
     actualizado_ms=0 si el dueño todavía no cargó ningún valor."""
-    doc = _db().collection(COLECCION).document(DOC_OCUPACION).get()
-    if not doc.exists:
+    fila = neon_db.una_fila(
+        "SELECT cantidad_personas, (extract(epoch FROM fecha) * 1000)::bigint AS ms FROM aforo ORDER BY fecha DESC, id_aforo DESC LIMIT 1"
+    )
+    if not fila:
         return {"personas": 0, "actualizado_ms": 0}
-    datos = doc.to_dict()
-    return {
-        "personas": int(datos.get("personas", 0)),
-        "actualizado_ms": int(datos.get("actualizado_ms", 0)),
-    }
+    return {"personas": int(fila["cantidad_personas"]), "actualizado_ms": int(fila["ms"])}
 
 
 def actualizar_ocupacion(personas: int) -> dict:
     personas = max(0, min(CAPACIDAD_MAXIMA, personas))
-    ahora_ms = int(datetime.now().timestamp() * 1000)
-    _db().collection(COLECCION).document(DOC_OCUPACION).set({
-        "personas": personas,
-        "actualizado_ms": ahora_ms,
-    })
-    return {"personas": personas, "actualizado_ms": ahora_ms}
+    fila = neon_db.una_fila(
+        "INSERT INTO aforo (cantidad_personas, capacidad_maxima) VALUES (%s, %s)"
+        " RETURNING (extract(epoch FROM fecha) * 1000)::bigint AS ms",
+        (personas, CAPACIDAD_MAXIMA),
+    )
+    return {"personas": personas, "actualizado_ms": int(fila["ms"])}

@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "views"))
 
 import flet as ft
+import empleados_credenciales
 from views.login import LoginView
 from views.app_shell import AppShell
 
@@ -25,6 +26,7 @@ def main(page: ft.Page):
         page.update()
 
     def on_logout():
+        empleados_credenciales.cerrar_sesion()
         page.clean()
         login = LoginView(page, on_login)
         page.add(login.build())
