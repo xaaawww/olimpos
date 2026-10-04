@@ -1,6 +1,6 @@
 # Diccionario de datos - OlimpOS Gym
 
-Base de datos relacional PostgreSQL (Neon). 106 tablas, 106 claves primarias, 128 claves foráneas.
+Base de datos relacional PostgreSQL (Neon). 107 tablas, 107 claves primarias, 129 claves foráneas.
 
 Leyenda: **PK** clave primaria · **FK** clave foránea (con su regla de borrado) · **UK** clave única · **NN** no admite nulos.
 
@@ -27,7 +27,7 @@ Leyenda: **PK** clave primaria · **FK** clave foránea (con su regla de borrado
 | disponibilidad_horaria | character varying |  |
 | firebase_uid | character varying |  |
 
-Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))`; `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{6,10}$'::text)))`; `CHECK (((nivel_experiencia IS NULL) OR ((nivel_experiencia)::text = ANY ((ARRAY['Principiante'::character varying, 'Intermedio'::character varying, 'Avanzado'::character varying])::text[]))))`; `CHECK (((sexo IS NULL) OR ((sexo)::text = ANY ((ARRAY['MASCULINO'::character varying, 'FEMENINO'::character varying, 'PREFIERO_NO_DECIRLO'::character varying])::text[]))))`; índice: `public.socios USING btree (email)`; índice: `public.socios USING btree (dni)`; índice: `public.socios USING btree (firebase_uid)`
+Reglas adicionales: `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{6,10}$'::text)))`; `CHECK (((nivel_experiencia IS NULL) OR ((nivel_experiencia)::text = ANY ((ARRAY['Principiante'::character varying, 'Intermedio'::character varying, 'Avanzado'::character varying])::text[]))))`; `CHECK (((sexo IS NULL) OR ((sexo)::text = ANY ((ARRAY['MASCULINO'::character varying, 'FEMENINO'::character varying, 'PREFIERO_NO_DECIRLO'::character varying])::text[]))))`; `CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))`; índice: `public.socios USING btree (email)`; índice: `public.socios USING btree (dni)`; índice: `public.socios USING btree (firebase_uid)`
 
 ### empleados
 
@@ -92,7 +92,7 @@ Reglas adicionales: índice: `public.rol USING btree (nombre)`
 | vistas_bodygraph | int | NN · por defecto `0` |
 | fecha_actualizacion | timestamptz | NN · por defecto `now()` |
 
-Reglas adicionales: `CHECK ((vistas_bodygraph >= 0))`; `CHECK (((edad >= 1) AND (edad <= 120)))`
+Reglas adicionales: `CHECK (((edad >= 1) AND (edad <= 120)))`; `CHECK ((vistas_bodygraph >= 0))`
 
 ### perfilappsecciones
 
@@ -384,7 +384,7 @@ Reglas adicionales: `CHECK ((capacidad > 0))`; índice: `public.clases USING btr
 | estado | character varying | NN · por defecto `'confirmada'::character varying` |
 | semana | character varying | NN |
 
-Reglas adicionales: `CHECK (((semana)::text ~ '^[0-9]{4}-W[0-9]{1,2}$'::text))`; `CHECK (((estado)::text = ANY ((ARRAY['confirmada'::character varying, 'cancelada'::character varying])::text[])))`; índice: `public.reservasclase USING btree (id_clase, semana) WHERE ((estado)::text = 'confirmada'::`; índice: `public.reservasclase USING btree (id_socio, id_clase, semana) WHERE ((estado)::text = 'con`
+Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['confirmada'::character varying, 'cancelada'::character varying])::text[])))`; `CHECK (((semana)::text ~ '^[0-9]{4}-W[0-9]{1,2}$'::text))`; índice: `public.reservasclase USING btree (id_clase, semana) WHERE ((estado)::text = 'confirmada'::`; índice: `public.reservasclase USING btree (id_socio, id_clase, semana) WHERE ((estado)::text = 'con`
 
 ### instalaciones
 
@@ -473,7 +473,7 @@ Reglas adicionales: `CHECK (((semana)::text ~ '^[0-9]{4}-W[0-9]{1,2}$'::text))`;
 | activa | bool | NN · por defecto `false` |
 | creada_por | character varying |  |
 
-Reglas adicionales: `CHECK (((origen)::text = ANY ((ARRAY['entrenador'::character varying, 'socio'::character varying])::text[])))`; `CHECK ((((origen)::text = 'socio'::text) OR (id_empleado IS NOT NULL)))`; índice: `public.rutinas USING btree (id_socio) WHERE ((origen)::text = 'entrenador'::text)`; índice: `public.rutinas USING btree (id_socio) WHERE activa`
+Reglas adicionales: `CHECK ((((origen)::text = 'socio'::text) OR (id_empleado IS NOT NULL)))`; `CHECK (((origen)::text = ANY ((ARRAY['entrenador'::character varying, 'socio'::character varying])::text[])))`; índice: `public.rutinas USING btree (id_socio) WHERE ((origen)::text = 'entrenador'::text)`; índice: `public.rutinas USING btree (id_socio) WHERE activa`
 
 ### rutinaejercicio
 
@@ -673,7 +673,7 @@ Reglas adicionales: índice: `public.ejerciciosmarca USING btree (id_ejercicio)`
 | fecha_verificacion | timestamptz |  |
 | verificado_por | character varying |  |
 
-Reglas adicionales: `CHECK (((peso >= (0)::numeric) AND (repeticiones > 0)))`; `CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'verificada'::character varying, 'rechazada'::character varying])::text[])))`; índice: `public.marcaspersonales USING btree (id_socio, fecha DESC)`
+Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'verificada'::character varying, 'rechazada'::character varying])::text[])))`; `CHECK (((peso >= (0)::numeric) AND (repeticiones > 0)))`; índice: `public.marcaspersonales USING btree (id_socio, fecha DESC)`
 
 ### rangossocio
 
@@ -818,7 +818,7 @@ Reglas adicionales: `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character
 | crop_y | real |  |
 | fecha_actualizacion | timestamptz | NN · por defecto `now()` |
 
-Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['publicado'::character varying, 'borrador'::character varying])::text[])))`; `CHECK ((kcal >= 0))`; `CHECK ((proteinas >= 0))`; `CHECK ((carbs >= 0))`; `CHECK ((grasas >= 0))`
+Reglas adicionales: `CHECK ((kcal >= 0))`; `CHECK (((estado)::text = ANY ((ARRAY['publicado'::character varying, 'borrador'::character varying])::text[])))`; `CHECK ((grasas >= 0))`; `CHECK ((carbs >= 0))`; `CHECK ((proteinas >= 0))`
 
 ### platoingredientes
 
@@ -877,9 +877,13 @@ Reglas adicionales: `CHECK (((categoria)::text = ANY ((ARRAY['Proteína'::charac
 | id_socio | int | **PK** (compuesta) · **FK** → socios.id_socio (borrado: CASCADE) |
 | fecha | date | **PK** (compuesta) |
 | objetivo | character varying |  |
+| meta_kcal | int |  |
+| meta_proteinas | int |  |
+| meta_carbs | int |  |
+| meta_grasas | int |  |
 | fecha_actualizacion | timestamptz | NN · por defecto `now()` |
 
-Reglas adicionales: `CHECK (((objetivo)::text = ANY ((ARRAY['FUERZA'::character varying, 'HIPERTROFIA'::character varying, 'SALUD'::character varying])::text[])))`
+Reglas adicionales: `CHECK ((meta_kcal >= 0))`; `CHECK ((meta_carbs >= 0))`; `CHECK ((meta_proteinas >= 0))`; `CHECK (((objetivo)::text = ANY ((ARRAY['FUERZA'::character varying, 'HIPERTROFIA'::character varying, 'SALUD'::character varying])::text[])))`; `CHECK ((meta_grasas >= 0))`
 
 ### comidasregistradas
 
@@ -895,7 +899,7 @@ Reglas adicionales: `CHECK (((objetivo)::text = ANY ((ARRAY['FUERZA'::character 
 | grasas | int | NN · por defecto `0` |
 | nota | character varying | NN · por defecto `''::character varying` |
 
-Reglas adicionales: `CHECK ((kcal >= 0))`; `CHECK ((carbs >= 0))`; `CHECK ((proteinas >= 0))`; `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character varying, 'almuerzo'::character varying, 'cena'::character varying])::text[])))`; `CHECK ((grasas >= 0))`
+Reglas adicionales: `CHECK ((kcal >= 0))`; `CHECK ((proteinas >= 0))`; `CHECK ((carbs >= 0))`; `CHECK ((grasas >= 0))`; `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character varying, 'almuerzo'::character varying, 'cena'::character varying])::text[])))`
 
 ### comidaregistradaplatos
 
@@ -1246,7 +1250,7 @@ Reglas adicionales: `CHECK (((categoria)::text = ANY ((ARRAY['Aviso'::character 
 | fecha | timestamptz | NN · por defecto `now()` |
 | estado | character varying | NN · por defecto `'nuevo'::character varying` |
 
-Reglas adicionales: `CHECK (((email IS NOT NULL) OR (telefono IS NOT NULL)))`; `CHECK (((char_length((nombre)::text) <= 100) AND (char_length(mensaje) < 1000)))`
+Reglas adicionales: `CHECK (((char_length((nombre)::text) <= 100) AND (char_length(mensaje) < 1000)))`; `CHECK (((email IS NOT NULL) OR (telefono IS NOT NULL)))`
 
 ## Argos (asistente de IA)
 
@@ -1304,3 +1308,15 @@ Reglas adicionales: `CHECK ((num_nonnulls(id_socio, id_empleado) = 1))`; índice
 | cantidad | int | NN · por defecto `0` |
 
 Reglas adicionales: `CHECK ((cantidad >= 0))`
+
+## Otras
+
+### comidasdiametamomentos
+
+| Columna | Tipo | Restricciones |
+|---|---|---|
+| id_socio | int | **PK** (compuesta) · **FK** → comidasdia.id_socio (borrado: CASCADE) |
+| fecha | date | **PK** (compuesta) · **FK** → comidasdia.fecha (borrado: CASCADE) |
+| momento | character varying | **PK** (compuesta) |
+
+Reglas adicionales: `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character varying, 'almuerzo'::character varying, 'cena'::character varying])::text[])))`
