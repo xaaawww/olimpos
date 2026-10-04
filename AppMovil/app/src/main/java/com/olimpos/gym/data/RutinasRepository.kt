@@ -1,103 +1,76 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
- * Rutinas asignadas (colección "rutinas_asignadas" en Firestore — ver
- * rutinas_repo.py). Antes había como mucho UN documento por socio (id = su
- * uid), armado solo por un entrenador desde el sistema de empleados. Ahora
- * puede haber varios documentos por socio (id autogenerado, con el campo
- * "socio_id"): como mucho uno con "origen" = "entrenador", y cero o más con
- * "origen" = "socio" (armadas por el propio socio desde "Mis rutinas", con
- * ejercicios del catálogo real o escritos a mano). El socio elige cuál
- * sigue en Entrenar marcando "activa" en una sola a la vez.
+ * Rutinas del socio (tablas "rutinas" y "rutinaejercicio" — ver rutinas_repo.py
+ * en el sistema de empleados). Un socio puede tener varias: como mucho una con
+ * "origen" = "entrenador" (armada desde el sistema de empleados) y cero o más
+ * con "origen" = "socio" (armadas por él mismo desde "Mis rutinas", con
+ * ejercicios del catálogo real o escritos a mano). El socio elige cuál sigue
+ * en Entrenar marcando "activa" una sola a la vez. La API es quien aplica las
+ * reglas (por ejemplo, no deja editar la rutina del entrenador).
  */
-private const val COLECCION_RUTINAS = "rutinas_asignadas"
-
 suspend fun cargarMisRutinas(): List<RutinaCompleta>? {
     return try {
-        val snapshot = Firebase.firestore.collection(COLECCION_RUTINAS)
-            .whereEqualTo("socio_id", socioActualId())
-            .get()
-            .await()
-        snapshot.documents.mapNotNull { doc -> docARutina(doc.id, doc.data ?: return@mapNotNull null) }
+        Api.get("/v1/rutinas").optJSONArray("rutinas")?.objetos()?.map { j ->
+            RutinaCompleta(
+                id = j.optString("id"), nombre = j.optString("nombre"), creadaPor = j.optString("creada_por", ""),
+                origen = j.optString("origen", "entrenador"), activa = j.optBoolean("activa", false),
+                ejercicios = j.optJSONArray("ejercicios")?.objetos()?.map { e ->
+                    EjercicioRutina(
+                        nombre = e.optString("nombre"), seriesObjetivo = e.optInt("series_objetivo", 3),
+                        pesoBaseKg = e.optDouble("peso_base_kg", 0.0).toFloat(),
+                        esPesoCorporal = e.optBoolean("es_peso_corporal", false),
+                        ejercicioId = e.textoONull("ejercicio_id")
+                    )
+                } ?: emptyList()
+            )
+        } ?: emptyList()
     } catch (e: Exception) {
         null
     }
 }
 
-private fun docARutina(id: String, m: Map<String, Any?>): RutinaCompleta? {
-    val nombre = m["nombre"] as? String ?: return null
-    val creadaPor = m["creada_por"] as? String ?: ""
-    val origen = m["origen"] as? String ?: "entrenador"
-    val activa = m["activa"] as? Boolean ?: false
-    @Suppress("UNCHECKED_CAST")
-    val ejerciciosRaw = m["ejercicios"] as? List<Map<String, Any?>> ?: emptyList()
-    val ejercicios = ejerciciosRaw.mapNotNull { e ->
-        val nombreEj = e["nombre"] as? String ?: return@mapNotNull null
-        val series = (e["series_objetivo"] as? Long)?.toInt() ?: (e["series_objetivo"] as? Double)?.toInt() ?: 3
-        val peso = (e["peso_base_kg"] as? Double)?.toFloat() ?: (e["peso_base_kg"] as? Long)?.toFloat() ?: 0f
-        val esPesoCorporal = e["es_peso_corporal"] as? Boolean ?: false
-        val ejercicioId = e["ejercicio_id"] as? String
-        EjercicioRutina(nombreEj, series, peso, esPesoCorporal, ejercicioId)
+private fun cuerpoRutina(nombre: String, ejercicios: List<EjercicioRutina>): JSONObject {
+    val lista = JSONArray()
+    ejercicios.forEach {
+        lista.put(
+            JSONObject().put("nombre", it.nombre).put("series_objetivo", it.seriesObjetivo)
+                .put("peso_base_kg", it.pesoBaseKg.toDouble()).put("es_peso_corporal", it.esPesoCorporal)
+                .put("ejercicio_id", it.ejercicioId ?: JSONObject.NULL)
+        )
     }
-    return RutinaCompleta(id, nombre, creadaPor, origen, activa, ejercicios)
+    return JSONObject().put("nombre", nombre).put("ejercicios", lista)
 }
 
-private fun ejerciciosAMapa(ejercicios: List<EjercicioRutina>): List<Map<String, Any?>> = ejercicios.map {
-    mapOf(
-        "nombre" to it.nombre, "series_objetivo" to it.seriesObjetivo,
-        "peso_base_kg" to it.pesoBaseKg, "es_peso_corporal" to it.esPesoCorporal,
-        "ejercicio_id" to it.ejercicioId
-    )
-}
-
-/** Marca [rutinaId] como la única activa entre [todasLasPropias] (el resto
- *  de las mismas pasan a `false`) — puede tocar este campo en cualquiera de
- *  las suyas, incluida una armada por el entrenador (ver firestore.rules). */
-suspend fun marcarRutinaActiva(rutinaId: String, todasLasPropias: List<RutinaCompleta>): Boolean {
+/** Marca [rutinaId] como la que sigue en Entrenar (la API apaga las demás).
+ *  Vale para cualquiera de las rutinas del socio, incluida la del entrenador. */
+suspend fun marcarRutinaActiva(rutinaId: String): Boolean {
     return try {
-        val db = Firebase.firestore
-        val batch = db.batch()
-        for (r in todasLasPropias) {
-            batch.update(db.collection(COLECCION_RUTINAS).document(r.id), "activa", r.id == rutinaId)
-        }
-        batch.commit().await()
+        Api.post("/v1/rutinas/$rutinaId/activar")
         true
     } catch (e: Exception) {
         false
     }
 }
 
-/** Crea una rutina propia nueva — [activa] en `true` solo si es la primera
- *  rutina que tiene este socio de cualquier origen (si ya seguía alguna,
- *  no se la cambia sin que él lo elija desde "Mis rutinas"). */
-suspend fun crearRutinaPropia(nombre: String, ejercicios: List<EjercicioRutina>, yaTeniaAlguna: Boolean): Boolean {
+/** Crea una rutina propia nueva. Queda activa sola si es la primera que tiene
+ *  el socio; si ya seguía otra, no se la cambia sin que él lo elija. */
+suspend fun crearRutinaPropia(nombre: String, ejercicios: List<EjercicioRutina>): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_RUTINAS).document().set(
-            mapOf(
-                "socio_id" to socioActualId(), "origen" to "socio", "activa" to !yaTeniaAlguna,
-                "nombre" to nombre, "creada_por" to "Vos mismo", "ejercicios" to ejerciciosAMapa(ejercicios)
-            )
-        ).await()
+        Api.post("/v1/rutinas", cuerpoRutina(nombre, ejercicios))
         true
     } catch (e: Exception) {
         false
     }
 }
 
-/** Edita una rutina propia ya existente (nunca una del entrenador — eso lo
- *  frena también firestore.rules, esto es solo para no ofrecer el botón). */
+/** Edita una rutina propia ya existente (nunca una del entrenador). */
 suspend fun editarRutinaPropia(rutinaId: String, nombre: String, ejercicios: List<EjercicioRutina>): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_RUTINAS).document(rutinaId).set(
-            mapOf(
-                "socio_id" to socioActualId(), "origen" to "socio",
-                "nombre" to nombre, "creada_por" to "Vos mismo", "ejercicios" to ejerciciosAMapa(ejercicios)
-            ), com.google.firebase.firestore.SetOptions.merge()
-        ).await()
+        Api.put("/v1/rutinas/$rutinaId", cuerpoRutina(nombre, ejercicios))
         true
     } catch (e: Exception) {
         false
@@ -106,7 +79,7 @@ suspend fun editarRutinaPropia(rutinaId: String, nombre: String, ejercicios: Lis
 
 suspend fun borrarRutinaPropia(rutinaId: String): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_RUTINAS).document(rutinaId).delete().await()
+        Api.delete("/v1/rutinas/$rutinaId")
         true
     } catch (e: Exception) {
         false

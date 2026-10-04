@@ -2,7 +2,6 @@ package com.olimpos.gym.data
 
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -14,8 +13,8 @@ import java.net.URL
 /**
  * Argos: el asistente de IA de texto de OlimpΩs, para los socios. La app
  * móvil NUNCA tiene la clave de Anthropic — no hay forma de esconder un
- * secreto adentro de un APK instalado, a diferencia de Firestore, que se
- * protege con reglas del lado del servidor. En cambio, le habla a un
+ * secreto adentro de un APK instalado, a diferencia de la base de datos, que se
+ * protege del lado del servidor. En cambio, le habla a un
  * Worker de Cloudflare (que sí puede guardar secretos) pasándole el ID
  * token de Firebase Auth del socio logueado, para probar que quien
  * pregunta es un socio real — ver ArgosWorker/src/index.ts.
@@ -25,9 +24,6 @@ import java.net.URL
  */
 private const val ARGOS_WORKER_URL = "https://argos-olimpos.argosolimpo.workers.dev"
 
-private const val COLECCION_CONFIG = "configuracion_app"
-private const val DOC_ARGOS = "argos"
-
 data class MensajeArgos(val rol: String, val texto: String) // rol: "user" | "assistant"
 
 /** Base de conocimiento (horarios/precios/políticas reales) que carga el
@@ -35,8 +31,7 @@ data class MensajeArgos(val rol: String, val texto: String) // rol: "user" | "as
  *  Worker, para que la respuesta sea consistente entre las dos apps. */
 suspend fun cargarBaseConocimientoArgos(): String {
     return try {
-        val doc = Firebase.firestore.collection(COLECCION_CONFIG).document(DOC_ARGOS).get().await()
-        doc.getString("base_conocimiento") ?: ""
+        Api.get("/v1/argos/base-conocimiento").optString("texto", "")
     } catch (e: Exception) {
         ""
     }
@@ -45,7 +40,7 @@ suspend fun cargarBaseConocimientoArgos(): String {
 /** Resumen en texto plano de los datos propios del socio (membresía,
  *  racha, próximas clases reservadas) — así Argos puede responder
  *  preguntas personales ("¿cuándo vence mi membresía?") sin que el Worker
- *  tenga que leer Firestore por su cuenta con una cuenta de servicio. */
+ *  tenga que leer la base por su cuenta. */
 fun construirContextoPersonalArgos(): String {
     val partes = mutableListOf<String>()
 

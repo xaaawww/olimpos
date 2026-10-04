@@ -1,12 +1,8 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
-
 /**
- * Membresía real asignada por un empleado (colección "membresias", un
- * documento por socio — ver membresias_repo.py). Antes "Mi membresía"
+ * Membresía real asignada por un empleado (tabla "membresiasocio" — ver
+ * membresias_repo.py). Antes "Mi membresía"
  * dejaba que el propio socio se activara un plan tocando un botón, sin
  * que quedara ninguna fecha de inicio real ni que el gimnasio se
  * enterara — el logro "Cliente fiel" (6 meses de membresía activa) no
@@ -25,10 +21,10 @@ fun planIncluyeArgos(plan: String?): Boolean = plan in PLANES_CON_ARGOS
 
 suspend fun cargarMembresiaDesdeFirebase(): MembresiaAsignada? {
     return try {
-        val doc = Firebase.firestore.collection("membresias").document(socioActualId()).get().await()
-        if (!doc.exists()) return null
-        val plan = doc.getString("plan") ?: return null
-        val fechaInicio = doc.getLong("fecha_inicio_ms") ?: return null
+        val j = Api.get("/v1/membresia")
+        if (!j.optBoolean("existe", false)) return null
+        val plan = j.textoONull("plan") ?: return null
+        val fechaInicio = j.numeroONull("fecha_inicio_ms")?.toLong() ?: return null
         MembresiaAsignada(plan, fechaInicio)
     } catch (e: Exception) {
         null

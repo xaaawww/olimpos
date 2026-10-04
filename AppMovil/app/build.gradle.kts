@@ -69,7 +69,6 @@ dependencies {
     // tiempo de ejecución es agregar app/google-services.json y activar el
     // plugin com.google.gms.google-services.
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
-    implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 

@@ -1,0 +1,24 @@
+{
+  "name": "api-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build:test": "tsc -p tsconfig.test.json",
+    "test": "npm run build:test && node test/dist-test/test/probar_api.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260915.1",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "pg": "^8.13.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.132.0"
+  }
+}

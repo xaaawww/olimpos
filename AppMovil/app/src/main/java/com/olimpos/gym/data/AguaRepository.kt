@@ -1,8 +1,5 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
 
 /**
  * Registro de consumo de agua (colección "registros_agua") — un marcado
@@ -10,16 +7,9 @@ import kotlinx.coroutines.tasks.await
  * sale el logro "Hidratado" (7 días seguidos). Mismo patrón que los
  * ingresos al gimnasio (IngresoRepository.kt).
  */
-private const val COLECCION_AGUA = "registros_agua"
-
 suspend fun registrarAguaEnFirebase(): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_AGUA).document().set(
-            mapOf(
-                "socio_id" to socioActualId(),
-                "timestamp" to System.currentTimeMillis()
-            )
-        ).await()
+        Api.post("/v1/agua")
         true
     } catch (e: Exception) {
         false
@@ -28,17 +18,13 @@ suspend fun registrarAguaEnFirebase(): Boolean {
 
 suspend fun cargarRegistrosAguaDesdeFirebase(): List<Long>? {
     return try {
-        val snapshot = Firebase.firestore.collection(COLECCION_AGUA)
-            .whereEqualTo("socio_id", socioActualId())
-            .get()
-            .await()
-        snapshot.documents.mapNotNull { it.getLong("timestamp") }
+        val a = Api.get("/v1/agua").optJSONArray("registros")
+        if (a == null) emptyList() else (0 until a.length()).map { a.optLong(it) }
     } catch (e: Exception) {
         null
     }
 }
 
-/** `true` si ya hay un registro de agua en el día calendario de hoy. */
 fun yaRegistroAguaHoy(registros: List<Long>): Boolean {
     val hoy = java.util.Calendar.getInstance()
     return registros.any { ts ->

@@ -1,8 +1,6 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.firestore
-import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -13,8 +11,8 @@ import java.util.Locale
  * meta de kcal/macros de ese día y la racha de dieta.
  *
  * El nutricionista/dueño arma la asignación desde el sistema de empleados
- * ("Asignar Dietas", ver dietas_asignadas_repo.py): un documento por socio en
- * "dietas_asignadas" con los platos de Desayuno, Almuerzo y Cena. Los valores
+ * ("Asignar Dietas", ver dietas_asignadas_repo.py): una "dieta" vigente por socio
+ * (tablas dietas -> planalimentario -> planplato) con los platos de Desayuno, Almuerzo y Cena. Los valores
  * nutricionales de cada plato (kcal, proteínas, carbohidratos, grasas por
  * porción) los carga el mismo nutricionista en el Editor Visual de Dietas.
  */
@@ -26,15 +24,15 @@ data class Macros(val kcal: Int = 0, val proteinas: Int = 0, val carbs: Int = 0,
     val esVacio: Boolean get() = kcal == 0 && proteinas == 0 && carbs == 0 && grasas == 0
 }
 
-/** Lee un mapa de Firestore ({"kcal":…, "proteinas":…, "carbs":…, "grasas":…}). */
-fun macrosDeMapa(mapa: Map<*, *>?): Macros = Macros(
-    kcal = (mapa?.get("kcal") as? Number)?.toInt() ?: 0,
-    proteinas = (mapa?.get("proteinas") as? Number)?.toInt() ?: 0,
-    carbs = (mapa?.get("carbs") as? Number)?.toInt() ?: 0,
-    grasas = (mapa?.get("grasas") as? Number)?.toInt() ?: 0
+/** Lee macros de un objeto JSON ({"kcal":…, "proteinas":…, "carbs":…, "grasas":…}). */
+fun macrosDeJson(j: JSONObject?): Macros = Macros(
+    kcal = j?.optInt("kcal", 0) ?: 0,
+    proteinas = j?.optInt("proteinas", 0) ?: 0,
+    carbs = j?.optInt("carbs", 0) ?: 0,
+    grasas = j?.optInt("grasas", 0) ?: 0
 )
 
-/** [clave] es la misma que usa el sistema de empleados en Firestore. */
+/** [clave] es la misma que usa el sistema de empleados y la base de datos. */
 enum class MomentoComida(val clave: String, val etiqueta: String, val emoji: String) {
     DESAYUNO("desayuno", "Desayuno", "🌅"),
     ALMUERZO("almuerzo", "Almuerzo", "☀️"),
@@ -51,16 +49,14 @@ data class DietaAsignada(val comidas: Map<MomentoComida, List<String>>, val asig
         comidas[momento].orEmpty().mapNotNull { id -> platos.firstOrNull { it.id == id } }
 }
 
-/** `null` = todavía no le asignaron ninguna dieta (o Firebase falló). */
+/** `null` = todavía no le asignaron ninguna dieta (o la consulta falló). */
 suspend fun cargarDietaAsignada(): DietaAsignada? {
     return try {
-        val doc = Firebase.firestore.collection("dietas_asignadas").document(socioActualId()).get().await()
-        if (!doc.exists()) return null
-        val mapa = doc.get("comidas") as? Map<*, *> ?: return null
-        val comidas = MomentoComida.entries.associateWith { m ->
-            (mapa[m.clave] as? List<*>)?.mapNotNull { it as? String }.orEmpty()
-        }
-        DietaAsignada(comidas, doc.getString("asignada_por") ?: "").takeUnless { it.vacia }
+        val j = Api.get("/v1/dieta-asignada")
+        if (!j.optBoolean("existe", false)) return null
+        val mapa = j.optJSONObject("comidas") ?: return null
+        val comidas = MomentoComida.entries.associateWith { m -> mapa.optJSONArray(m.clave)?.textos().orEmpty() }
+        DietaAsignada(comidas, j.optString("asignada_por", "")).takeUnless { it.vacia }
     } catch (e: Exception) {
         null
     }

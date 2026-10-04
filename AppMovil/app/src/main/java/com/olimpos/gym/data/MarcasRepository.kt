@@ -1,37 +1,30 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 
 /**
- * Marcas personales del socio (colección "marcas" en Firestore). El socio
- * las carga desde la Calculadora/Mis marcas; el sistema de empleados las
- * lee para que un entrenador o el dueño las verifique (ver sección
- * "Verificación de Marcas"). Devuelve `null` si Firebase falla — quien
- * llama debe tratarlo como "todavía no se sabe", no mostrar datos falsos.
+ * Marcas personales del socio (tabla "marcaspersonales"). El socio las carga
+ * desde la Calculadora/Mis marcas; el sistema de empleados las lee para que
+ * un entrenador o el dueño las verifique (ver sección "Verificación de
+ * Marcas"). Devuelve `null` si la API falla — quien llama debe tratarlo
+ * como "todavía no se sabe", no mostrar datos falsos.
  */
+private fun jsonAMarca(j: JSONObject): MarcaPersonal? {
+    val ejercicio = j.optString("ejercicio").takeIf { it.isNotEmpty() } ?: return null
+    return MarcaPersonal(
+        id = j.optString("id"),
+        ejercicio = ejercicio,
+        pesoKg = j.optDouble("peso", 0.0).toFloat(),
+        reps = j.optInt("repeticiones", 0),
+        fecha = j.optString("fecha", ""),
+        timestamp = j.optLong("timestamp", 0L),
+        verificado = j.optBoolean("verificado", false)
+    )
+}
+
 suspend fun cargarMarcasDesdeFirebase(): List<MarcaPersonal>? {
     return try {
-        val snapshot = Firebase.firestore.collection("marcas")
-            .whereEqualTo("socio_id", socioActualId())
-            .get()
-            .await()
-
-        snapshot.documents.mapNotNull { doc ->
-            val ejercicio = doc.getString("ejercicio") ?: return@mapNotNull null
-            val peso = doc.getDouble("peso")?.toFloat() ?: return@mapNotNull null
-            val reps = doc.getLong("repeticiones")?.toInt() ?: return@mapNotNull null
-            MarcaPersonal(
-                id = doc.id,
-                ejercicio = ejercicio,
-                pesoKg = peso,
-                reps = reps,
-                fecha = doc.getString("fecha") ?: "",
-                timestamp = doc.getLong("timestamp") ?: 0L,
-                verificado = doc.getBoolean("verificado") ?: false
-            )
-        }
+        Api.get("/v1/marcas").optJSONArray("marcas")?.objetos()?.mapNotNull(::jsonAMarca) ?: emptyList()
     } catch (e: Exception) {
         null
     }
@@ -74,31 +67,20 @@ private const val PESO_CORPORAL_REFERENCIA = 80f
  *  ver [puntajeGeneralDeSocio]. */
 suspend fun cargarRangosDeSocios(): List<SocioRango>? {
     return try {
-        val snapshotMarcas = Firebase.firestore.collection("marcas").get().await()
-        // "socios_app": lo crea un empleado al darle acceso al socio (ver
-        // auth_repo.py) — de ahí sale cuándo se unió cada uno.
-        val creadoPorUid = try {
-            Firebase.firestore.collection("socios_app").get().await()
-                .documents.associate { it.id to it.getLong("creado_ms") }
-        } catch (e: Exception) {
-            emptyMap()
-        }
-        val datosFisicosPorUid = cargarDatosFisicosDeTodos()
+        // Una sola llamada trae todo lo necesario: las marcas de todos los
+        // socios, cuándo se unió cada uno y sus datos físicos (sin nada privado).
+        val j = Api.get("/v1/clasificacion")
+        val creadoPorUid = j.optJSONObject("socios")?.let { o -> o.keys().asSequence().associateWith { o.optLong(it) } } ?: emptyMap()
+        val datosFisicosPorUid = j.optJSONObject("datos_fisicos")?.let { o ->
+            o.keys().asSequence().mapNotNull { uid -> o.optJSONObject(uid)?.let(::jsonADatosFisicos)?.let { uid to it } }.toMap()
+        } ?: emptyMap()
+        val marcasJson = j.optJSONArray("marcas")?.objetos().orEmpty()
 
-        snapshotMarcas.documents
-            .groupBy { it.getString("socio_id") ?: "?" }
+        marcasJson
+            .groupBy { it.optString("socio_id", "?") }
             .mapNotNull { (socioId, docs) ->
-                val nombre = docs.firstOrNull()?.getString("socio_nombre") ?: socioId
-                val marcas = docs.mapNotNull { doc ->
-                    val ejercicio = doc.getString("ejercicio") ?: return@mapNotNull null
-                    val peso = doc.getDouble("peso")?.toFloat() ?: return@mapNotNull null
-                    val reps = doc.getLong("repeticiones")?.toInt() ?: return@mapNotNull null
-                    MarcaPersonal(
-                        id = doc.id, ejercicio = ejercicio, pesoKg = peso, reps = reps,
-                        fecha = doc.getString("fecha") ?: "", timestamp = doc.getLong("timestamp") ?: 0L,
-                        verificado = doc.getBoolean("verificado") ?: false
-                    )
-                }
+                val nombre = docs.firstOrNull()?.optString("socio_nombre")?.takeIf { it.isNotEmpty() } ?: socioId
+                val marcas = docs.mapNotNull(::jsonAMarca)
                 val datosFisicos = datosFisicosPorUid[socioId]
                 // El socio pidió no aparecer para los demás (botón en
                 // Clasificación) — su propio rango sigue viéndolo él, ya
@@ -134,19 +116,10 @@ suspend fun cargarRangosDeSocios(): List<SocioRango>? {
  *  reemplace a la anterior del mismo ejercicio en vez de acumularse. */
 suspend fun guardarMarcaEnFirebase(ejercicio: String, pesoKg: Float, reps: Int, fecha: String, timestamp: Long): Boolean {
     return try {
-        val doc = Firebase.firestore.collection("marcas").document()
-        doc.set(
-            mapOf(
-                "socio_id" to socioActualId(),
-                "socio_nombre" to socioActualNombre(),
-                "ejercicio" to ejercicio,
-                "peso" to pesoKg,
-                "repeticiones" to reps,
-                "fecha" to fecha,
-                "timestamp" to timestamp,
-                "verificado" to false
-            )
-        ).await()
+        Api.post(
+            "/v1/marcas",
+            JSONObject().put("ejercicio", ejercicio).put("peso", pesoKg.toDouble()).put("repeticiones", reps).put("timestamp", timestamp)
+        )
         true
     } catch (e: Exception) {
         false
@@ -154,14 +127,14 @@ suspend fun guardarMarcaEnFirebase(ejercicio: String, pesoKg: Float, reps: Int, 
 }
 
 /** Borra una marca ya cargada. El Bodygraph y la Clasificación se
- *  recalculan a partir de lo que quede en Firestore (ver [resumenMuscular]/
+ *  recalculan a partir de lo que quede en la base (ver [resumenMuscular]/
  *  [puntajeGeneralDeSocio]), así que borrar la única marca de un ejercicio
  *  puede hacer bajar el rango — quien llama debe recargar [DatosRemotos]
  *  después de esto para que se note sin reiniciar la app. */
 suspend fun eliminarMarcaEnFirebase(marcaId: String): Boolean {
     if (marcaId.isBlank()) return false
     return try {
-        Firebase.firestore.collection("marcas").document(marcaId).delete().await()
+        Api.delete("/v1/marcas/$marcaId")
         true
     } catch (e: Exception) {
         false

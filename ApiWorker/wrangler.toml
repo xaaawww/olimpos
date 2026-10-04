@@ -1,0 +1,14 @@
+name = "api-olimpos"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# El nombre del proyecto de Firebase (olimpos-18320) — el token de la app
+# móvil se verifica contra este proyecto exacto (el LOGIN sigue en Firebase
+# Authentication; solo la base de datos es Neon). No es secreto.
+[vars]
+FIREBASE_PROJECT_ID = "olimpos-18320"
+
+# Secreto (se carga con "npx wrangler secret put DATABASE_URL", nunca acá):
+#   DATABASE_URL — la cadena de conexión de Neon (postgresql://...), la misma
+#                  que va en Aplicaciones/olimpos_gym/neon_credentials.json.

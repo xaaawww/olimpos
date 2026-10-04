@@ -1,28 +1,16 @@
 package com.olimpos.gym.data
 
-import com.google.firebase.firestore.firestore
-import com.google.firebase.Firebase
-import kotlinx.coroutines.tasks.await
+import org.json.JSONObject
 
 /**
- * Reserva de locker (colección "lockers", un documento por socio — id =
- * su propio uid, así reservar uno nuevo reemplaza automáticamente el
- * anterior sin dejar basura). Antes esto vivía solo en memoria dentro de
- * LockersScreen (un `remember` local que se perdía al salir de la
- * pantalla) y el catálogo de ejemplo encima arrancaba con lockers ya
- * "ocupados" sin que ningún socio real los hubiese tomado.
+ * Reserva de locker (tablas "lockers" y "reservaslocker"). Un socio tiene como
+ * mucho uno; reservar uno nuevo libera el anterior. Que dos socios no puedan
+ * tener el mismo locker lo garantiza la base de datos con un índice único —
+ * no depende de que la app se acuerde de chequearlo.
  */
-private const val COLECCION_LOCKERS = "lockers"
-
 suspend fun reservarLockerEnFirebase(numero: Int): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_LOCKERS).document(socioActualId()).set(
-            mapOf(
-                "socio_id" to socioActualId(),
-                "numero" to numero,
-                "timestamp" to System.currentTimeMillis()
-            )
-        ).await()
+        Api.post("/v1/lockers/reservar", JSONObject().put("numero", numero))
         true
     } catch (e: Exception) {
         false
@@ -31,7 +19,7 @@ suspend fun reservarLockerEnFirebase(numero: Int): Boolean {
 
 suspend fun liberarLockerEnFirebase(): Boolean {
     return try {
-        Firebase.firestore.collection(COLECCION_LOCKERS).document(socioActualId()).delete().await()
+        Api.delete("/v1/lockers/mio")
         true
     } catch (e: Exception) {
         false
@@ -43,11 +31,9 @@ suspend fun liberarLockerEnFirebase(): Boolean {
  *  cualquiera, no solo el propio. */
 suspend fun cargarLockersDesdeFirebase(): Map<Int, String>? {
     return try {
-        val snapshot = Firebase.firestore.collection(COLECCION_LOCKERS).get().await()
-        snapshot.documents.mapNotNull { doc ->
-            val numero = doc.getLong("numero")?.toInt() ?: return@mapNotNull null
-            numero to doc.id
-        }.toMap()
+        Api.get("/v1/lockers").optJSONArray("lockers")?.objetos()?.associate {
+            it.optInt("numero") to it.optString("socio_id")
+        } ?: emptyMap()
     } catch (e: Exception) {
         null
     }

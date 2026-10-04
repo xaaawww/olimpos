@@ -1,14 +1,13 @@
 # OLIMPOS GYM — Repositorio de marcas personales (verificación de récords)
 #
 # Las marcas las carga el socio desde la Calculadora/Mis marcas de la app
-# móvil (colección "marcas" en Firestore, mismo proyecto que dietas y
-# ejercicios). Acá el dueño/entrenador las revisa y verifica — el Bodygraph
+# móvil (tabla "marcaspersonales"). Acá el dueño/entrenador las revisa y verifica — el Bodygraph
 # del socio muestra un rango por músculo calculado a partir de estas marcas,
 # y necesita quedar claro cuándo ese cálculo todavía no fue confirmado por
 # nadie del gimnasio (evita que alguien infle su rango cargando pesos falsos
 # sin que se note).
 #
-# Forma de una "marca" en Firestore:
+# Forma de una "marca" (como la maneja la pantalla):
 # {
 #   "socio_id": "alex_rodriguez", "socio_nombre": "Alex Rodríguez",
 #   "ejercicio": "Press banca", "peso": 82.0, "repeticiones": 2,
@@ -21,10 +20,12 @@
 # después.
 
 import math
+from datetime import datetime
 
-from dietas_repo import _db
+import neon_db
+from empleados_credenciales import id_empleado_actual
 
-COLECCION = "marcas"
+_MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
 # Espejo de CONTRIBUCION_MUSCULAR en GamificacionData.kt (app móvil): si se
 # cambia un valor ahí, hay que cambiarlo acá también para que el ranking
@@ -125,10 +126,19 @@ def datos_fisicos_de_todos(forzar: bool = False) -> dict[str, dict]:
     global _cache_datos_fisicos
     if _cache_datos_fisicos is None or forzar:
         try:
-            docs = _db().collection("datos_fisicos").stream()
-            _cache_datos_fisicos = {d.id: d.to_dict() for d in docs}
+            # peso = el último de progresopeso; sexo está en socios
+            filas = neon_db.consulta(
+                "SELECT s.firebase_uid, s.sexo,"
+                " (SELECT pp.peso FROM progresopeso pp WHERE pp.id_socio = s.id_socio"
+                "  ORDER BY pp.fecha DESC, pp.id_progreso_peso DESC LIMIT 1) AS peso_kg"
+                " FROM socios s WHERE s.firebase_uid IS NOT NULL"
+            )
         except Exception:
             return {}
+        _cache_datos_fisicos = {
+            f["firebase_uid"]: {"sexo": f["sexo"], **({"peso_kg": float(f["peso_kg"])} if f["peso_kg"] is not None else {})}
+            for f in filas
+        }
     return _cache_datos_fisicos
 
 
@@ -225,22 +235,29 @@ def cargar_marcas(forzar: bool = False) -> list[dict]:
     solo si otro empleado cargó/verificó algo desde otra máquina."""
     global _cache_marcas
     if _cache_marcas is None or forzar:
-        docs = _db().collection(COLECCION).stream()
-        marcas = []
-        for d in docs:
-            data = d.to_dict()
-            data["id"] = d.id
-            marcas.append(data)
-        marcas.sort(key=lambda m: m.get("timestamp", 0), reverse=True)
-        _cache_marcas = marcas
+        filas = neon_db.consulta(
+            "SELECT mp.id_marca, s.firebase_uid, trim(s.nombre || ' ' || s.apellido) AS socio_nombre, e.nombre AS ejercicio,"
+            " mp.peso, mp.repeticiones, mp.fecha, mp.estado, mp.verificado_por"
+            " FROM marcaspersonales mp JOIN socios s USING (id_socio)"
+            " JOIN ejerciciosmarca em USING (id_ejercicio_marca) JOIN ejercicios e ON e.id_ejercicio = em.id_ejercicio"
+            " WHERE mp.estado <> 'rechazada' AND s.firebase_uid IS NOT NULL ORDER BY mp.fecha DESC"
+        )
+        _cache_marcas = [{
+            "id": str(f["id_marca"]), "socio_id": f["firebase_uid"], "socio_nombre": f["socio_nombre"],
+            "ejercicio": f["ejercicio"], "peso": float(f["peso"]), "repeticiones": f["repeticiones"],
+            "fecha": f"{f['fecha'].day} {_MESES[f['fecha'].month - 1]} {f['fecha'].year}",
+            "timestamp": int(f["fecha"].timestamp() * 1000),
+            "verificado": f["estado"] == "verificada", "verificado_por": f["verificado_por"],
+        } for f in filas]
     return _cache_marcas
 
 
 def verificar_marca(marca_id: str, verificado_por: str) -> None:
-    _db().collection(COLECCION).document(marca_id).update({
-        "verificado": True,
-        "verificado_por": verificado_por,
-    })
+    neon_db.ejecutar(
+        "UPDATE marcaspersonales SET estado = 'verificada', verificado_por = %s, id_empleado_verificador = %s,"
+        " fecha_verificacion = now() WHERE id_marca = %s",
+        (verificado_por, id_empleado_actual(), int(marca_id)),
+    )
     if _cache_marcas is not None:
         for m in _cache_marcas:
             if m.get("id") == marca_id:
@@ -250,10 +267,12 @@ def verificar_marca(marca_id: str, verificado_por: str) -> None:
 
 
 def rechazar_marca(marca_id: str) -> None:
-    """Una marca rechazada se borra sin más: deja de contar para el cálculo
-    y el socio no se entera (no hace falta justificar cada rechazo menor)."""
+    """Una marca rechazada deja de contar para el cálculo y el socio no la
+    ve más (no hace falta justificar cada rechazo menor). No se borra: queda
+    en la base con estado 'rechazada', como historial."""
     global _cache_marcas
-    _db().collection(COLECCION).document(marca_id).delete()
+    neon_db.ejecutar("UPDATE marcaspersonales SET estado = 'rechazada', id_empleado_verificador = %s, fecha_verificacion = now()"
+                     " WHERE id_marca = %s", (id_empleado_actual(), int(marca_id)))
     if _cache_marcas is not None:
         _cache_marcas = [m for m in _cache_marcas if m.get("id") != marca_id]
 
