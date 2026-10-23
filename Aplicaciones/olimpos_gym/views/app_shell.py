@@ -11,8 +11,8 @@ import notificaciones_repo
 from views.dashboard import build_dashboard
 from views.socios import build_socios
 from views.asistencia import build_asistencia
-from views.personal import (build_personal,
-                             build_progreso, build_pagos, build_camaras)
+from views.personal import build_personal, build_pagos, build_camaras
+from views.progreso import build_progreso
 from views.notificaciones import build_notificaciones
 from views.configuracion import build_configuracion
 from views.editor_dietas import build_editor_dietas
@@ -190,7 +190,7 @@ class AppShell:
             "editor-ejercicios": lambda: build_editor_ejercicios(self.page),
             "verificacion-marcas": lambda: build_verificacion_marcas(self.page, self.role_data["name"]),
             "membresias":     lambda: build_editor_membresias(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
-            "progreso":       build_progreso,
+            "progreso":       lambda: build_progreso(self.page),
             "pagos":          build_pagos,
             "notificaciones": lambda: build_notificaciones(self.page, self.role, self._navigate, self.mostrar_contador),
             "camaras":        build_camaras,
