@@ -31,7 +31,7 @@ def _spans_con_negrita(texto: str, color: str) -> list[ft.TextSpan]:
     for m in _REGEX_NEGRITA.finditer(texto):
         if m.start() > ultimo:
             spans.append(ft.TextSpan(texto[ultimo:m.start()]))
-        spans.append(ft.TextSpan(m.group(1), style=ft.TextStyle(weight=ft.FontWeight.W_900, color=color)))
+        spans.append(ft.TextSpan(m.group(1), style=ft.TextStyle(weight=ft.FontWeight.W_600, color=color)))
         ultimo = m.end()
     if ultimo < len(texto) or not spans:
         spans.append(ft.TextSpan(texto[ultimo:]))
@@ -90,14 +90,14 @@ class ArgosView:
         if self.error_cupo:
             self.root.controls.append(ft.Container(
                 content=ft.Text(f"⚠️ No se pudo consultar el cupo diario: {self.error_cupo}",
-                                size=12, color=RED, weight=ft.FontWeight.W_700),
+                                size=12, color=RED, weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
         else:
             self.root.controls.append(ft.Container(
                 content=ft.Text(
                     f"💬 Mensajes usados hoy: {self.hoy} de {argos_repo.MAXIMO_DIARIO} — quedan {self.restantes}.",
-                    size=11.5, color=TEXT_MUTED if self.restantes > 0 else RED, weight=ft.FontWeight.W_700,
+                    size=11.5, color=TEXT_MUTED if self.restantes > 0 else RED, weight=ft.FontWeight.W_500,
                 ),
                 bgcolor=CREAM, border_radius=10, padding=ft.padding.symmetric(horizontal=12, vertical=8),
             ))
@@ -119,12 +119,12 @@ class ArgosView:
         )
         avisos = []
         if self.error_base:
-            avisos.append(ft.Text(f"⚠️ {self.error_base}", size=11.5, color=RED, weight=ft.FontWeight.W_700))
+            avisos.append(ft.Text(f"⚠️ {self.error_base}", size=11.5, color=RED, weight=ft.FontWeight.W_500))
         if self.aviso_base:
-            avisos.append(ft.Text(self.aviso_base, size=11.5, color=GOLD_DARK, weight=ft.FontWeight.W_700))
+            avisos.append(ft.Text(self.aviso_base, size=11.5, color=GOLD_DARK, weight=ft.FontWeight.W_500))
 
         return section_card(ft.Column([
-            ft.Text("📚 Base de conocimiento", size=13.5, weight=ft.FontWeight.W_800, font_family="Poppins"),
+            ft.Text("📚 Base de conocimiento", size=13.5, weight=ft.FontWeight.W_600, font_family="Poppins"),
             ft.Text(
                 "Esto es lo único que Argos sabe de verdad sobre OlimpΩs — se usa tanto acá como en la "
                 "app de los socios. Escribí horarios, precios de membresías, políticas de cancelación, etc.",
@@ -161,7 +161,7 @@ class ArgosView:
 
         error = []
         if self.error_envio:
-            error.append(ft.Text(self.error_envio, size=11.5, color=RED, weight=ft.FontWeight.W_700))
+            error.append(ft.Text(self.error_envio, size=11.5, color=RED, weight=ft.FontWeight.W_500))
 
         return section_card(ft.Column([
             ft.Container(content=self.lista_mensajes, height=340),
@@ -187,9 +187,9 @@ class ArgosView:
             contenido = recortada[2:] if es_bullet else linea
             hijos = []
             if es_bullet:
-                hijos.append(ft.Text("•  ", size=13, weight=ft.FontWeight.W_900, color=color))
+                hijos.append(ft.Text("•  ", size=13, weight=ft.FontWeight.W_600, color=color))
             hijos.append(ft.Text(spans=_spans_con_negrita(contenido, color), size=13,
-                                 weight=ft.FontWeight.W_600, color=color))
+                                 weight=ft.FontWeight.W_500, color=color))
             filas_texto.append(ft.Row(hijos, spacing=0))
 
         burbuja = ft.Container(

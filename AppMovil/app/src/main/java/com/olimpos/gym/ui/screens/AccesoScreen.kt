@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
+import com.olimpos.gym.data.Ocupacion
+import com.olimpos.gym.data.cargarOcupacionDesdeFirebase
 import com.olimpos.gym.data.fechaLegible
 import com.olimpos.gym.data.registrarIngresoEnFirebase
 import com.olimpos.gym.data.yaIngresoHoy
@@ -43,6 +46,12 @@ fun AccesoScreen(onVolver: () -> Unit) {
     val scope = rememberCoroutineScope()
     val ingresos = DatosRemotos.ingresos ?: emptyList()
     val yaMarcado = yaIngresoHoy(ingresos)
+    // Mismo dato que la tarjeta "Ocupación del gimnasio" de Inicio; se vuelve
+    // a pedir cuando cambian los ingresos (al marcar el de hoy acá abajo).
+    var ocupacion by remember { mutableStateOf<Ocupacion?>(null) }
+    LaunchedEffect(DatosRemotos.ingresos) {
+        cargarOcupacionDesdeFirebase()?.let { ocupacion = it }
+    }
 
     Column(
         Modifier
@@ -55,9 +64,13 @@ fun AccesoScreen(onVolver: () -> Unit) {
             TarjetaOro(Modifier.fillMaxWidth()) {
                 Text("Aforo actual", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                 Spacer(Modifier.height(10.dp))
-                BarraProgreso(0.58f)
+                val capacidad = ocupacion?.capacidadMaxima ?: 120
+                BarraProgreso(if (capacidad > 0) (ocupacion?.personas ?: 0) / capacidad.toFloat() else 0f)
                 Spacer(Modifier.height(6.dp))
-                Text("70 de 120 personas en el club", fontSize = 11.5.sp, color = Olimpos.Muted)
+                Text(
+                    ocupacion?.let { "${it.personas} de ${it.capacidadMaxima} personas en el club" } ?: "Conectando…",
+                    fontSize = 11.5.sp, color = Olimpos.Muted
+                )
             }
 
             SeccionLabel("Marcar ingreso")
@@ -68,7 +81,7 @@ fun AccesoScreen(onVolver: () -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Todavía no hay lector conectado a la app — este botón es tu propio registro de asistencia, la base de tu racha y tus visitas del mes.",
+                    "Mostrar el carnet de acceso en Inicio ya registra tu entrada. Si no lo mostraste, marcala acá: es la base de tu racha y tus visitas del mes.",
                     fontSize = 11.sp, color = Olimpos.Muted
                 )
                 Spacer(Modifier.height(12.dp))

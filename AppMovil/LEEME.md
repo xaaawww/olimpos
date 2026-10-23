@@ -9,6 +9,27 @@ App móvil del proyecto **Olimpos Gym**, con la identidad visual del sitio web
 3. Esperá el Gradle Sync (descarga dependencias la primera vez).
 4. Ejecutá con ▶ en un emulador o celular (Android 8.0 / API 26 o superior).
 
+## Versión liviana para los socios (variante `optimizada`, ~4 MB)
+La variante `optimizada` es igual a `release`, pero R8 saca el código que no
+se usa y los recursos sin referencia: pasa de ~17,7 MB a ~4,1 MB.
+
+**Antes de compilar (una sola vez):** el Gradle del proyecto (8.9) no anda
+con el Java 25 que trae Android Studio. En *File → Settings → Build,
+Execution, Deployment → Build Tools → Gradle → Gradle JDK* elegí **Java 17**
+(`C:\Program Files\Eclipse Adoptium\jdk-17...`).
+
+- **Desde Android Studio:** *View → Tool Windows → Build Variants* → en `app`
+  elegí `optimizada` → ▶ Run (con el celular conectado y la depuración USB
+  activada), o *Build → Build APK(s)* para generar el archivo.
+- **Por consola:** `gradlew assembleOptimizada` (con `JAVA_HOME` apuntando
+  al JDK 17).
+- El APK queda en `app/build/outputs/apk/optimizada/app-optimizada.apk`
+  (hay una copia lista en `AppMovil/OlimpOS-liviana.apk`).
+
+Ojo: está firmada con la clave de debug de ESTA computadora. Si en el celular
+hay una versión instalada desde otra computadora (otra firma), Android no la
+actualiza: hay que desinstalar la vieja primero (se cierra la sesión del socio).
+
 ## Secciones
 - **Inicio** — carnet digital con medalla Ω animada, ocupación del gimnasio
   en vivo, próxima clase con reserva y accesos rápidos.

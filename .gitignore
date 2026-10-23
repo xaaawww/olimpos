@@ -45,3 +45,15 @@ Thumbs.db
 
 # API Worker: salida de compilar las pruebas
 **/test/dist-test/
+
+# Cloudflare Workers: compilaciones temporales de "wrangler dev" (llevan los
+# secretos incrustados) y variables locales
+**/.wrangler/
+**/.dev.vars
+
+# Sistema de empleados: el usuario recordado en ESTA computadora
+**/data/sesion_local.json
+
+# APKs sueltas de AppMovil (copias/respaldos). La que se descarga desde la
+# página (Paginas/app/OlimpOS.apk) sí se sube.
+AppMovil/*.apk

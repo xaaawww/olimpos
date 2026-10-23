@@ -11,7 +11,7 @@ def stat_badge(text: str, variant: str = "green") -> ft.Container:
     }
     bg, fg = palettes.get(variant, palettes["green"])
     return ft.Container(
-        content=ft.Text(text, size=10, weight=ft.FontWeight.W_800, color=fg),
+        content=ft.Text(text, size=10, weight=ft.FontWeight.W_600, color=fg),
         bgcolor=bg,
         border_radius=20,
         padding=ft.padding.symmetric(horizontal=8, vertical=3),
@@ -29,7 +29,7 @@ def status_pill(label: str, variant: str = "active") -> ft.Container:
     bg, fg = palettes.get(variant, palettes["active"])
     dot = ft.Container(width=5, height=5, border_radius=3, bgcolor=fg)
     return ft.Container(
-        content=ft.Row([dot, ft.Text(label, size=11, weight=ft.FontWeight.W_800, color=fg)],
+        content=ft.Row([dot, ft.Text(label, size=11, weight=ft.FontWeight.W_600, color=fg)],
                        tight=True, spacing=5),
         bgcolor=bg,
         border_radius=20,
@@ -48,7 +48,7 @@ def avatar(initials: str, variant: str = "gold") -> ft.Container:
     }
     bg1, bg2, fg = palettes.get(variant, palettes["gold"])
     return ft.Container(
-        content=ft.Text(initials, size=12, weight=ft.FontWeight.W_900, color=fg),
+        content=ft.Text(initials, size=12, weight=ft.FontWeight.W_600, color=fg),
         width=34, height=34,
         border_radius=10,
         bgcolor=bg1,
@@ -70,7 +70,7 @@ def section_card(content: ft.Control, padding: int = 20) -> ft.Container:
 def page_header(title: str, subtitle: str, actions: list = None) -> ft.Column:
     row_children = [
         ft.Column([
-            ft.Text(title, size=22, weight=ft.FontWeight.W_800, color=DARK, font_family="Poppins"),
+            ft.Text(title, size=22, weight=ft.FontWeight.W_600, color=DARK, font_family="Poppins"),
             ft.Text(subtitle, size=13, color=TEXT_MUTED),
         ], spacing=2)
     ]
@@ -90,7 +90,7 @@ def action_button(label: str, variant: str = "outline", on_click=None) -> ft.Ele
                 bgcolor=GOLD,
                 shadow_color=ft.Colors.with_opacity(0.3, GOLD),
                 shape=ft.RoundedRectangleBorder(radius=10),
-                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_700, font_family="Poppins"),
+                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_500, font_family="Poppins"),
                 padding=ft.padding.symmetric(horizontal=16, vertical=8),
             )
         )
@@ -101,7 +101,7 @@ def action_button(label: str, variant: str = "outline", on_click=None) -> ft.Ele
                 color=GOLD,
                 bgcolor=DARK,
                 shape=ft.RoundedRectangleBorder(radius=10),
-                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_700, font_family="Poppins"),
+                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_500, font_family="Poppins"),
                 padding=ft.padding.symmetric(horizontal=16, vertical=8),
             )
         )
@@ -112,7 +112,7 @@ def action_button(label: str, variant: str = "outline", on_click=None) -> ft.Ele
                 color=DARK,
                 side=ft.BorderSide(1.5, GRAY_LIGHT),
                 shape=ft.RoundedRectangleBorder(radius=10),
-                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_700, font_family="Poppins"),
+                text_style=ft.TextStyle(size=12, weight=ft.FontWeight.W_500, font_family="Poppins"),
                 padding=ft.padding.symmetric(horizontal=12, vertical=5),
             )
         )
@@ -125,10 +125,12 @@ def stat_card(label: str, value: str, badge_text: str, badge_variant: str = "gre
     border_color = GOLD_LIGHT if is_gold else GRAY_LIGHT
     return ft.Container(
         content=ft.Column([
-            ft.Text(label.upper(), size=11, color=TEXT_MUTED, weight=ft.FontWeight.W_700,
+            ft.Text(label.upper(), size=11, color=TEXT_MUTED, weight=ft.FontWeight.W_500,
 ),
-            ft.Text(value, size=30, weight=ft.FontWeight.W_900, color=DARK, font_family="Poppins",
-                    height=1.1),
+            # El 1.1 es el interlineado (TextStyle.height): como "height" del
+            # Text sería el alto del control en píxeles y el número no se vería.
+            ft.Text(value, size=30, weight=ft.FontWeight.W_600, color=DARK, font_family="Poppins",
+                    style=ft.TextStyle(height=1.1)),
             stat_badge(badge_text, badge_variant),
         ], spacing=6),
         bgcolor=bg if not is_gold else None,
@@ -152,8 +154,8 @@ def data_table_row(cells: list, is_last: bool = False) -> ft.Container:
 def progress_bar(label: str, value: float, color: str = GOLD) -> ft.Column:
     return ft.Column([
         ft.Row([
-            ft.Text(label, size=12, weight=ft.FontWeight.W_700),
-            ft.Text(f"{int(value*100)}%", size=12, weight=ft.FontWeight.W_700),
+            ft.Text(label, size=12, weight=ft.FontWeight.W_500),
+            ft.Text(f"{int(value*100)}%", size=12, weight=ft.FontWeight.W_500),
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
         ft.Container(
             content=ft.Stack([
@@ -173,11 +175,11 @@ def divider() -> ft.Divider:
 
 
 def card_header(title: str, action_label: str = None, on_action=None) -> ft.Row:
-    children = [ft.Text(title, size=14, weight=ft.FontWeight.W_700, color=DARK, font_family="Poppins")]
+    children = [ft.Text(title, size=14, weight=ft.FontWeight.W_500, color=DARK, font_family="Poppins")]
     if action_label:
         children.append(
             ft.TextButton(action_label, on_click=on_action,
                           style=ft.ButtonStyle(color=GOLD_DARK,
-                                               text_style=ft.TextStyle(size=11.5, weight=ft.FontWeight.W_700)))
+                                               text_style=ft.TextStyle(size=11.5, weight=ft.FontWeight.W_500)))
         )
     return ft.Row(children, alignment=ft.MainAxisAlignment.SPACE_BETWEEN)

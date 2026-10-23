@@ -1,20 +1,18 @@
 package com.olimpos.gym.data
 
 /**
- * Ocupación en vivo del gimnasio (tabla "aforo") — antes la tarjeta "Ocupación del gimnasio" de Inicio
- * mostraba un número inventado que cambiaba solo cada pocos segundos (ver
- * el viejo OcupacionEnVivo en HomeScreen.kt). Ahora es un dato real: lo
- * carga a mano el dueño desde el sistema de empleados (ver
- * ocupacion_repo.py) — no hay ningún lector de accesos conectado a
- * la base, así que no se puede calcular solo.
+ * Ocupación en vivo del gimnasio. La calcula la API con las entradas reales
+ * (tabla "accesos"): cada socio que tocó "Mostrar carnet de acceso" en
+ * Inicio cuenta como adentro durante un rato (90 minutos, ver
+ * MINUTOS_EN_EL_CLUB en ApiWorker/src/util.ts), porque no hay registro de
+ * salida. El sistema de empleados muestra el mismo número (ocupacion_repo.py).
  */
 data class Ocupacion(val personas: Int, val capacidadMaxima: Int, val actualizadoMs: Long)
 
 private const val CAPACIDAD_MAXIMA = 120
 
-/** `null` si todavía no se pudo leer (sin conexión, etc.) — a diferencia
- *  de cuando el dueño simplemente nunca cargó un valor (ahí la API
- *  devuelve 0 personas igual que hace ocupacion_repo.py). */
+/** `null` si todavía no se pudo leer (sin conexión, etc.); 0 personas si
+ *  nadie mostró el carnet en el último rato. */
 suspend fun cargarOcupacionDesdeFirebase(): Ocupacion? {
     return try {
         val j = Api.get("/v1/ocupacion")

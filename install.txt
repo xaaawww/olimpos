@@ -1,0 +1,26 @@
+# Librerias de Python que usa OlimpOS (sistema de empleados y scripts de neon).
+# Versiones FIJAS, comprobadas con el codigo del proyecto.
+#
+# Requiere Python 3.12 (con 3.15 algunas librerias no instalan bien).
+# Se instala con (desde esta carpeta, en el CMD):
+#     py -3.12 -m pip install -r install.txt
+#
+# Ojo: el "-r" es obligatorio. Sin el, pip busca un paquete llamado
+# "install.txt" en internet y da error.
+#
+# Por que Flet 0.84.0 y no otra:
+#   - el codigo usa ft.run, ft.Alignment.CENTER, page.show_dialog,
+#     ft.DropdownOption y ft.BoxFit, que no existen antes de la 0.80;
+#   - y usa ft.padding.symmetric, ft.border.all, ft.ElevatedButton, etc.,
+#     que se eliminaron en la 0.85 y en la 1.0.
+#   0.84.0 es la ultima version que tiene todo.
+#
+# Esto instala SOLO lo de Python. Node.js, Android Studio y los demas
+# programas se instalan aparte: ver INSTALAR.txt o usar instalar.bat.
+
+flet==0.84.0              # interfaz del sistema de empleados
+flet-desktop==0.84.0      # ventana de escritorio de Flet (misma version)
+psycopg[binary]==3.3.6    # conexion a la base de datos Neon (PostgreSQL)
+pillow==13.0.0            # imagenes de platos y ejercicios
+firebase-admin==7.7.0     # login de socios (Firebase Authentication)
+requests==2.34.2          # llamadas a las APIs (Argos, generacion de imagenes)

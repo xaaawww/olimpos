@@ -26,6 +26,7 @@
 #   ]
 # }
 
+import os
 import uuid
 from datetime import datetime
 
@@ -76,6 +77,55 @@ ZONAS_POR_VISTA = {
 }
 
 
+# Grupo de cada zona, para los filtros del listado (Pecho, Espalda…). El
+# grupo de un ejercicio es el de su músculo principal (el primero elegido).
+GRUPOS = {
+    "Pecho": ["PECHO_SUPERIOR", "PECHO_INFERIOR"],
+    "Espalda": ["DORSALES", "TRAPECIO", "LUMBARES"],
+    "Piernas": ["CUADRICEPS", "ISQUIOTIBIALES", "GLUTEOS", "PANTORRILLAS", "ABDUCTORES", "ADUCTORES"],
+    "Hombros": ["DELTOIDES_ANTERIOR", "DELTOIDES_MEDIO", "DELTOIDES_POSTERIOR"],
+    "Brazos": ["BICEPS", "TRICEPS", "ANTEBRAZOS"],
+    "Core": ["ABDOMINALES", "OBLICUOS"],
+}
+EMOJI_GRUPO = {"Pecho": "🎽", "Espalda": "🦅", "Piernas": "🦵", "Hombros": "🏔️", "Brazos": "💪", "Core": "🧱"}
+GRUPO_DE_ZONA = {zona: grupo for grupo, zonas in GRUPOS.items() for zona in zonas}
+
+# Nombre corto en minúscula para la línea "Pecho, tríceps" de cada tarjeta.
+NOMBRE_CORTO = {
+    "PECHO_SUPERIOR": "pecho superior", "PECHO_INFERIOR": "pecho", "DORSALES": "dorsales",
+    "TRAPECIO": "trapecios", "LUMBARES": "lumbares", "DELTOIDES_ANTERIOR": "hombro anterior",
+    "DELTOIDES_MEDIO": "hombro medio", "DELTOIDES_POSTERIOR": "hombro posterior", "BICEPS": "bíceps",
+    "TRICEPS": "tríceps", "ANTEBRAZOS": "antebrazos", "ABDOMINALES": "abdominales", "OBLICUOS": "oblicuos",
+    "ABDUCTORES": "abductores", "ADUCTORES": "aductores", "PANTORRILLAS": "pantorrillas",
+    "GLUTEOS": "glúteos", "ISQUIOTIBIALES": "isquiotibiales", "CUADRICEPS": "cuádriceps",
+}
+
+
+def grupo_de(ejercicio: dict) -> str | None:
+    puntos = ejercicio.get("puntos") or []
+    return GRUPO_DE_ZONA.get(puntos[0]["zona"]) if puntos else None
+
+
+def resumen_musculos(ejercicio: dict) -> str:
+    """'Dorsales, bíceps, antebrazos' (el primero con mayúscula)."""
+    nombres = list(dict.fromkeys(NOMBRE_CORTO[p["zona"]] for p in ejercicio.get("puntos") or []))
+    texto = ", ".join(nombres)
+    return texto[:1].upper() + texto[1:] if texto else ""
+
+
+# Dibujo de cada ejercicio (estilo ilustración): img/ejercicios/<id_ejercicio>.png.
+# Los que todavía no tienen se muestran con el bodygraph.
+CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "img", "ejercicios")
+
+
+def imagen_de(ejercicio: dict | None) -> str | None:
+    """Ruta para ft.Image (relativa a img/) o None si el ejercicio no tiene dibujo."""
+    if not ejercicio or not str(ejercicio.get("id", "")).isdigit():
+        return None
+    nombre = f"{ejercicio['id']}.png"
+    return f"ejercicios/{nombre}" if os.path.exists(os.path.join(CARPETA_IMAGENES, nombre)) else None
+
+
 _cache_ejercicios: list[dict] | None = None
 
 
@@ -107,6 +157,10 @@ def cargar_ejercicios(forzar: bool = False) -> list[dict]:
             "tags": tags_de.get(e["id_ejercicio"], []), "publicado": e["estado"] == "publicado",
             "actualizado": e["fecha_actualizacion"].replace(tzinfo=None).isoformat(timespec="seconds"),
             "puntos": puntos_de.get(e["id_ejercicio"], []),
+            "pasos": [x for x in (e.get("tecnica") or "").splitlines() if x.strip()],
+            "consejo": e.get("consejo") or "",
+            "tipo": e.get("tipo") or "", "aparato": e.get("aparato") or "", "nivel": e.get("dificultad") or "",
+            "series": e.get("series"), "repeticiones": e.get("repeticiones") or "",
         } for e in ejercicios]
     return _cache_ejercicios
 
@@ -124,6 +178,9 @@ def nuevo_ejercicio(nombre: str = "Nuevo ejercicio") -> dict:
         "publicado": False,
         "actualizado": datetime.now().isoformat(timespec="seconds"),
         "puntos": [],
+        "pasos": [],
+        "consejo": "",
+        "tipo": "", "aparato": "", "nivel": "", "series": None, "repeticiones": "",
     }
 
 
@@ -142,21 +199,31 @@ def guardar_ejercicio(ejercicios: list[dict], ejercicio: dict) -> list[dict]:
     ejercicio["actualizado"] = datetime.now().isoformat(timespec="seconds")
     estado = "publicado" if ejercicio.get("publicado") else "borrador"
     musculos = ", ".join(dict.fromkeys(ZONAS_MUSCULARES[p["zona"]]["etiqueta"] for p in ejercicio.get("puntos", [])))[:255] or None
+    # Un paso por línea (así lo guarda la columna "tecnica").
+    tecnica = chr(10).join(p.strip() for p in ejercicio.get("pasos", []) if p.strip()) or None
+    consejo = (ejercicio.get("consejo") or "").strip() or None
+    # Ficha del panel: tipo, aparato, nivel, series y repeticiones (rango en texto, ej. "8-12").
+    ficha = ((ejercicio.get("tipo") or None), (ejercicio.get("aparato") or "").strip()[:100] or None,
+             (ejercicio.get("nivel") or None), ejercicio.get("series") or None,
+             (ejercicio.get("repeticiones") or "").strip()[:20] or None)
     with neon_db.transaccion() as cur:
         if str(ejercicio["id"]).isdigit():
             id_ejercicio = int(ejercicio["id"])
             cur.execute(
                 "UPDATE ejercicios SET nombre=%s, descripcion=%s, musculos_trabajados=%s, estado=%s,"
+                " tecnica=%s, consejo=%s, tipo=%s, aparato=%s, dificultad=%s, series=%s, repeticiones=%s,"
                 " fecha_actualizacion=now() WHERE id_ejercicio=%s",
-                (ejercicio["nombre"], ejercicio.get("descripcion", "")[:255], musculos, estado, id_ejercicio),
+                (ejercicio["nombre"], ejercicio.get("descripcion", "")[:255], musculos, estado,
+                 tecnica, consejo, *ficha, id_ejercicio),
             )
             cur.execute("DELETE FROM ejercicioetiquetas WHERE id_ejercicio=%s", (id_ejercicio,))
             cur.execute("DELETE FROM ejerciciopuntos WHERE id_ejercicio=%s", (id_ejercicio,))
         else:
             cur.execute(
-                "INSERT INTO ejercicios (nombre, descripcion, musculos_trabajados, estado) VALUES (%s,%s,%s,%s)"
+                "INSERT INTO ejercicios (nombre, descripcion, musculos_trabajados, estado, tecnica, consejo,"
+                " tipo, aparato, dificultad, series, repeticiones) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
                 " RETURNING id_ejercicio",
-                (ejercicio["nombre"], ejercicio.get("descripcion", "")[:255], musculos, estado),
+                (ejercicio["nombre"], ejercicio.get("descripcion", "")[:255], musculos, estado, tecnica, consejo, *ficha),
             )
             id_ejercicio = cur.fetchone()["id_ejercicio"]
             ejercicio["id"] = str(id_ejercicio)

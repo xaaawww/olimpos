@@ -76,7 +76,7 @@ class EditorDietasView:
         if self.error_carga:
             avisos.append(ft.Container(
                 content=ft.Text(f"⚠️ No se pudo conectar con Firebase: {self.error_carga}",
-                                size=12, color="#DC2626", weight=ft.FontWeight.W_700),
+                                size=12, color="#DC2626", weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
         try:
@@ -86,7 +86,7 @@ class EditorDietasView:
                 content=ft.Text(
                     f"🤖 Imágenes generadas con IA hoy: {hoy_ia} de {gen_ia.MAXIMO_DIARIO} "
                     f"— quedan {restantes_ia} disponibles.",
-                    size=11.5, color=TEXT_MUTED if restantes_ia > 0 else RED, weight=ft.FontWeight.W_700,
+                    size=11.5, color=TEXT_MUTED if restantes_ia > 0 else RED, weight=ft.FontWeight.W_500,
                 ),
                 bgcolor=CREAM, border_radius=10, padding=ft.padding.symmetric(horizontal=12, vertical=8),
             ))
@@ -96,7 +96,7 @@ class EditorDietasView:
         if not self.platos:
             grilla = section_card(ft.Column([
                 ft.Text("🥗", size=34),
-                ft.Text("Todavía no creaste ninguna dieta.", size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text("Todavía no creaste ninguna dieta.", size=13, weight=ft.FontWeight.W_500, color=DARK),
                 ft.Text("Usá \"Nuevo plato\" para empezar.", size=12, color=TEXT_MUTED),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)
         else:
@@ -240,14 +240,14 @@ class EditorDietasView:
         avisos = []
         if self.aviso:
             avisos.append(ft.Container(
-                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_700, color=GOLD_DARK),
+                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_500, color=GOLD_DARK),
                 bgcolor=GOLD_BG2, border=ft.border.all(1, GOLD_LIGHT), border_radius=10,
                 padding=ft.padding.symmetric(horizontal=12, vertical=8),
             ))
         if self.modo_agregar:
             avisos.append(ft.Container(
                 content=ft.Text("Tocá un lugar de la imagen para colocar el nuevo punto.",
-                                size=12, color=GOLD_DARK, weight=ft.FontWeight.W_700),
+                                size=12, color=GOLD_DARK, weight=ft.FontWeight.W_500),
                 bgcolor=GOLD_BG2, border_radius=10, padding=10,
             ))
         elif self.punto_sel and self.plato["puntos"]:
@@ -255,7 +255,7 @@ class EditorDietasView:
                 content=ft.Text(
                     "Tocá la imagen para mover el punto seleccionado ahí. "
                     "Para mover otro punto, tocalo primero en \"Puntos del plato\".",
-                    size=12, color=TEXT_MUTED, weight=ft.FontWeight.W_600),
+                    size=12, color=TEXT_MUTED, weight=ft.FontWeight.W_500),
                 bgcolor=CREAM, border_radius=10, padding=10,
             ))
 
@@ -268,7 +268,7 @@ class EditorDietasView:
             ft.Container(width=16),
             ft.Column([
                 section_card(ft.Column([
-                    ft.Text("PUNTOS DEL PLATO", size=11, weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+                    ft.Text("PUNTOS DEL PLATO", size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
                     ft.Column(self._lista_puntos(), spacing=6),
                 ], spacing=10), padding=14),
                 ft.Container(height=10),
@@ -287,7 +287,7 @@ class EditorDietasView:
                 campo_tags,
                 divider(),
                 ft.Text("VALORES NUTRICIONALES DEL PLATO (por porción)", size=11,
-                        weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+                        weight=ft.FontWeight.W_600, color=TEXT_MUTED),
                 fila_macros,
                 ft.Text(
                     "La app móvil los usa para la meta diaria y el registro de comidas de cada socio. "
@@ -342,7 +342,7 @@ class EditorDietasView:
         x_px = punto["x"] / 100 * CANVAS - RADIO_PUNTO
         y_px = punto["y"] / 100 * CANVAS - RADIO_PUNTO
         circulo = ft.Container(
-            content=ft.Text(str(numero), size=11, weight=ft.FontWeight.W_900, color=DARK if activo else WHITE),
+            content=ft.Text(str(numero), size=11, weight=ft.FontWeight.W_600, color=DARK if activo else WHITE),
             width=RADIO_PUNTO * 2, height=RADIO_PUNTO * 2, border_radius=RADIO_PUNTO,
             bgcolor=GOLD if activo else DARK,
             alignment=ft.Alignment.CENTER,
@@ -358,7 +358,7 @@ class EditorDietasView:
         def flecha(txt, dx, dy):
             return self._boton_texto(txt, DARK, lambda e: self._mover_recorte(dx, dy))
         return section_card(ft.Column([
-            ft.Text("POSICIÓN DEL RECORTE", size=11, weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+            ft.Text("POSICIÓN DEL RECORTE", size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
             ft.Text("Si la imagen no entra entera, movela con las flechas.", size=11, color=TEXT_MUTED),
             ft.Row([flecha("◀", -PASO_RECORTE, 0), flecha("▲", 0, -PASO_RECORTE),
                     flecha("▼", 0, PASO_RECORTE), flecha("▶", PASO_RECORTE, 0),
@@ -420,12 +420,12 @@ class EditorDietasView:
             filas.append(ft.Container(
                 content=ft.Row([
                     ft.Container(
-                        content=ft.Text(str(i + 1), size=11, weight=ft.FontWeight.W_900,
+                        content=ft.Text(str(i + 1), size=11, weight=ft.FontWeight.W_600,
                                         color=DARK if activo else WHITE),
                         width=22, height=22, border_radius=11,
                         bgcolor=GOLD if activo else DARK, alignment=ft.Alignment.CENTER,
                     ),
-                    ft.Text(p["nombre"] or "Sin nombre", size=12.5, weight=ft.FontWeight.W_700, expand=True),
+                    ft.Text(p["nombre"] or "Sin nombre", size=12.5, weight=ft.FontWeight.W_500, expand=True),
                     self._boton_texto("🗑️", RED, lambda e, pid=p["id"]: self._eliminar_punto(pid)),
                 ], spacing=8),
                 bgcolor=GOLD_BG if activo else WHITE,
@@ -446,13 +446,13 @@ class EditorDietasView:
         punto = next((p for p in self.plato["puntos"] if p["id"] == self.punto_sel), None)
         if not punto:
             return ft.Column([
-                ft.Text("INFORMACIÓN DEL PUNTO", size=11, weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+                ft.Text("INFORMACIÓN DEL PUNTO", size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
                 ft.Text("Seleccioná o agregá un punto para editar su información nutricional.",
                         size=12.5, color=TEXT_MUTED),
             ], spacing=10)
 
         return ft.Column([
-            ft.Text("INFORMACIÓN DEL PUNTO", size=11, weight=ft.FontWeight.W_800, color=TEXT_MUTED),
+            ft.Text("INFORMACIÓN DEL PUNTO", size=11, weight=ft.FontWeight.W_600, color=TEXT_MUTED),
             ft.TextField(label="Nombre del ingrediente", value=punto["nombre"],
                         on_change=lambda e: self._set_punto_campo(punto, "nombre", e.control.value)),
             ft.Dropdown(
@@ -565,7 +565,7 @@ class EditorDietasView:
             value=texto_inicial, multiline=True, min_lines=2, max_lines=4, width=380,
             autofocus=True, disabled=cupo_agotado,
         )
-        error_texto = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_700, visible=False)
+        error_texto = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_500, visible=False)
 
         def _continuar(ev):
             ingredientes = [t.strip() for t in (campo.value or "").split(",") if t.strip()]
@@ -582,7 +582,7 @@ class EditorDietasView:
 
         dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("🤖 Generar imagen con IA", weight=ft.FontWeight.W_800, font_family="Poppins"),
+            title=ft.Text("🤖 Generar imagen con IA", weight=ft.FontWeight.W_600, font_family="Poppins"),
             content=ft.Column([
                 ft.Text(
                     "Se genera con el mismo estilo del resto del catálogo: ilustración plana, "
@@ -591,7 +591,7 @@ class EditorDietasView:
                 ),
                 campo,
                 ft.Text(texto_cupo, size=11.5, color=TEXT_MUTED if not cupo_agotado else RED,
-                        weight=ft.FontWeight.W_700),
+                        weight=ft.FontWeight.W_500),
                 error_texto,
             ], tight=True, spacing=10, width=380),
             actions=[
@@ -608,8 +608,8 @@ class EditorDietasView:
         imagen a medio armar por apurarse."""
         lista = ft.Column([
             ft.Row([
-                ft.Text("•", size=13, color=GOLD_DARK, weight=ft.FontWeight.W_900),
-                ft.Text(ing, size=12.5, color=DARK, weight=ft.FontWeight.W_600, expand=True),
+                ft.Text("•", size=13, color=GOLD_DARK, weight=ft.FontWeight.W_600),
+                ft.Text(ing, size=12.5, color=DARK, weight=ft.FontWeight.W_500, expand=True),
             ], spacing=6)
             for ing in ingredientes
         ], spacing=4)
@@ -625,7 +625,7 @@ class EditorDietasView:
 
         dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("¿Son todos los ingredientes de la dieta?", weight=ft.FontWeight.W_800,
+            title=ft.Text("¿Son todos los ingredientes de la dieta?", weight=ft.FontWeight.W_600,
                           font_family="Poppins"),
             content=ft.Column([
                 ft.Text("Se va a generar la imagen del plato con exactamente estos ingredientes:",
@@ -696,12 +696,12 @@ class EditorDietasView:
                     ft.Container(expand=True),
                     ft.Text(f"{idx} / {len(puntos)}", size=11, color=TEXT_MUTED),
                 ]),
-                ft.Text(punto["nombre"], size=18, weight=ft.FontWeight.W_800, font_family="Poppins", color=DARK),
-                ft.Text(punto["kcal"] or "—", size=20, weight=ft.FontWeight.W_900, color=GOLD_DARK),
+                ft.Text(punto["nombre"], size=18, weight=ft.FontWeight.W_600, font_family="Poppins", color=DARK),
+                ft.Text(punto["kcal"] or "—", size=20, weight=ft.FontWeight.W_600, color=GOLD_DARK),
                 ft.Text(punto["aporte"] or "Sin descripción todavía.", size=12.5, color=TEXT_MUTED),
                 ft.Row([status_pill(t, "active") for t in punto.get("tags", [])], spacing=6, wrap=True),
                 ft.Column([
-                    ft.Row([ft.Text("✓", size=11, color=GOLD_DARK, weight=ft.FontWeight.W_900),
+                    ft.Row([ft.Text("✓", size=11, color=GOLD_DARK, weight=ft.FontWeight.W_600),
                             ft.Text(b, size=11.5, color=TEXT_MUTED, expand=True)], spacing=6)
                     for b in punto.get("beneficios", [])
                 ], spacing=4),
@@ -740,7 +740,7 @@ class EditorDietasView:
     # ══════════════════════════ util ══════════════════════════
     def _boton_texto(self, texto: str, color: str, on_click) -> ft.Container:
         return ft.Container(
-            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_700, color=color),
+            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_500, color=color),
             padding=ft.padding.symmetric(horizontal=10, vertical=6),
             border=ft.border.all(1.5, ft.Colors.with_opacity(0.3, color)),
             border_radius=8, on_click=on_click, ink=True,

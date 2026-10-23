@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import flet as ft
 from theme import *
 import empleados_credenciales as _creds
+import configuracion_repo
 
 
 class LoginView:
@@ -39,20 +40,31 @@ class LoginView:
         self.error_text.value = mensaje
         self.page.update()
 
+    def _completar(self, fila: dict):
+        self.usuario_field.value = fila["usuario"]
+        self.password_field.value = fila["password"]
+        self.error_text.value = ""
+        self.page.update()
+
     def _credencial_row(self, fila: dict) -> ft.Container:
         return ft.Container(
             content=ft.Row([
+                ft.Text(fila["label"], size=12, weight=ft.FontWeight.W_600,
+                        color=GOLD, font_family="Poppins", expand=True),
                 ft.Column([
-                    ft.Text(fila["label"], size=12, weight=ft.FontWeight.W_800,
-                            color=GOLD, font_family="Poppins"),
-                    ft.Text(fila["nombre"], size=10.5,
-                            color=ft.Colors.with_opacity(0.5, ft.Colors.WHITE)),
-                ], spacing=1, expand=True),
-                ft.Text(fila["usuario"], size=12.5, weight=ft.FontWeight.W_700,
-                        color=ft.Colors.WHITE, font_family="Consolas, monospace"),
+                    ft.Text(fila["usuario"], size=12.5, weight=ft.FontWeight.W_500,
+                            color=ft.Colors.WHITE, font_family="Consolas, monospace"),
+                    ft.Text(fila["password"], size=11.5,
+                            color=ft.Colors.with_opacity(0.6, ft.Colors.WHITE),
+                            font_family="Consolas, monospace"),
+                ], spacing=1, horizontal_alignment=ft.CrossAxisAlignment.END),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            padding=ft.padding.symmetric(vertical=9, horizontal=4),
+            padding=ft.padding.symmetric(vertical=8, horizontal=6),
             border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.with_opacity(0.08, ft.Colors.WHITE))),
+            border_radius=8,
+            ink=True,
+            on_click=lambda e, f=fila: self._completar(f),
+            tooltip="Clic para completar usuario y contraseña",
         )
 
     def build(self) -> ft.Stack:
@@ -60,6 +72,7 @@ class LoginView:
             label="Usuario", width=320, border_color=ft.Colors.with_opacity(0.25, GOLD),
             focused_border_color=GOLD, color=ft.Colors.WHITE, label_style=ft.TextStyle(color=GRAY),
             cursor_color=GOLD, on_submit=lambda e: self.password_field.focus(),
+            value=configuracion_repo.usuario_recordado(),   # "Recordar mi usuario" (Configuración)
         )
         self.password_field = ft.TextField(
             label="Contraseña", width=320, password=True, can_reveal_password=True,
@@ -67,10 +80,10 @@ class LoginView:
             color=ft.Colors.WHITE, label_style=ft.TextStyle(color=GRAY), cursor_color=GOLD,
             on_submit=self._do_login,
         )
-        self.error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_600)
+        self.error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_500)
 
         login_button = ft.Container(
-            content=ft.Text("⚡ Ingresar al Sistema", size=14, weight=ft.FontWeight.W_700,
+            content=ft.Text("⚡ Ingresar al Sistema", size=14, weight=ft.FontWeight.W_500,
                             color=DARK, font_family="Poppins", text_align=ft.TextAlign.CENTER),
             gradient=ft.LinearGradient(
                 begin=ft.Alignment.TOP_LEFT,
@@ -87,7 +100,7 @@ class LoginView:
         login_box = ft.Container(
             content=ft.Column([
                 ft.Image(src="L21.png", width=110, height=110, fit=ft.BoxFit.CONTAIN),
-                ft.Text("OLIMPOS", size=26, weight=ft.FontWeight.W_900, color=GOLD,
+                ft.Text("OLIMPOS", size=26, weight=ft.FontWeight.W_600, color=GOLD,
                         font_family="Poppins", text_align=ft.TextAlign.CENTER,
                         style=ft.TextStyle(letter_spacing=3)),
                 ft.Text("SISTEMA DE GESTIÓN INTEGRAL", size=11,
@@ -113,10 +126,16 @@ class LoginView:
 
         credenciales_panel = ft.Container(
             content=ft.Column([
-                ft.Text("🔑 USUARIOS DEL SISTEMA", size=12, weight=ft.FontWeight.W_800,
+                ft.Text("🔑 USUARIOS DEL SISTEMA", size=12, weight=ft.FontWeight.W_600,
                         color=GOLD, font_family="Poppins", style=ft.TextStyle(letter_spacing=1)),
-                ft.Text("Un usuario por rol — la contraseña está cifrada en la base de datos", size=10.5,
+                ft.Text("Un usuario por rol — tocá una fila para completar los datos", size=10.5,
                         color=ft.Colors.with_opacity(0.45, ft.Colors.WHITE)),
+                ft.Row([
+                    ft.Text("ROL", size=9.5, weight=ft.FontWeight.W_500, expand=True,
+                            color=ft.Colors.with_opacity(0.35, ft.Colors.WHITE)),
+                    ft.Text("USUARIO / CONTRASEÑA", size=9.5, weight=ft.FontWeight.W_500,
+                            color=ft.Colors.with_opacity(0.35, ft.Colors.WHITE)),
+                ]),
                 ft.Container(height=6),
                 ft.Column(
                     [self._credencial_row(f) for f in _creds.listado_para_mostrar()],

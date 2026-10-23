@@ -3,13 +3,12 @@ package com.olimpos.gym.data
 import org.json.JSONObject
 
 /**
- * Ingresos al gimnasio (colección "ingresos"). Hoy no hay ningún torniquete
- * ni lector físico conectado a Firestore — el "acceso QR/biométrico/reloj"
- * de AccesoScreen son solo preferencias locales del socio, no eventos
- * reales — así que el ingreso lo marca el propio socio, una vez por día,
- * con un botón explícito ("Marcar mi ingreso de hoy"). De acá salen la
- * racha de días y las visitas del mes en Perfil, y varios Logros —
- * ninguno inventado.
+ * Ingresos al gimnasio (tabla "accesos"). No hay torniquete ni lector físico:
+ * la entrada la registra el propio socio al tocar "Mostrar carnet de acceso"
+ * en Inicio (o "Marcar mi ingreso de hoy" en Accesos). La API no duplica la
+ * entrada si el socio ya entró hace menos de 90 minutos. De acá salen la
+ * ocupación en vivo, la racha de días y las visitas del mes en Perfil, y
+ * varios Logros — ninguno inventado.
  */
 data class IngresoRegistro(val timestamp: Long, val metodo: String)
 

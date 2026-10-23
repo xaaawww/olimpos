@@ -63,7 +63,7 @@ class TablonView:
             section_card(ft.Column([
                 ft.Text("🔒", size=34),
                 ft.Text("Solo el dueño puede modificar el tablón.", size=13,
-                        weight=ft.FontWeight.W_700, color=DARK),
+                        weight=ft.FontWeight.W_500, color=DARK),
                 ft.Text("Tu rol no tiene permiso para crear, editar ni borrar publicaciones.",
                         size=12, color=TEXT_MUTED),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30),
@@ -75,14 +75,14 @@ class TablonView:
         if self.error_carga:
             avisos.append(ft.Container(
                 content=ft.Text(f"⚠️ No se pudo conectar con Firebase: {self.error_carga}",
-                                size=12, color="#DC2626", weight=ft.FontWeight.W_700),
+                                size=12, color="#DC2626", weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
 
         if not self.publicaciones:
             cuerpo = section_card(ft.Column([
                 ft.Text("📌", size=34),
-                ft.Text("Todavía no hay publicaciones en el tablón.", size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text("Todavía no hay publicaciones en el tablón.", size=13, weight=ft.FontWeight.W_500, color=DARK),
                 ft.Text("Usá \"Nueva publicación\" para avisarle algo a todos los socios.", size=12, color=TEXT_MUTED),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)
         else:
@@ -103,14 +103,14 @@ class TablonView:
     def _fila_publicacion(self, p: dict) -> ft.Container:
         estado = status_pill("Publicado", "active") if p.get("publicado") else status_pill("Borrador", "pending")
         etiquetas = [ft.Text(f"{repo.EMOJI_CATEGORIA.get(p['categoria'], '📢')} {p['categoria']}",
-                             size=11.5, weight=ft.FontWeight.W_700, color=GOLD_DARK)]
+                             size=11.5, weight=ft.FontWeight.W_500, color=GOLD_DARK)]
         if p.get("fijado"):
             etiquetas.append(status_pill("📌 Fijado", "suspended"))
         return ft.Container(
             content=ft.Row([
                 ft.Column([
                     ft.Row(etiquetas, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                    ft.Text(p.get("titulo") or "(sin título)", size=13.5, weight=ft.FontWeight.W_700, color=DARK),
+                    ft.Text(p.get("titulo") or "(sin título)", size=13.5, weight=ft.FontWeight.W_500, color=DARK),
                     ft.Text(p.get("mensaje", ""), size=11.5, color=TEXT_MUTED, max_lines=2,
                             overflow=ft.TextOverflow.ELLIPSIS),
                     ft.Text(f"{p.get('autor', '')} · {_fecha(p.get('creado_ms', 0))}", size=10.5, color=TEXT_MUTED),
@@ -171,7 +171,7 @@ class TablonView:
         avisos = []
         if self.aviso:
             avisos.append(ft.Container(
-                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_700, color=GOLD_DARK),
+                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_500, color=GOLD_DARK),
                 bgcolor=GOLD_BG2, border=ft.border.all(1, GOLD_LIGHT), border_radius=10,
                 padding=ft.padding.symmetric(horizontal=12, vertical=8),
             ))
@@ -231,7 +231,7 @@ class TablonView:
 
     def _boton_texto(self, texto: str, color: str, on_click) -> ft.Container:
         return ft.Container(
-            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_700, color=color),
+            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_500, color=color),
             padding=ft.padding.symmetric(horizontal=10, vertical=6),
             border=ft.border.all(1.5, ft.Colors.with_opacity(0.3, color)),
             border_radius=8, on_click=on_click, ink=True,

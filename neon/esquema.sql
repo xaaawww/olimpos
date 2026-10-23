@@ -1044,6 +1044,25 @@ ALTER TABLE ejercicios ADD COLUMN fecha_actualizacion TIMESTAMPTZ NOT NULL DEFAU
 ALTER TABLE ejercicios ALTER COLUMN estado SET DEFAULT 'borrador';
 ALTER TABLE ejercicios ADD CONSTRAINT ck_ejercicios_estado CHECK (estado IN ('publicado', 'borrador', 'competencia'));
 COMMENT ON COLUMN ejercicios.estado IS 'publicado = lo ven los socios; borrador = en edicion; competencia = ejercicio de la Calculadora/Arena (no aparece en la Galeria).';
+-- "Como se realiza" (un paso por linea) y el consejo que muestra el Editor Visual de Ejercicios.
+ALTER TABLE ejercicios ALTER COLUMN tecnica TYPE TEXT;
+ALTER TABLE ejercicios ADD COLUMN consejo TEXT;
+COMMENT ON COLUMN ejercicios.tecnica IS 'Pasos de "Como se realiza", uno por linea.';
+-- Ficha del panel de ejercicios: tipo, aparato, nivel (dificultad) y series x repeticiones (rango, ej. "8-12").
+ALTER TABLE ejercicios ALTER COLUMN repeticiones TYPE VARCHAR(20) USING repeticiones::text;
+ALTER TABLE ejercicios ADD COLUMN tipo VARCHAR(20);
+ALTER TABLE ejercicios ADD COLUMN aparato VARCHAR(100);
+
+-- ---- Sistema de empleados: configuración y avisos leídos ----
+-- Preferencias de cada empleado ("empleado:<id>") y datos del club ("club"), en JSON.
+CREATE TABLE configuracionsistema (
+    clave VARCHAR(60) PRIMARY KEY,
+    valor JSONB NOT NULL,
+    fecha_actualizacion TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Los avisos del sistema se calculan con los datos; acá queda cuáles leyó cada empleado (clave = qué aviso).
+ALTER TABLE notificaciones ADD COLUMN clave VARCHAR(120);
+CREATE UNIQUE INDEX ux_notificaciones_empleado_clave ON notificaciones (id_empleado, clave);
 
 -- ---- ARENA: marcas personales y estandares de fuerza ----
 ALTER TABLE ejerciciosmarca ADD COLUMN beginner_m NUMERIC(6,3) NOT NULL;

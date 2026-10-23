@@ -30,7 +30,67 @@ BADGE_GOLD_TEXT  = GOLD_DARK
 BADGE_BLUE_BG    = "#DBEAFE"
 BADGE_BLUE_TEXT  = "#1D4ED8"
 
-SIDEBAR_W = 220
+SIDEBAR_W = 250
+SIDEBAR_W_COMPACTO = 76
+SIDEBAR_BG = "#FBFAF6"
+NAV_ACTIVO_BG = "#F7EDC4"
+NAV_TEXTO = "#3F3B30"   # secciones no elegidas: un poco más suaves que el negro
+NAV_ICONO = "#6B6656"
+
+# ── Apariencia elegida por el empleado (Configuración → Apariencia) ──
+# Color de acento: (principal, claro, oscuro, fondo suave, fondo chip, menú activo)
+PALETAS = {
+    "dorado":  ("Dorado",  "#C9A227", "#F0D060", "#A07820", "#FFFDE8", "#FEF9C3", "#F7EDC4"),
+    "azul":    ("Azul",    "#3B82F6", "#93C5FD", "#1D4ED8", "#F0F6FF", "#DBEAFE", "#DCE8FD"),
+    "verde":   ("Verde",   "#16A34A", "#86EFAC", "#15803D", "#F0FBF3", "#DCFCE7", "#D5F3DF"),
+    "violeta": ("Violeta", "#7C3AED", "#C4B5FD", "#6D28D9", "#F7F3FF", "#EDE9FE", "#E6DEFC"),
+    "coral":   ("Coral",   "#F97352", "#FDBA9F", "#C2410C", "#FFF6F2", "#FFEDD5", "#FDE1D6"),
+}
+# Fondo: (área de contenido, menú lateral)
+FONDOS = {
+    "crema":  ("Crema",       "#FAFAF0", "#FBFAF6"),
+    "blanco": ("Blanco",      "#FFFFFF", "#FAFAFA"),
+    "gris":   ("Gris suave",  "#F3F4F6", "#F9FAFB"),
+}
+
+
+def _aplicar_apariencia():
+    global GOLD, GOLD_LIGHT, GOLD_DARK, GOLD_BG, GOLD_BG2, NAV_ACTIVO_BG, BADGE_GOLD_BG, BADGE_GOLD_TEXT
+    global CREAM, SIDEBAR_BG
+    try:
+        import configuracion_repo
+        prefs = configuracion_repo.preferencias()
+    except Exception:
+        return
+    paleta = PALETAS.get(prefs.get("acento"), PALETAS["dorado"])
+    _, GOLD, GOLD_LIGHT, GOLD_DARK, GOLD_BG, GOLD_BG2, NAV_ACTIVO_BG = paleta
+    BADGE_GOLD_BG, BADGE_GOLD_TEXT = GOLD_BG2, GOLD_DARK
+    _, CREAM, SIDEBAR_BG = FONDOS.get(prefs.get("fondo"), FONDOS["crema"])
+
+
+_aplicar_apariencia()
+
+# Ícono de línea de cada sección del menú (en vez de emojis).
+import flet as _ft
+ICONOS_NAV = {
+    "dashboard": _ft.Icons.HOME_OUTLINED,
+    "socios": _ft.Icons.PEOPLE_OUTLINE,
+    "personal": _ft.Icons.BADGE_OUTLINED,
+    "asistencia": _ft.Icons.CALENDAR_MONTH_OUTLINED,
+    "rutinas": _ft.Icons.FORMAT_LIST_BULLETED,
+    "editor-ejercicios": _ft.Icons.FITNESS_CENTER,
+    "verificacion-marcas": _ft.Icons.EMOJI_EVENTS_OUTLINED,
+    "asignar-dietas": _ft.Icons.RESTAURANT,
+    "editor-dietas": _ft.Icons.RESTAURANT_MENU,
+    "progreso": _ft.Icons.SHOW_CHART,
+    "membresias": _ft.Icons.CARD_MEMBERSHIP,
+    "pagos": _ft.Icons.PAYMENTS_OUTLINED,
+    "tablon": _ft.Icons.PUSH_PIN_OUTLINED,
+    "notificaciones": _ft.Icons.NOTIFICATIONS_NONE,
+    "camaras": _ft.Icons.VIDEOCAM_OUTLINED,
+    "configuracion": _ft.Icons.SETTINGS_OUTLINED,
+    "argos": _ft.Icons.AUTO_AWESOME_OUTLINED,
+}
 
 # Role data
 ROLES = {
@@ -47,23 +107,21 @@ ROLES = {
             {"s": "asistencia", "i": "📅", "l": "Asistencia"},
             {"sep": "Entrenamiento"},
             {"s": "rutinas", "i": "📋", "l": "Rutinas"},
-            {"s": "editor-ejercicios", "i": "🏋️", "l": "Editor Visual de Ejercicios"},
+            {"s": "editor-ejercicios", "i": "🏋️", "l": "Ejercicios"},
             {"s": "verificacion-marcas", "i": "🏆", "l": "Verificación de Marcas"},
             {"s": "asignar-dietas", "i": "🍽️", "l": "Asignar Dietas"},
-            {"s": "editor-dietas", "i": "🖼️", "l": "Editor Visual de Dietas"},
+            {"s": "editor-dietas", "i": "🖼️", "l": "Dietas"},
             {"s": "progreso", "i": "📊", "l": "Progreso Físico"},
             {"sep": "Administración"},
             {"s": "membresias", "i": "💳", "l": "Membresías"},
             {"s": "pagos", "i": "💰", "l": "Pagos"},
-            {"s": "reportes", "i": "📈", "l": "Reportes"},
-            {"s": "stock", "i": "📦", "l": "Stock"},
             {"sep": "Comunicación"},
             {"s": "tablon", "i": "📌", "l": "Tablón del club"},
             {"sep": "Seguridad"},
             {"s": "camaras", "i": "📷", "l": "Cámaras"},
             {"sep": "Sistema"},
             {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "5"},
+            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones"},
             {"s": "configuracion", "i": "⚙️", "l": "Configuración"},
         ],
     },
@@ -80,15 +138,14 @@ ROLES = {
             {"s": "asistencia", "i": "📅", "l": "Asistencia"},
             {"sep": "Nutrición"},
             {"s": "asignar-dietas", "i": "🍽️", "l": "Asignar Dietas"},
-            {"s": "editor-dietas", "i": "🖼️", "l": "Editor Visual de Dietas"},
+            {"s": "editor-dietas", "i": "🖼️", "l": "Dietas"},
             {"sep": "Administración"},
             {"s": "membresias", "i": "💳", "l": "Membresías"},
             {"s": "pagos", "i": "💰", "l": "Pagos"},
-            {"s": "reportes", "i": "📈", "l": "Reportes"},
-            {"s": "stock", "i": "📦", "l": "Stock"},
             {"sep": "Sistema"},
             {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "3"},
+            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones"},
+            {"s": "configuracion", "i": "⚙️", "l": "Configuración"},
         ],
     },
     "entrenador": {
@@ -102,12 +159,13 @@ ROLES = {
             {"s": "asistencia", "i": "📅", "l": "Asistencia"},
             {"sep": "Entrenamiento"},
             {"s": "rutinas", "i": "📋", "l": "Rutinas"},
-            {"s": "editor-ejercicios", "i": "🏋️", "l": "Editor Visual de Ejercicios"},
+            {"s": "editor-ejercicios", "i": "🏋️", "l": "Ejercicios"},
             {"s": "verificacion-marcas", "i": "🏆", "l": "Verificación de Marcas"},
             {"s": "progreso", "i": "📊", "l": "Progreso Físico"},
             {"sep": "Sistema"},
             {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "2"},
+            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones"},
+            {"s": "configuracion", "i": "⚙️", "l": "Configuración"},
         ],
     },
     "nutricionista": {
@@ -120,11 +178,12 @@ ROLES = {
             {"s": "socios", "i": "👥", "l": "Mis Socios"},
             {"sep": "Nutrición"},
             {"s": "asignar-dietas", "i": "🍽️", "l": "Asignar Dietas"},
-            {"s": "editor-dietas", "i": "🖼️", "l": "Editor Visual de Dietas"},
+            {"s": "editor-dietas", "i": "🖼️", "l": "Dietas"},
             {"s": "progreso", "i": "📊", "l": "Progreso Físico"},
             {"sep": "Sistema"},
             {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "1"},
+            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones"},
+            {"s": "configuracion", "i": "⚙️", "l": "Configuración"},
         ],
     },
     "seguridad": {
@@ -138,7 +197,8 @@ ROLES = {
             {"s": "camaras", "i": "📷", "l": "Cámaras"},
             {"sep": "Sistema"},
             {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "1"},
+            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones"},
+            {"s": "configuracion", "i": "⚙️", "l": "Configuración"},
         ],
     },
     "recepcionista": {
@@ -155,7 +215,8 @@ ROLES = {
             {"s": "pagos", "i": "💰", "l": "Pagos"},
             {"sep": "Sistema"},
             {"s": "argos", "i": "🐕", "l": "Argos (Asistente IA)"},
-            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones", "b": "4"},
+            {"s": "notificaciones", "i": "🔔", "l": "Notificaciones"},
+            {"s": "configuracion", "i": "⚙️", "l": "Configuración"},
         ],
     },
 }
@@ -174,50 +235,9 @@ TITLES = {
     "membresias": "Asignación de Membresías",
     "progreso": "Progreso Físico",
     "pagos": "Pagos",
-    "reportes": "Reportes",
     "notificaciones": "Notificaciones",
     "camaras": "Cámaras",
-    "stock": "Stock",
     "configuracion": "Configuración",
     "argos": "Argos — Asistente IA",
 }
 
-# Dashboard data per role
-DASH_STATS = {
-    "entrenador": [
-        ("Mis socios", "22", "▲ +2 nuevos", "green"),
-        ("Clases hoy", "3", "Programadas", "gold"),
-        ("Rutinas activas", "18", "▲ +4", "green"),
-        ("Asistencia hoy", "67", "↗ Pico 18h", "blue"),
-    ],
-    "nutricionista": [
-        ("Mis socios", "24", "Con plan activo", "green"),
-        ("Planes creados", "4", "Templates", "gold"),
-        ("Consultas esta sem.", "8", "▲ +2", "green"),
-        ("Progreso promedio", "78%", "Objetivos OK", "blue"),
-    ],
-    "seguridad": [
-        ("Personas en el gym", "23", "Ahora", "gold"),
-        ("Ingresos hoy", "67", "▲ +8 vs ayer", "green"),
-        ("Cámaras activas", "8/8", "✓ OK", "green"),
-        ("Alertas hoy", "0", "✓ Sin incidentes", "green"),
-    ],
-    "recepcionista": [
-        ("Ingresos hoy", "67", "▲ +8", "green"),
-        ("Socios activos", "219", "Total", "gold"),
-        ("Pagos hoy", "8", "$68.000", "green"),
-        ("Cuotas vencidas", "3", "⚠️ Urgente", "red"),
-    ],
-    "dueno": [
-        ("Socios Activos", "248", "▲ +4 esta semana", "green"),
-        ("Ingresos del Mes", "$84k", "▲ +12.4%", "green"),
-        ("Asistencia Hoy", "67", "↗ Pico a las 18h", "blue"),
-        ("Personal Activo", "11", "3 turnos hoy", "gold"),
-    ],
-    "admin": [
-        ("Socios Activos", "248", "▲ +4 esta semana", "green"),
-        ("Ingresos del Mes", "$84k", "▲ +12.4%", "green"),
-        ("Asistencia Hoy", "67", "↗ Pico a las 18h", "blue"),
-        ("Personal Activo", "11", "3 turnos hoy", "gold"),
-    ],
-}

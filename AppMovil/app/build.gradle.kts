@@ -40,6 +40,19 @@ android {
             versionNameSuffix = "-prueba"
             matchingFallbacks += listOf("release", "debug")
         }
+        // La versión LIVIANA para repartir a los socios: igual a "release"
+        // pero R8 saca el código que no se usa de las librerías (Compose,
+        // Firebase, Coil...) y achica los nombres, y se eliminan los recursos
+        // que nadie referencia. La app parsea el JSON a mano con org.json (sin
+        // reflexión), así que no hacen falta reglas especiales.
+        // Uso:  ./gradlew assembleOptimizada  → app/build/outputs/apk/optimizada/
+        create("optimizada") {
+            initWith(getByName("release"))
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            matchingFallbacks += listOf("release")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

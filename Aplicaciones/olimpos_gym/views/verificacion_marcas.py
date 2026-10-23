@@ -53,7 +53,7 @@ class VerificacionMarcasView:
         if self.error_carga:
             self.root.controls.append(ft.Container(
                 content=ft.Text(f"⚠️ No se pudo conectar con Firebase: {self.error_carga}",
-                                size=12, color="#DC2626", weight=ft.FontWeight.W_700),
+                                size=12, color="#DC2626", weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
         self.root.controls.append(self._tabs())
@@ -78,7 +78,7 @@ class VerificacionMarcasView:
     def _boton_tab(self, tab: str, label: str) -> ft.Container:
         activo = self.tab == tab
         return ft.Container(
-            content=ft.Text(label, size=12.5, weight=ft.FontWeight.W_700, color=DARK if activo else TEXT_MUTED),
+            content=ft.Text(label, size=12.5, weight=ft.FontWeight.W_500, color=DARK if activo else TEXT_MUTED),
             bgcolor=GOLD if activo else WHITE,
             border=ft.border.all(1.5, GOLD if activo else GRAY_LIGHT),
             border_radius=10, padding=ft.padding.symmetric(horizontal=14, vertical=9),
@@ -111,7 +111,7 @@ class VerificacionMarcasView:
         if not pendientes:
             return ft.Column([section_card(ft.Column([
                 ft.Text("✅", size=34),
-                ft.Text("No hay marcas pendientes de verificar.", size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text("No hay marcas pendientes de verificar.", size=13, weight=ft.FontWeight.W_500, color=DARK),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)])
 
         return ft.Column([self._tarjeta_marca(m) for m in pendientes], spacing=10)
@@ -122,7 +122,7 @@ class VerificacionMarcasView:
         return section_card(
             ft.Row([
                 ft.Column([
-                    ft.Text(m.get("socio_nombre", "Socio"), size=13.5, weight=ft.FontWeight.W_800, color=DARK),
+                    ft.Text(m.get("socio_nombre", "Socio"), size=13.5, weight=ft.FontWeight.W_600, color=DARK),
                     ft.Text(f"{m.get('ejercicio', '?')} · {m.get('peso', 0):.0f}kg × {m.get('repeticiones', 0)}",
                             size=12.5, color=TEXT_MUTED),
                     ft.Text(f"{m.get('fecha', '')} · 1RM est. {rm:.0f}kg", size=11, color=TEXT_MUTED),
@@ -157,7 +157,7 @@ class VerificacionMarcasView:
         if not resumen:
             return ft.Column([section_card(ft.Column([
                 ft.Text("📭", size=34),
-                ft.Text("Todavía no hay marcas cargadas por ningún socio.", size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text("Todavía no hay marcas cargadas por ningún socio.", size=13, weight=ft.FontWeight.W_500, color=DARK),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)])
 
         filas = sorted(resumen.values(), key=lambda r: sum(r["puntajes"].values()), reverse=True)
@@ -169,11 +169,11 @@ class VerificacionMarcasView:
         return section_card(
             ft.Row([
                 ft.Container(
-                    content=ft.Text(f"#{posicion}", size=14, weight=ft.FontWeight.W_900, color=GOLD_DARK),
+                    content=ft.Text(f"#{posicion}", size=14, weight=ft.FontWeight.W_600, color=GOLD_DARK),
                     width=36,
                 ),
                 ft.Column([
-                    ft.Text(r["nombre"], size=13.5, weight=ft.FontWeight.W_800, color=DARK),
+                    ft.Text(r["nombre"], size=13.5, weight=ft.FontWeight.W_600, color=DARK),
                     ft.Text(f"Nivel promedio: {r['nivel_promedio']} · {r['total_marcas']} marca(s)",
                             size=11.5, color=TEXT_MUTED),
                 ], spacing=2, expand=True),
@@ -250,7 +250,7 @@ class VerificacionMarcasView:
                     ft.Text("🔍" if query else "📭", size=30),
                     ft.Text(
                         "Nadie coincide con esa búsqueda." if query else "Todavía nadie llegó a este rango.",
-                        size=13, weight=ft.FontWeight.W_700, color=DARK,
+                        size=13, weight=ft.FontWeight.W_500, color=DARK,
                     ),
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)]
             else:
@@ -271,7 +271,7 @@ class VerificacionMarcasView:
 
         encabezado = ft.Row([
             ft.Container(
-                content=ft.Text("← Volver a los rangos", size=12.5, weight=ft.FontWeight.W_700, color=GOLD_DARK),
+                content=ft.Text("← Volver a los rangos", size=12.5, weight=ft.FontWeight.W_500, color=GOLD_DARK),
                 on_click=self._volver_a_grilla, ink=True,
                 padding=ft.padding.symmetric(vertical=6),
             ),
@@ -279,7 +279,7 @@ class VerificacionMarcasView:
 
         titulo = ft.Row([
             ft.Image(src=repo.imagen_de_nivel(nivel), width=40, height=40, fit=ft.BoxFit.CONTAIN),
-            ft.Text(nivel, size=18, weight=ft.FontWeight.W_900, color=DARK, font_family="Poppins"),
+            ft.Text(nivel, size=18, weight=ft.FontWeight.W_600, color=DARK, font_family="Poppins"),
         ], spacing=10)
 
         buscador = ft.TextField(
@@ -299,11 +299,11 @@ class VerificacionMarcasView:
         return section_card(
             ft.Row([
                 ft.Container(
-                    content=ft.Text(f"#{posicion}", size=14, weight=ft.FontWeight.W_900, color=GOLD_DARK),
+                    content=ft.Text(f"#{posicion}", size=14, weight=ft.FontWeight.W_600, color=GOLD_DARK),
                     width=36,
                 ),
                 ft.Column([
-                    ft.Text(s["nombre"], size=13.5, weight=ft.FontWeight.W_800, color=DARK),
+                    ft.Text(s["nombre"], size=13.5, weight=ft.FontWeight.W_600, color=DARK),
                     ft.Text(
                         " · ".join(filter(None, [email, f"DNI {dni}" if dni else ""])) or uid,
                         size=11.5, color=TEXT_MUTED,
@@ -316,7 +316,7 @@ class VerificacionMarcasView:
     # ══════════════════════════ util ══════════════════════════
     def _boton_texto(self, texto: str, color: str, on_click) -> ft.Container:
         return ft.Container(
-            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_700, color=color),
+            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_500, color=color),
             padding=ft.padding.symmetric(horizontal=10, vertical=6),
             border=ft.border.all(1.5, ft.Colors.with_opacity(0.3, color)),
             border_radius=8, on_click=on_click, ink=True,

@@ -1,7 +1,7 @@
 // Rutas del club: tablón de avisos, ocupación, membresía y pagos, Argos
 // (asistente de IA) y el formulario de contacto de la página web.
 
-import { ErrorApi, fechaLocalISO, MS, Ruta, texto } from "./util.js";
+import { CAPACIDAD_MAXIMA, ErrorApi, fechaLocalISO, MINUTOS_EN_EL_CLUB, MS, Ruta, texto } from "./util.js";
 
 const tablon: Ruta = {
   metodo: "GET", patron: /^\/v1\/tablon$/,
@@ -18,13 +18,19 @@ const tablon: Ruta = {
   },
 };
 
+// Se calcula de las entradas reales (tabla "accesos", que se llena cuando el
+// socio toca "Mostrar carnet de acceso"): socios distintos que entraron en
+// los últimos MINUTOS_EN_EL_CLUB.
 const ocupacion: Ruta = {
   metodo: "GET", patron: /^\/v1\/ocupacion$/,
   async manejador(c) {
     const r = await c.db.query(
-      `SELECT cantidad_personas, capacidad_maxima, ${MS("fecha")} AS ts FROM aforo ORDER BY fecha DESC, id_aforo DESC LIMIT 1`);
-    const f = r.rows[0];
-    return f ? { personas: f.cantidad_personas, capacidad_maxima: f.capacidad_maxima, actualizado_ms: f.ts } : { existe: false };
+      `SELECT count(DISTINCT id_socio)::int AS personas, ${MS("now()")} AS ts FROM accesos
+       WHERE resultado = 'permitido' AND fecha > now() - make_interval(mins => $1::int)`, [MINUTOS_EN_EL_CLUB]);
+    return {
+      personas: r.rows[0].personas, capacidad_maxima: CAPACIDAD_MAXIMA,
+      actualizado_ms: r.rows[0].ts, minutos_en_el_club: MINUTOS_EN_EL_CLUB,
+    };
   },
 };
 

@@ -1,9 +1,7 @@
 // Rutas de entrenamiento y actividad en el club: rutinas, catálogo de
 // ejercicios, clases, ingresos, lockers, compañeros y fotos de progreso.
 
-import {
-  claveSemana, Contexto, Db, entero, ErrorApi, Fila, idNumerico, MS, numero, Ruta, texto,
-} from "./util.js";
+import { claveSemana, Contexto, Db, entero, ErrorApi, Fila, idNumerico, MINUTOS_EN_EL_CLUB, MS, numero, Ruta, texto } from "./util.js";
 
 // ───────────── catálogo de ejercicios (Galería) ─────────────
 
@@ -221,12 +219,21 @@ const listarIngresos: Ruta = {
   },
 };
 
+// Lo llama la app al tocar "Mostrar carnet de acceso" (y "Marcar mi ingreso
+// de hoy"). Si el socio ya había entrado hace menos de MINUTOS_EN_EL_CLUB no
+// se agrega otra fila: mostrar el carnet dos veces seguidas es una sola
+// entrada (y no infla la ocupación ni los logros por cantidad de ingresos).
 const registrarIngreso: Ruta = {
   metodo: "POST", patron: /^\/v1\/ingresos$/,
   async manejador(c) {
     const metodo = ["qr", "biometrico", "manual"].includes(c.body.metodo) ? c.body.metodo : "manual";
-    await c.db.query("INSERT INTO accesos (id_socio, metodo, resultado) VALUES ($1, $2, 'permitido')", [c.idSocio, metodo]);
-    return { ok: true };
+    const r = await c.db.query(
+      `INSERT INTO accesos (id_socio, metodo, resultado)
+       SELECT $1::int, $2::text, 'permitido'
+       WHERE NOT EXISTS (SELECT 1 FROM accesos WHERE id_socio = $1::int AND resultado = 'permitido'
+                         AND fecha > now() - make_interval(mins => $3::int))
+       RETURNING id_acceso`, [c.idSocio, metodo, MINUTOS_EN_EL_CLUB]);
+    return { ok: true, nuevo: r.rows.length > 0 };
   },
 };
 

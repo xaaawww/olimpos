@@ -64,15 +64,20 @@ def cerrar_sesion() -> None:
     _actual = None
 
 
+# Usuarios de demostración, uno por rol, para el panel del login. En la base
+# la contraseña está cifrada (no se puede leer de ahí), por eso se repite acá
+# en texto plano. Si se cambia una contraseña en la base, cambiarla también acá.
+USUARIOS_DEMO = [
+    {"label": "Dueño",         "usuario": "dueno",         "password": "Dueno#2026"},
+    {"label": "Administrador", "usuario": "admin",         "password": "Admin#2026"},
+    {"label": "Entrenador",    "usuario": "entrenador",    "password": "Entrenador#2026"},
+    {"label": "Nutricionista", "usuario": "nutricionista", "password": "Nutricionista#2026"},
+    {"label": "Seguridad",     "usuario": "seguridad",     "password": "Seguridad#2026"},
+    {"label": "Recepcionista", "usuario": "recepcion",     "password": "Recepcion#2026"},
+]
+
+
 def listado_para_mostrar() -> list[dict]:
-    """Una fila por empleado (usuario, nombre y rol) para el panel de
-    referencia del login. Las contraseñas ya no se pueden mostrar: están
-    cifradas."""
-    try:
-        filas = neon_db.consulta(
-            "SELECT e.usuario, e.nombre, e.apellido, r.descripcion AS label FROM empleados e"
-            " JOIN rol r ON r.id_rol = e.rol WHERE e.estado = 'activo' ORDER BY e.id_empleado"
-        )
-    except Exception:
-        return []
-    return [{"usuario": f["usuario"], "nombre": f"{f['nombre']} {f['apellido']}".strip(), "label": f["label"]} for f in filas]
+    """Una fila por rol (rol, usuario y contraseña) para el panel de
+    referencia del login."""
+    return USUARIOS_DEMO

@@ -52,14 +52,14 @@ class EditorMembresiasView:
         if self.error_carga:
             avisos.append(ft.Container(
                 content=ft.Text(f"⚠️ No se pudo conectar con Firebase: {self.error_carga}",
-                                size=12, color="#DC2626", weight=ft.FontWeight.W_700),
+                                size=12, color="#DC2626", weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
 
         if not self.socios:
             filas = [section_card(ft.Column([
                 ft.Text("💳", size=34),
-                ft.Text("Todavía no hay socios con acceso a la app.", size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text("Todavía no hay socios con acceso a la app.", size=13, weight=ft.FontWeight.W_500, color=DARK),
                 ft.Text("Dales de alta desde \"Socios\" para poder asignarles una membresía.", size=12, color=TEXT_MUTED),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)]
         else:
@@ -89,7 +89,7 @@ class EditorMembresiasView:
             content=ft.Row([
                 avatar(iniciales),
                 ft.Column([
-                    ft.Text(nombre, size=13.5, weight=ft.FontWeight.W_700, color=DARK),
+                    ft.Text(nombre, size=13.5, weight=ft.FontWeight.W_500, color=DARK),
                     ft.Text(socio.get("email", ""), size=11.5, color=TEXT_MUTED),
                 ], spacing=1, expand=True),
                 estado,
@@ -135,7 +135,7 @@ class EditorMembresiasView:
         avisos = []
         if self.aviso:
             avisos.append(ft.Container(
-                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_700, color=GOLD_DARK),
+                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_500, color=GOLD_DARK),
                 bgcolor=GOLD_BG2, border=ft.border.all(1, GOLD_LIGHT), border_radius=10,
                 padding=ft.padding.symmetric(horizontal=12, vertical=8),
             ))
@@ -191,7 +191,7 @@ class EditorMembresiasView:
     # ══════════════════════════ util ══════════════════════════
     def _boton_texto(self, texto: str, color: str, on_click) -> ft.Container:
         return ft.Container(
-            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_700, color=color),
+            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_500, color=color),
             padding=ft.padding.symmetric(horizontal=10, vertical=6),
             border=ft.border.all(1.5, ft.Colors.with_opacity(0.3, color)),
             border_radius=8, on_click=on_click, ink=True,

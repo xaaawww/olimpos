@@ -160,11 +160,17 @@ const semanaActual = (await api("GET", "/v1/clases", MATIAS)).j.semana;
 check("cupo nunca se supera", (await q("SELECT count(*)::int n FROM reservasclase WHERE estado='confirmada' AND semana=$1 AND id_clase=(SELECT id_clase FROM clases WHERE codigo='boxeo-mar')", [semanaActual]))[0].n === 15);
 check("el historial conserva lo cancelado", (await q("SELECT count(*)::int n FROM reservasclase WHERE estado='cancelada'"))[0].n >= 1);
 
-// ───── ingresos ─────
-await api("POST", "/v1/ingresos", JANO, { metodo: "qr" });
-await api("POST", "/v1/ingresos", JANO, { metodo: "cualquiera" });
+// ───── ingresos (mostrar el carnet) y ocupación en vivo ─────
+await q("DELETE FROM accesos WHERE id_socio = (SELECT id_socio FROM socios WHERE firebase_uid = $1)", [JANO]);
+const ocupacionAntes = (await api("GET", "/v1/ocupacion", MATIAS)).j.personas;
+check("primera entrada se registra", (await api("POST", "/v1/ingresos", JANO, { metodo: "qr" })).j.nuevo === true);
+check("mostrar el carnet otra vez no duplica", (await api("POST", "/v1/ingresos", JANO, { metodo: "cualquiera" })).j.nuevo === false);
 r = await api("GET", "/v1/ingresos", JANO);
-check("ingresos", r.j.ingresos.length >= 2 && r.j.ingresos.at(-1).metodo === "manual" && r.j.ingresos.some((x: any) => x.metodo === "qr"));
+check("ingresos", r.j.ingresos.length === 1 && r.j.ingresos[0].metodo === "qr");
+check("la ocupación suma al que entró", (await api("GET", "/v1/ocupacion", MATIAS)).j.personas === ocupacionAntes + 1);
+await q("UPDATE accesos SET fecha = now() - interval '3 hours' WHERE id_socio = (SELECT id_socio FROM socios WHERE firebase_uid = $1)", [JANO]);
+check("pasado el tiempo ya no cuenta como adentro", (await api("GET", "/v1/ocupacion", MATIAS)).j.personas === ocupacionAntes);
+check("y puede volver a entrar", (await api("POST", "/v1/ingresos", JANO, { metodo: "manual" })).j.nuevo === true);
 
 // ───── lockers ─────
 await q("DELETE FROM reservaslocker");

@@ -42,6 +42,12 @@ export class ErrorApi extends Error {
 }
 
 export const MS_DIA = 86_400_000;
+
+// Ocupación en vivo: no hay registro de SALIDA (el socio solo muestra el
+// carnet al entrar), así que se cuenta como "adentro" a cada socio que entró
+// en los últimos MINUTOS_EN_EL_CLUB. Mismo valor en ocupacion_repo.py.
+export const MINUTOS_EN_EL_CLUB = 90;
+export const CAPACIDAD_MAXIMA = 120;
 // Argentina no tiene horario de verano: UTC-3 todo el año.
 const OFFSET_LOCAL_MS = -3 * 3_600_000;
 

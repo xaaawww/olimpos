@@ -80,14 +80,14 @@ class AsignarDietasView:
         if self.error_carga:
             avisos.append(ft.Container(
                 content=ft.Text(f"⚠️ No se pudo conectar con Firebase: {self.error_carga}",
-                                size=12, color="#DC2626", weight=ft.FontWeight.W_700),
+                                size=12, color="#DC2626", weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
 
         if not self.socios:
             filas = [section_card(ft.Column([
                 ft.Text("🍽️", size=34),
-                ft.Text("Todavía no hay socios con acceso a la app.", size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text("Todavía no hay socios con acceso a la app.", size=13, weight=ft.FontWeight.W_500, color=DARK),
                 ft.Text("Dales de alta desde \"Socios\" para poder asignarles una dieta.", size=12, color=TEXT_MUTED),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=6), padding=30)]
         else:
@@ -118,7 +118,7 @@ class AsignarDietasView:
             content=ft.Row([
                 avatar(iniciales),
                 ft.Column([
-                    ft.Text(nombre, size=13.5, weight=ft.FontWeight.W_700, color=DARK),
+                    ft.Text(nombre, size=13.5, weight=ft.FontWeight.W_500, color=DARK),
                     ft.Text(socio.get("email", ""), size=11.5, color=TEXT_MUTED),
                 ], spacing=1, expand=True),
                 self._pill_objetivo(uid),
@@ -157,7 +157,7 @@ class AsignarDietasView:
         avisos = []
         if self.aviso:
             avisos.append(ft.Container(
-                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_700, color=GOLD_DARK),
+                content=ft.Text(self.aviso, size=12.5, weight=ft.FontWeight.W_500, color=GOLD_DARK),
                 bgcolor=GOLD_BG2, border=ft.border.all(1, GOLD_LIGHT), border_radius=10,
                 padding=ft.padding.symmetric(horizontal=12, vertical=8),
             ))
@@ -166,14 +166,14 @@ class AsignarDietasView:
                 content=ft.Text(
                     "⚠️ Todavía no hay platos publicados. Creá y publicá uno en el "
                     "\"Editor Visual de Dietas\" (con sus valores nutricionales) para poder asignarlo.",
-                    size=12, color="#DC2626", weight=ft.FontWeight.W_700),
+                    size=12, color="#DC2626", weight=ft.FontWeight.W_500),
                 bgcolor="#FEE2E2", border_radius=10, padding=12,
             ))
 
         perfil = self.perfiles.get(self.socio_id) or {}
         peso = perfil.get("peso_kg")
         resumen_socio = ft.Row([
-            ft.Text("Objetivo del socio:", size=12, weight=ft.FontWeight.W_700, color=TEXT_MUTED),
+            ft.Text("Objetivo del socio:", size=12, weight=ft.FontWeight.W_500, color=TEXT_MUTED),
             self._pill_objetivo(self.socio_id),
             ft.Text(f"· Peso: {peso:g} kg" if peso else "", size=12, color=TEXT_MUTED),
         ], spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER)
@@ -192,8 +192,8 @@ class AsignarDietasView:
             *[self._tarjeta_horario(clave, etiqueta, emoji) for clave, etiqueta, emoji in repo.MOMENTOS],
             section_card(ft.Row([
                 ft.Text("TOTAL DEL DÍA (meta diaria del socio en la app)", size=11,
-                        weight=ft.FontWeight.W_800, color=TEXT_MUTED, expand=True),
-                ft.Text(_texto_macros(total), size=15, weight=ft.FontWeight.W_800, color=GOLD_DARK),
+                        weight=ft.FontWeight.W_600, color=TEXT_MUTED, expand=True),
+                ft.Text(_texto_macros(total), size=15, weight=ft.FontWeight.W_600, color=GOLD_DARK),
             ]), padding=16),
             ft.Row([
                 action_button("💾 Guardar dieta", "gold", on_click=self._guardar),
@@ -221,9 +221,9 @@ class AsignarDietasView:
 
         return section_card(ft.Column([
             ft.Row([
-                ft.Text(f"{emoji} {etiqueta.upper()}", size=12, weight=ft.FontWeight.W_800,
+                ft.Text(f"{emoji} {etiqueta.upper()}", size=12, weight=ft.FontWeight.W_600,
                         color=DARK, expand=True),
-                ft.Text(_texto_macros(subtotal), size=11.5, weight=ft.FontWeight.W_700, color=GOLD_DARK),
+                ft.Text(_texto_macros(subtotal), size=11.5, weight=ft.FontWeight.W_500, color=GOLD_DARK),
             ]),
             divider(),
             ft.Column(filas, spacing=8),
@@ -233,7 +233,7 @@ class AsignarDietasView:
     def _fila_plato(self, clave: str, plato_id: str, plato: dict | None) -> ft.Container:
         if plato is None:
             info = ft.Column([
-                ft.Text("Plato no disponible", size=13, weight=ft.FontWeight.W_700, color=RED),
+                ft.Text("Plato no disponible", size=13, weight=ft.FontWeight.W_500, color=RED),
                 ft.Text("Fue borrado del Editor Visual de Dietas — sacalo de este horario.",
                         size=11.5, color=TEXT_MUTED),
             ], spacing=1, expand=True)
@@ -243,14 +243,14 @@ class AsignarDietasView:
             sin_macros = not any(macros.values())
             detalle = (
                 ft.Text("Sin valores nutricionales cargados — completalos en el Editor Visual de Dietas",
-                        size=11.5, color="#D97706", weight=ft.FontWeight.W_600)
+                        size=11.5, color="#D97706", weight=ft.FontWeight.W_500)
                 if sin_macros else ft.Text(_texto_macros(macros), size=11.5, color=TEXT_MUTED)
             )
             if not plato.get("publicado"):
                 detalle = ft.Text("⚠️ No está publicado: el socio no lo va a ver hasta que lo publiques.",
-                                  size=11.5, color=RED, weight=ft.FontWeight.W_700)
+                                  size=11.5, color=RED, weight=ft.FontWeight.W_500)
             info = ft.Column([
-                ft.Text(plato["nombre"], size=13, weight=ft.FontWeight.W_700, color=DARK),
+                ft.Text(plato["nombre"], size=13, weight=ft.FontWeight.W_500, color=DARK),
                 detalle,
             ], spacing=1, expand=True)
             if plato.get("imagen"):
@@ -311,7 +311,7 @@ class AsignarDietasView:
 
     def _boton_texto(self, texto: str, color: str, on_click) -> ft.Container:
         return ft.Container(
-            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_700, color=color),
+            content=ft.Text(texto, size=11.5, weight=ft.FontWeight.W_500, color=color),
             padding=ft.padding.symmetric(horizontal=10, vertical=6),
             border=ft.border.all(1.5, ft.Colors.with_opacity(0.3, color)),
             border_radius=8, on_click=on_click, ink=True,

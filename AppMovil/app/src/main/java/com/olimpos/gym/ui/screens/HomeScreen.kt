@@ -67,6 +67,7 @@ import com.olimpos.gym.data.kgMovidosEsteMes
 import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.metaDelDia
 import com.olimpos.gym.data.rachaDietaActual
+import com.olimpos.gym.data.registrarIngresoEnFirebase
 import com.olimpos.gym.data.socioActualNombre
 import com.olimpos.gym.data.yaReservadaEstaSemana
 import com.olimpos.gym.ui.theme.Olimpos
@@ -271,18 +272,38 @@ private fun CarnetMedalla() {
             }
         }
         Spacer(Modifier.height(15.dp))
-        var mostrado by remember { mutableStateOf(false) }
+        // Mostrar el carnet ES la entrada al club: se registra en "accesos"
+        // (la API no duplica si ya entraste hace un rato) y de ahí sale la
+        // ocupación en vivo de abajo. Tocar de nuevo solo lo oculta.
+        var estadoCarnet by remember { mutableStateOf(EstadoCarnet.OCULTO) }
+        val scope = rememberCoroutineScope()
         Box(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.GoldDark)))
-                .clickable { mostrado = !mostrado }
+                .clickable(enabled = estadoCarnet != EstadoCarnet.REGISTRANDO) {
+                    if (estadoCarnet == EstadoCarnet.LISTO) {
+                        estadoCarnet = EstadoCarnet.OCULTO
+                    } else {
+                        estadoCarnet = EstadoCarnet.REGISTRANDO
+                        scope.launch {
+                            val ok = registrarIngresoEnFirebase("qr")
+                            estadoCarnet = if (ok) EstadoCarnet.LISTO else EstadoCarnet.ERROR
+                            if (ok) DatosRemotos.recargarIngresos()
+                        }
+                    }
+                }
                 .padding(vertical = 13.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                if (mostrado) "CARNET LISTO — ACERCALO AL LECTOR ✓" else "MOSTRAR CARNET DE ACCESO",
+                when (estadoCarnet) {
+                    EstadoCarnet.OCULTO -> "MOSTRAR CARNET DE ACCESO"
+                    EstadoCarnet.REGISTRANDO -> "REGISTRANDO TU ENTRADA…"
+                    EstadoCarnet.LISTO -> "ENTRADA REGISTRADA — BIENVENIDO ✓"
+                    EstadoCarnet.ERROR -> "SIN CONEXIÓN — TOCÁ PARA REINTENTAR"
+                },
                 fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.sp, color = Olimpos.Dark
             )
@@ -290,16 +311,17 @@ private fun CarnetMedalla() {
     }
 }
 
+private enum class EstadoCarnet { OCULTO, REGISTRANDO, LISTO, ERROR }
+
 /* ───────────────────── Ocupación en vivo ───────────────────── */
-/** Número real, cargado a mano por el dueño desde el sistema de empleados
- *  (ver OcupacionRepository.kt) — no hay ningún lector de accesos
- *  conectado a Firestore para calcularlo solo. Se vuelve a pedir cada 30
- *  segundos mientras la pantalla está abierta, para que se sienta "en
- *  vivo" sin golpear Firestore en cada recomposición. */
+/** Número real: socios que mostraron el carnet en el último rato (ver
+ *  OcupacionRepository.kt). Se vuelve a pedir cada 30 segundos mientras la
+ *  pantalla está abierta, y al instante cuando el propio socio muestra el
+ *  carnet (cambia DatosRemotos.ingresos y se reinicia el ciclo). */
 @Composable
 private fun OcupacionEnVivo() {
     var ocupacion by remember { mutableStateOf<Ocupacion?>(null) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(DatosRemotos.ingresos) {
         while (true) {
             cargarOcupacionDesdeFirebase()?.let { ocupacion = it }
             delay(30_000)
@@ -338,7 +360,7 @@ private fun OcupacionEnVivo() {
         Spacer(Modifier.height(8.dp))
         Row {
             Text(
-                if (ocupacion == null) "Conectando…" else "$personas personas entrenando",
+                if (ocupacion == null) "Conectando…" else if (personas == 1) "1 persona en el club" else "$personas personas en el club",
                 fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted,
                 modifier = Modifier.weight(1f)
             )

@@ -1,0 +1,198 @@
+=====================================================================
+ OLIMPOS - QUE INSTALAR EN LA PC PARA USAR TODO EL PROYECTO
+=====================================================================
+
+FORMA RAPIDA: doble clic en  instalar.bat  (esta en esta misma carpeta).
+Hace solo los pasos 1, 2 y 4 y al final avisa que credenciales faltan.
+Lo de abajo es lo mismo, explicado paso a paso, por si algo falla.
+
+Todo se hace desde el CMD (Simbolo del sistema).
+Abrilo asi: tecla Windows -> escribi "cmd" -> Enter.
+
+Lo que hay en esta carpeta y con que se usa:
+
+  Aplicaciones\olimpos_gym   Sistema de empleados (escritorio)  -> Python + Flet
+  neon\                      Base de datos (scripts y diagrama)  -> Python
+  ApiWorker\                 API de la app (Cloudflare)          -> Node.js
+  ArgosWorker\               Asistente Argos (Cloudflare)        -> Node.js
+  PagosWorker\               Pagos con Mercado Pago (Cloudflare) -> Node.js
+  AppMovil\                  App Android (Kotlin)                -> Android Studio
+  Paginas\                   Pagina web (HTML)                   -> cualquier navegador
+
+
+---------------------------------------------------------------------
+ PASO 1 - INSTALAR LOS PROGRAMAS (una sola vez)
+---------------------------------------------------------------------
+
+Copia y pega estos comandos en el CMD, de a uno. Cada uno puede tardar
+unos minutos. Si pregunta si aceptas los terminos, escribi  S  o  Y.
+
+  winget install -e --id Microsoft.VCRedist.2015+.x64
+  winget install -e --id Python.Python.3.12
+  winget install -e --id OpenJS.NodeJS.LTS
+  winget install -e --id Git.Git
+  winget install -e --id Google.AndroidStudio
+
+IMPORTANTE: cuando terminen los cuatro, CERRA el CMD y abri uno nuevo.
+(Si no, el CMD no se entera de que los programas estan instalados.)
+
+Para comprobar que quedaron bien, en el CMD nuevo:
+
+  python --version
+  node --version
+  npm --version
+  git --version
+
+Cada uno tiene que mostrar un numero de version. Si "python" abre la
+Microsoft Store en vez de mostrar la version: Configuracion de Windows ->
+Aplicaciones -> Configuracion avanzada de aplicaciones -> Alias de
+ejecucion de aplicaciones -> apaga "python.exe" y "python3.exe".
+
+
+---------------------------------------------------------------------
+ PASO 2 - SISTEMA DE EMPLEADOS (Python)
+---------------------------------------------------------------------
+
+Instalar las librerias que usa el sistema (una sola vez):
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master"
+  py -3.12 -m pip install --upgrade pip
+  py -3.12 -m pip install -r install.txt
+
+(install.txt tiene la lista de librerias con sus versiones exactas:
+ flet 0.84.0, psycopg 3.3.6, pillow 13.0.0, firebase-admin 7.7.0 y
+ requests 2.34.2. Flet TIENE que ser 0.84.0: con versiones mas nuevas
+ el sistema no abre.)
+
+IMPORTANTE: usa siempre "py -3.12", no "python" ni "py" solos. Si en la
+PC hay otra version de Python (por ejemplo la 3.15), esos comandos abren
+esa otra, que no tiene las librerias, y aparece el error
+"ModuleNotFoundError: No module named 'flet'".
+
+Antes de iniciar sesion hacen falta los archivos de credenciales
+(ver PASO 6).
+
+Para abrir el sistema: doble clic en  abrir_sistema.bat
+o desde el CMD:
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master\Aplicaciones\olimpos_gym"
+  py -3.12 main.py
+
+
+---------------------------------------------------------------------
+ PASO 3 - SCRIPTS DE LA BASE DE DATOS (carpeta neon)
+---------------------------------------------------------------------
+
+Usan las mismas librerias del PASO 2 (no hay que instalar nada mas).
+
+Para VER el diagrama y el diccionario de datos no hace falta nada:
+  - neon\diagrama_er.html          -> doble clic, se abre en el navegador
+  - neon\diccionario_de_datos.md   -> se abre con el Bloc de notas o VS Code
+  - neon\esquema.sql               -> se abre con el Bloc de notas o VS Code
+
+Para volver a generar la documentacion desde la base de Neon:
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master\neon"
+  py -3.12 generar_documentacion.py
+
+
+---------------------------------------------------------------------
+ PASO 4 - WORKERS DE CLOUDFLARE (Node.js)
+---------------------------------------------------------------------
+
+Instalar las dependencias de cada worker (una sola vez). Se usa
+"npm ci" para instalar exactamente las versiones guardadas en
+package-lock.json (las mismas con las que se hizo el proyecto):
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master\ApiWorker"
+  npm ci
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master\ArgosWorker"
+  npm ci
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master\PagosWorker"
+  npm ci
+
+Para probar un worker en tu PC (ejemplo con la API):
+
+  cd /d "%USERPROFILE%\OneDrive\Desktop\olimpos-master\ApiWorker"
+  npm run dev
+
+Para subirlo a Cloudflare (pide iniciar sesion la primera vez):
+
+  npx wrangler login
+  npm run deploy
+
+
+---------------------------------------------------------------------
+ PASO 5 - APP MOVIL (Android)
+---------------------------------------------------------------------
+
+La forma mas facil es con Android Studio (ya instalado en el PASO 1):
+
+  1. Abri Android Studio. La primera vez sigue el asistente con las
+     opciones "Standard": descarga el Android SDK solo.
+  2. File -> Open... y elegi la carpeta:
+       olimpos-master\AppMovil
+  3. Espera a que termine el "Gradle Sync" (abajo a la derecha).
+  4. Conecta el celular (con "Depuracion USB" activada) o crea un
+     emulador en Device Manager, y apreta el boton verde de Play.
+
+Falta el archivo AppMovil\app\google-services.json (ver PASO 6).
+
+Si solo queres instalar la app en un celular sin compilar nada, ya
+esta hecho el APK en:  Paginas\app\OlimpOS.apk  (pasalo al celular y
+abrilo; hay que permitir "instalar apps de origen desconocido").
+
+
+---------------------------------------------------------------------
+ PASO 6 - CREDENCIALES (NO estan en la carpeta, a proposito)
+---------------------------------------------------------------------
+
+Estos archivos tienen claves secretas y nunca se suben a git, por eso
+no vienen en la carpeta. Pediselos a quien administra el proyecto y
+ponelos en estos lugares exactos:
+
+  Aplicaciones\olimpos_gym\neon_credentials.json
+      {"database_url": "postgresql://..."}
+      (Neon -> proyecto OlimpOS -> boton Connect -> copiar la cadena)
+
+  Aplicaciones\olimpos_gym\firebase_credentials.json
+      (Firebase -> Configuracion del proyecto -> Cuentas de servicio ->
+       Generar nueva clave privada)
+
+  Aplicaciones\olimpos_gym\anthropic_credentials.json   (para Argos)
+  Aplicaciones\olimpos_gym\openai_credentials.json      (para generar
+                                                         imagenes de platos)
+
+  AppMovil\app\google-services.json
+      (Firebase -> Configuracion del proyecto -> app Android ->
+       descargar google-services.json)
+
+Los workers guardan sus claves en Cloudflare, no en archivos. Se cargan
+una vez con (dentro de la carpeta de cada worker):
+
+  npx wrangler secret put DATABASE_URL        (ApiWorker y PagosWorker)
+  npx wrangler secret put MP_ACCESS_TOKEN     (PagosWorker)
+  npx wrangler secret put ANTHROPIC_API_KEY   (ArgosWorker)
+
+
+---------------------------------------------------------------------
+ PASO 7 - PAGINA WEB
+---------------------------------------------------------------------
+
+No hace falta instalar nada. Doble clic en cualquiera de estos y se
+abren en el navegador:
+
+  Paginas\OlimpOS Landing.html
+  Paginas\Plano Interactivo.html
+  Paginas\Dieta Saludable.html
+
+
+---------------------------------------------------------------------
+ OPCIONAL - Para ver y editar el codigo comodamente
+---------------------------------------------------------------------
+
+  winget install -e --id Microsoft.VisualStudioCode
+
+Despues: abrir VS Code -> File -> Open Folder -> olimpos-master.
