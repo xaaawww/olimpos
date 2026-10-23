@@ -31,9 +31,13 @@ unos minutos. Si pregunta si aceptas los terminos, escribi  S  o  Y.
   winget install -e --id Python.Python.3.12
   winget install -e --id OpenJS.NodeJS.LTS
   winget install -e --id Git.Git
+  winget install -e --id EclipseAdoptium.Temurin.17.JDK
   winget install -e --id Google.AndroidStudio
 
-IMPORTANTE: cuando terminen los cuatro, CERRA el CMD y abri uno nuevo.
+(Java 17 hace falta para compilar la app: el Java que trae Android Studio
+ es el 25 y el Gradle del proyecto no anda con ese. Ver PASO 5.)
+
+IMPORTANTE: cuando terminen todos, CERRA el CMD y abri uno nuevo.
 (Si no, el CMD no se entera de que los programas estan instalados.)
 
 Para comprobar que quedaron bien, en el CMD nuevo:
@@ -134,8 +138,13 @@ La forma mas facil es con Android Studio (ya instalado en el PASO 1):
      opciones "Standard": descarga el Android SDK solo.
   2. File -> Open... y elegi la carpeta:
        olimpos-master\AppMovil
-  3. Espera a que termine el "Gradle Sync" (abajo a la derecha).
-  4. Conecta el celular (con "Depuracion USB" activada) o crea un
+  3. File -> Settings -> Build, Execution, Deployment -> Build Tools ->
+     Gradle -> "Gradle JDK": elegi Java 17 (Temurin). Si no, falla con
+     un error que solo dice "25.0.3".
+  4. Espera a que termine el "Gradle Sync" (abajo a la derecha).
+     Para la version liviana (~4 MB): View -> Tool Windows -> Build
+     Variants -> "optimizada".
+  5. Conecta el celular (con "Depuracion USB" activada) o crea un
      emulador en Device Manager, y apreta el boton verde de Play.
 
 Falta el archivo AppMovil\app\google-services.json (ver PASO 6).

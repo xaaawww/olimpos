@@ -8,8 +8,8 @@ echo  OLIMPOS - INSTALADOR
 echo =====================================================================
 echo.
 echo  Instala: Visual C++ Redistributable, Python 3.12, Node.js, Git,
-echo  Android Studio, las librerias de Python (install.txt, versiones
-echo  fijas) y las dependencias de los 3 workers (package-lock.json).
+echo  Java 17, Android Studio, las librerias de Python (install.txt,
+echo  versiones fijas) y las dependencias de los 3 workers (package-lock.json).
 echo.
 echo  Puede tardar bastante (Android Studio pesa mas de 1 GB).
 echo  Si Windows pregunta si permitis cambios, acepta.
@@ -33,6 +33,10 @@ call :programa Microsoft.VCRedist.2015+.x64 "Visual C++ Redistributable - lo nec
 call :programa Python.Python.3.12   "Python 3.12"
 call :programa OpenJS.NodeJS.LTS    "Node.js"
 call :programa Git.Git              "Git"
+rem Java 17: el Gradle de la app (8.9) NO anda con el Java 25 que trae
+rem Android Studio. En Android Studio hay que elegirlo una vez en Settings -
+rem Build Tools - Gradle - Gradle JDK (ver AppMovil\LEEME.md).
+call :programa EclipseAdoptium.Temurin.17.JDK "Java 17 (Temurin) - para compilar la app"
 call :programa Google.AndroidStudio "Android Studio"
 
 rem Los programas recien instalados todavia no estan en el PATH de esta
@@ -93,7 +97,8 @@ echo =====================================================================
 echo.
 echo  Falta hacer a mano:
 echo   - Abrir Android Studio una vez y seguir el asistente "Standard"
-echo     (descarga el Android SDK). Despues: File - Open - AppMovil.
+echo     (descarga el Android SDK). Despues: File - Open - AppMovil, y en
+echo     Settings - Build Tools - Gradle - Gradle JDK elegir Java 17.
 echo   - Poner los archivos de credenciales que falten (ver INSTALAR.txt,
 echo     PASO 6).
 echo.
