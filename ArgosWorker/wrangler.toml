@@ -7,6 +7,14 @@ compatibility_date = "2025-01-01"
 [vars]
 API_URL = "https://api-olimpos.argosolimpo.workers.dev"
 
+# Conexión directa con el Worker de la API (Service Binding). Cloudflare NO
+# deja que un Worker llame a otro de la misma cuenta por su dirección pública
+# *.workers.dev (lo corta y Argos respondía "No se pudo verificar tu plan de
+# membresía" aunque el plan estuviera bien): tiene que ser por acá.
+[[services]]
+binding = "API"
+service = "api-olimpos"
+
 # Secreto (se carga con "npx wrangler secret put ANTHROPIC_API_KEY", nunca acá):
 #   ANTHROPIC_API_KEY — clave de la API de Anthropic.
 #

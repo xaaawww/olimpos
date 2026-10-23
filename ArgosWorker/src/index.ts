@@ -19,6 +19,10 @@ export interface Env {
   ANTHROPIC_API_KEY: string;
   /** URL de la API del club (Worker "api-olimpos"). */
   API_URL: string;
+  /** Service Binding al Worker de la API (ver wrangler.toml). Entre Workers
+   *  de la misma cuenta es la única forma de llamarse; sin él, el fetch por
+   *  la URL pública lo bloquea Cloudflare. */
+  API?: Fetcher;
 }
 
 const MODELO = "claude-haiku-4-5-20251001";
@@ -56,20 +60,26 @@ function json(data: unknown, status = 200): Response {
  *  `null` si todo está bien, o la respuesta de error lista para devolver. */
 async function pedirPermiso(env: Env, token: string): Promise<{ restantes: number } | Response> {
   let resp: Response;
+  const destino = `${env.API_URL}/v1/argos/consumir`;
+  const pedido: RequestInit = {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: "{}",
+  };
   try {
-    resp = await fetch(`${env.API_URL}/v1/argos/consumir`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: "{}",
-    });
-  } catch {
+    resp = env.API ? await env.API.fetch(destino, pedido) : await fetch(destino, pedido);
+  } catch (ex) {
+    console.error("Argos → API: no se pudo conectar", ex);
     return json({ error: "No se pudo verificar tu plan de membresía. Probá de nuevo en un momento." }, 502);
   }
   const datos = (await resp.json().catch(() => ({}))) as { error?: string; restantes?: number };
   if (resp.ok) return { restantes: datos.restantes ?? 0 };
-  if (resp.status === 401 || resp.status === 403 || resp.status === 429) {
-    return json({ error: datos.error ?? "No tenés permiso para usar Argos.", ...(resp.status === 403 ? { codigo: "plan_requerido" } : {}) }, resp.status);
+  // Solo se le pasa al socio un rechazo que venga de la API (trae "error");
+  // un 403 de Cloudflare (sin cuerpo JSON) es un problema de conexión, no del plan.
+  if ((resp.status === 401 || resp.status === 403 || resp.status === 429) && datos.error) {
+    return json({ error: datos.error, ...(resp.status === 403 ? { codigo: "plan_requerido" } : {}) }, resp.status);
   }
+  console.error(`Argos → API: respuesta inesperada ${resp.status}`);
   return json({ error: "No se pudo verificar tu plan de membresía. Probá de nuevo en un momento." }, 502);
 }
 
