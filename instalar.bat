@@ -24,7 +24,9 @@ if errorlevel 1 (
     goto :fin
 )
 
-set "WG=winget install -e --silent --accept-source-agreements --accept-package-agreements --id"
+rem --no-upgrade: si el programa ya esta, no lo actualiza (no cambia nada de
+rem lo que la persona ya tenia instalado; solo agrega lo que falta).
+set "WG=winget install -e --silent --no-upgrade --accept-source-agreements --accept-package-agreements --id"
 
 echo.
 echo [1/4] Instalando programas...
@@ -118,13 +120,14 @@ rem winget devuelve error tambien cuando el programa ya estaba instalado,
 rem asi que se comprueba con "winget list" en vez de mirar el codigo.
 rem (Se compara con 0 porque winget devuelve codigos negativos, y
 rem "if errorlevel 1" los toma como exito.)
+rem (Sin bloques "( ... )": si el nombre tiene parentesis, rompen el bloque.)
 winget list -e --id %1 --accept-source-agreements >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] No se pudo instalar %~2.
-    set "FALLO=1"
-) else (
-    echo [OK] %~2
-)
+if %errorlevel% neq 0 goto :programa_error
+echo [OK] %~2
+exit /b
+:programa_error
+echo [ERROR] No se pudo instalar %~2.
+set "FALLO=1"
 exit /b
 
 :worker
