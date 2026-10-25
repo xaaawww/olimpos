@@ -11,7 +11,8 @@ import notificaciones_repo
 from views.dashboard import build_dashboard
 from views.socios import build_socios
 from views.asistencia import build_asistencia
-from views.personal import build_personal, build_camaras
+from views.personal import build_camaras
+from views.gestion_personal import build_personal
 from views.pagos import build_pagos
 from views.progreso import build_progreso
 from views.notificaciones import build_notificaciones
@@ -182,7 +183,7 @@ class AppShell:
         builders = {
             "dashboard":      lambda: build_dashboard(self.role, lambda s: self._navigate(s), self.page),
             "socios":         lambda: build_socios(self.page),
-            "personal":       build_personal,
+            "personal":       lambda: build_personal(self.page, self.role),
             "asistencia":     lambda: build_asistencia(self.page, self.role),
             "rutinas":        lambda: build_editor_rutinas(self.page, f"{self.role_data['name']} — {self.role_data['label']}"),
             "editor-dietas":  lambda: build_editor_dietas(self.page),
