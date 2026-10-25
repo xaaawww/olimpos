@@ -20,6 +20,7 @@
 
 flet==0.84.0              # interfaz del sistema de empleados
 flet-desktop==0.84.0      # ventana de escritorio de Flet (misma version)
+flet-video==0.84.0        # video en vivo de las camaras (misma version que flet)
 psycopg[binary]==3.3.6    # conexion a la base de datos Neon (PostgreSQL)
 pillow==13.0.0            # imagenes de platos y ejercicios
 firebase-admin==7.7.0     # login de socios (Firebase Authentication)

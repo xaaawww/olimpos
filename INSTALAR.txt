@@ -64,9 +64,9 @@ Instalar las librerias que usa el sistema (una sola vez):
   py -3.12 -m pip install -r install.txt
 
 (install.txt tiene la lista de librerias con sus versiones exactas:
- flet 0.84.0, psycopg 3.3.6, pillow 13.0.0, firebase-admin 7.7.0 y
- requests 2.34.2. Flet TIENE que ser 0.84.0: con versiones mas nuevas
- el sistema no abre.)
+ flet 0.84.0, flet-video 0.84.0 (video en vivo de las camaras),
+ psycopg 3.3.6, pillow 13.0.0, firebase-admin 7.7.0 y requests 2.34.2.
+ Flet TIENE que ser 0.84.0: con versiones mas nuevas el sistema no abre.)
 
 IMPORTANTE: usa siempre "py -3.12", no "python" ni "py" solos. Si en la
 PC hay otra version de Python (por ejemplo la 3.15), esos comandos abren
