@@ -59,7 +59,7 @@ fun LogrosScreen(onVolver: () -> Unit) {
     var pestana by remember { mutableIntStateOf(0) }
     var seleccionado by remember { mutableStateOf<Logro?>(null) }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(CA.fondo)) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
             modifier = Modifier.fillMaxSize(),
@@ -111,16 +111,16 @@ private fun ContadorLogros(ganados: Int, total: Int) {
     Row(
         Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Olimpos.Card)
-            .border(1.dp, Olimpos.Line, RoundedCornerShape(12.dp))
+            .background(CA.tarjeta)
+            .border(1.dp, CA.borde, RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text("🏆", fontSize = 18.sp)
         Spacer(Modifier.width(6.dp))
         Column {
-            Text("$ganados/$total", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
-            Text("logros", fontSize = 9.sp, color = Olimpos.Muted)
+            Text("$ganados/$total", fontSize = 13.sp, fontWeight = FontWeight.Black, color = CA.texto)
+            Text("logros", fontSize = 9.sp, color = CA.suave)
         }
     }
 }
@@ -132,13 +132,13 @@ private fun FilaLogro(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
             IconoRedondo(logro.emoji, tamano = 48.dp, apagado = logro.progreso <= 0f)
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
-                Text(logro.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
-                Text(logro.descripcion, fontSize = 11.5.sp, color = Olimpos.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(logro.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
+                Text(logro.descripcion, fontSize = 11.5.sp, color = CA.suave, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BarraProgreso(logro.progreso, Modifier.weight(1f), alto = 6)
+                    BarraArena(logro.progreso, Modifier.weight(1f))
                     Spacer(Modifier.width(10.dp))
-                    Text("${(logro.progreso * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
+                    Text("${(logro.progreso * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CA.suave)
                 }
             }
             Spacer(Modifier.width(8.dp))
@@ -152,16 +152,16 @@ private fun Medalla(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
     Column(
         modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Olimpos.Card)
-            .border(1.dp, Olimpos.Gold.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .background(CA.tarjeta)
+            .border(1.dp, CA.amarillo.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        IconoRedondo(logro.emoji, tamano = 52.dp)
+        IconoRedondo(logro.emoji, tamano = 52.dp, pastel = Pastel.NARANJA)
         Spacer(Modifier.height(8.dp))
         Text(
-            logro.nombre, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream,
+            logro.nombre, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 13.sp
         )
     }
@@ -170,7 +170,7 @@ private fun Medalla(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
 @Composable
 private fun Vacio(texto: String) {
     TarjetaLisa(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-        Text(texto, fontSize = 12.sp, color = Olimpos.Muted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Text(texto, fontSize = 12.sp, color = CA.suave, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -179,7 +179,7 @@ private fun DetalleLogro(logro: Logro, onCerrar: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .background(Olimpos.Dark.copy(alpha = 0.72f))
+            .background(CA.tinta.copy(alpha = 0.72f))
             .clickable(onClick = onCerrar),
         contentAlignment = Alignment.Center
     ) {
@@ -187,26 +187,26 @@ private fun DetalleLogro(logro: Logro, onCerrar: () -> Unit) {
             Modifier
                 .padding(horizontal = 36.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(Olimpos.Card)
-                .border(1.dp, Olimpos.Gold.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                .background(CA.tarjeta)
+                .border(1.dp, CA.amarillo.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
                 .clickable(enabled = false) {}
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             IconoRedondo(logro.emoji, tamano = 72.dp, apagado = !logro.desbloqueado)
             Spacer(Modifier.height(14.dp))
-            Text(logro.nombre, fontSize = 17.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text(logro.nombre, fontSize = 17.sp, fontWeight = FontWeight.Black, color = CA.texto)
             Spacer(Modifier.height(6.dp))
             Text(
-                logro.descripcion, fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center,
+                logro.descripcion, fontSize = 12.5.sp, color = CA.suave, textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             if (logro.desbloqueado) {
-                ChipSuave("✓ Medalla ganada")
+                ChipSuave("✓ Medalla ganada", Pastel.VERDE)
             } else {
-                BarraProgreso(logro.progreso, modifier = Modifier.fillMaxWidth())
+                BarraArena(logro.progreso, alto = 8.dp)
                 Spacer(Modifier.height(6.dp))
-                Text("${(logro.progreso * 100).toInt()}% completado", fontSize = 11.sp, color = Olimpos.Muted)
+                Text("${(logro.progreso * 100).toInt()}% completado", fontSize = 11.sp, color = CA.suave)
             }
         }
     }

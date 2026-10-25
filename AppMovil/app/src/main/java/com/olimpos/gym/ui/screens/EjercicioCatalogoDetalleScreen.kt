@@ -49,6 +49,7 @@ fun EjercicioCatalogoDetalleScreen(ejercicio: EjercicioCatalogo, onVolver: () ->
     Column(
         Modifier
             .fillMaxSize()
+            .background(CA.fondo)
             .verticalScroll(rememberScrollState())
     ) {
         EncabezadoArena(ejercicio.nombre, "Músculos trabajados y técnica.", onVolver)
@@ -63,7 +64,7 @@ fun EjercicioCatalogoDetalleScreen(ejercicio: EjercicioCatalogo, onVolver: () ->
             }
             // ── Frame 1: cuerpo con las zonas trabajadas ──
             SeccionLabel("Músculos trabajados")
-            TarjetaOro(Modifier.fillMaxWidth()) {
+            TarjetaLisa(Modifier.fillMaxWidth()) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CuerpoMuscular(zonasActivas = zonasActivas, tamano = 128.dp)
                 }
@@ -73,7 +74,7 @@ fun EjercicioCatalogoDetalleScreen(ejercicio: EjercicioCatalogo, onVolver: () ->
                 Spacer(Modifier.height(10.dp))
                 Text(
                     "Todavía no hay zonas musculares cargadas para este ejercicio.",
-                    fontSize = 12.sp, color = Olimpos.Muted
+                    fontSize = 12.sp, color = CA.suave
                 )
             } else {
                 androidx.compose.animation.AnimatedVisibility(visible = activo != null, enter = fadeIn(), exit = fadeOut()) {
@@ -97,15 +98,15 @@ fun EjercicioCatalogoDetalleScreen(ejercicio: EjercicioCatalogo, onVolver: () ->
 
             // ── Frame 2: descripción del ejercicio ──
             SeccionLabel("Descripción del ejercicio")
-            TarjetaOro(Modifier.fillMaxWidth()) {
+            TarjetaLisa(Modifier.fillMaxWidth()) {
                 Text(
                     ejercicio.descripcion.ifBlank { "Sin descripción todavía." },
-                    fontSize = 13.sp, lineHeight = 19.sp, color = Olimpos.Cream
+                    fontSize = 13.sp, lineHeight = 19.sp, color = CA.texto
                 )
                 if (ejercicio.tags.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ejercicio.tags.forEach { ChipOro(it) }
+                        ejercicio.tags.forEach { ChipSuave(it) }
                     }
                 }
             }
@@ -119,24 +120,24 @@ private fun TarjetaPuntoMuscular(p: PuntoMuscular) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Olimpos.GoldSoft)
-            .border(1.dp, Olimpos.Gold.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
+            .background(CA.amarilloSuave)
+            .border(1.dp, CA.amarillo.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(p.zona.emoji, fontSize = 16.sp)
             Spacer(Modifier.width(8.dp))
-            Text(p.nombre, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+            Text(p.nombre, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
         }
         Spacer(Modifier.height(6.dp))
         Text(
             p.descripcion.ifBlank { "Sin descripción todavía." },
-            fontSize = 12.5.sp, lineHeight = 18.sp, color = Olimpos.Cream.copy(alpha = 0.78f)
+            fontSize = 12.5.sp, lineHeight = 18.sp, color = CA.texto.copy(alpha = 0.78f)
         )
         if (p.tags.isNotEmpty()) {
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                p.tags.forEach { ChipOro(it) }
+                p.tags.forEach { ChipSuave(it) }
             }
         }
     }
@@ -148,7 +149,7 @@ private fun FilaPuntoMuscular(p: PuntoMuscular, activa: Boolean, onClick: () -> 
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(13.dp))
-            .background(if (activa) Olimpos.GoldSoft else androidx.compose.ui.graphics.Color.Transparent)
+            .background(if (activa) CA.amarilloSuave else androidx.compose.ui.graphics.Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 11.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -157,10 +158,10 @@ private fun FilaPuntoMuscular(p: PuntoMuscular, activa: Boolean, onClick: () -> 
             Modifier
                 .size(24.dp)
                 .clip(CircleShape)
-                .background(if (activa) Olimpos.Gold else Olimpos.GoldSoft),
+                .background(if (activa) CA.amarillo else CA.amarilloSuave),
             contentAlignment = Alignment.Center
         ) { Text(p.zona.emoji, fontSize = 11.sp) }
         Spacer(Modifier.width(11.dp))
-        Text(p.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
+        Text(p.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = CA.texto)
     }
 }

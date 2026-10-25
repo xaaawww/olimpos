@@ -86,7 +86,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
         nivelDesdePuntaje(puntajeDeMarca(MarcaPersonal(ejercicio = ejercicio, pesoKg = peso, reps = r, fecha = "", verificado = false), pesoCorporal, datos?.sexo))
     } else null
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(CA.fondo).verticalScroll(rememberScrollState())) {
         EncabezadoArena("Calculadora", "Descubrí cuánto podés levantar según tu nivel.", onVolver)
 
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp)) {
@@ -108,7 +108,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
                     Text(
                         if (pesoCorporal > 0f) "Se suma tu peso corporal (${pesoCorporal.roundToInt()} kg)."
                         else "Cargá tu peso en Perfil para calcular este ejercicio.",
-                        fontSize = 11.sp, color = Olimpos.Muted
+                        fontSize = 11.sp, color = CA.suave
                     )
                 }
             }
@@ -117,7 +117,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
                 pestana != 0 && oneRM < 1f -> {
                     Spacer(Modifier.height(14.dp))
                     TarjetaLisa(Modifier.fillMaxWidth()) {
-                        Text("Elegí un peso y repeticiones para calcular.", fontSize = 12.sp, color = Olimpos.Muted)
+                        Text("Elegí un peso y repeticiones para calcular.", fontSize = 12.sp, color = CA.suave)
                     }
                 }
                 pestana == 0 -> {
@@ -142,15 +142,15 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
                         val estimadas = repeticionesConPeso(oneRM, pesoPrueba)
                         Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text("$estimadas", fontSize = 40.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                            Text("$estimadas", fontSize = 40.sp, fontWeight = FontWeight.Black, color = CA.texto)
                             Text(
-                                " repeticiones", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted,
+                                " repeticiones", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CA.suave,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
                         Text(
                             "Con tu 1RM estimado de ${oneRM.roundToInt()} kg (${(pesoPrueba / oneRM * 100).roundToInt()}% del máximo).",
-                            fontSize = 11.5.sp, color = Olimpos.Muted
+                            fontSize = 11.5.sp, color = CA.suave
                         )
                     }
                 }
@@ -160,7 +160,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
             Text(
                 "Estimación con la fórmula de Epley; el rango la compara con la de Brzycki. " +
                     "Tu máximo real puede variar según técnica, descanso y el día.",
-                fontSize = 11.sp, lineHeight = 15.sp, color = Olimpos.Muted
+                fontSize = 11.sp, lineHeight = 15.sp, color = CA.suave
             )
         }
     }
@@ -169,7 +169,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
 @Composable
 private fun Etiqueta(texto: String) {
     Text(
-        texto, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream,
+        texto, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto,
         modifier = Modifier.padding(top = 18.dp, bottom = 9.dp)
     )
 }
@@ -182,16 +182,16 @@ private fun SelectorEjercicio(elegido: String, onElegir: (String) -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Olimpos.Card)
-                .border(1.dp, Olimpos.Line, RoundedCornerShape(14.dp))
+                .background(CA.tarjeta)
+                .border(1.dp, CA.borde, RoundedCornerShape(14.dp))
                 .clickable { abierto = true }
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             ImagenEjercicio(imagenDeEjercicio(nombre = elegido), 38.dp, radio = 9.dp)
             Spacer(Modifier.width(12.dp))
-            Text(elegido, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream, modifier = Modifier.weight(1f))
-            Text("▾", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted, modifier = Modifier.padding(end = 6.dp))
+            Text(elegido, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CA.texto, modifier = Modifier.weight(1f))
+            Text("▾", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = CA.suave, modifier = Modifier.padding(end = 6.dp))
         }
         DropdownMenu(expanded = abierto, onDismissRequest = { abierto = false }) {
             EJERCICIOS_FUERZA.forEach { ej ->
@@ -212,12 +212,12 @@ private fun Deslizador(
 ) {
     Column {
         Row(Modifier.fillMaxWidth()) {
-            Text(etiqueta, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.Muted, modifier = Modifier.weight(1f))
-            Text(valorTexto, fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text(etiqueta, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = CA.suave, modifier = Modifier.weight(1f))
+            Text(valorTexto, fontSize = 13.sp, fontWeight = FontWeight.Black, color = CA.texto)
         }
         Slider(
             value = valor.coerceIn(rango), onValueChange = onValor, valueRange = rango, steps = pasos,
-            colors = SliderDefaults.colors(thumbColor = Olimpos.Gold, activeTrackColor = Olimpos.Gold, inactiveTrackColor = Olimpos.Line)
+            colors = SliderDefaults.colors(thumbColor = CA.amarillo, activeTrackColor = CA.amarillo, inactiveTrackColor = CA.borde)
         )
     }
 }
@@ -228,35 +228,35 @@ private fun Resultado1RM(oneRM: Float, minimo: Float, maximo: Float, reps: Int, 
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Olimpos.GoldSoft)
-            .border(1.dp, Olimpos.Gold.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .background(CA.amarilloSuave)
+            .border(1.dp, CA.amarillo.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            Modifier.size(50.dp).clip(CircleShape).background(Olimpos.Gold.copy(alpha = 0.25f)),
+            Modifier.size(50.dp).clip(CircleShape).background(CA.amarillo.copy(alpha = 0.25f)),
             contentAlignment = Alignment.Center
         ) { Text("🏋️", fontSize = 22.sp) }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
-            Text("1RM estimado", fontSize = 11.5.sp, color = Olimpos.Muted)
-            Text("${oneRM.roundToInt()} kg", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text("1RM estimado", fontSize = 11.5.sp, color = CA.suave)
+            Text("${oneRM.roundToInt()} kg", fontSize = 30.sp, fontWeight = FontWeight.Black, color = CA.texto)
             Text(
                 if (reps == 1) "Es tu máximo de una repetición" else "Entre ${minimo.roundToInt()} y ${maximo.roundToInt()} kg según la fórmula",
-                fontSize = 10.5.sp, color = Olimpos.Muted
+                fontSize = 10.5.sp, color = CA.suave
             )
         }
         if (nivel != null) {
             Column(
                 Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Olimpos.Card)
-                    .border(1.dp, Olimpos.Line, RoundedCornerShape(12.dp))
+                    .background(CA.tarjeta)
+                    .border(1.dp, CA.borde, RoundedCornerShape(12.dp))
                     .padding(horizontal = 10.dp, vertical = 7.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Nivel", fontSize = 9.5.sp, color = Olimpos.Muted)
-                Text(nivel, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = acentoTexto)
+                Text("Nivel", fontSize = 9.5.sp, color = CA.suave)
+                Text(nivel, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = CA.acento)
             }
         }
     }
@@ -268,7 +268,7 @@ private fun Resultado1RM(oneRM: Float, minimo: Float, maximo: Float, reps: Int, 
 private fun TablaRangos(ejercicio: String, pesoCorporal: Float, sexo: com.olimpos.gym.data.SexoBiologico?, actual: RangoMuscular?, corporal: Boolean) {
     if (pesoCorporal <= 0f) {
         TarjetaLisa(Modifier.fillMaxWidth()) {
-            Text("Cargá tu peso corporal en Perfil para ver la tabla: los rangos dependen de tu peso.", fontSize = 12.sp, color = Olimpos.Muted)
+            Text("Cargá tu peso corporal en Perfil para ver la tabla: los rangos dependen de tu peso.", fontSize = 12.sp, color = CA.suave)
         }
         return
     }
@@ -282,7 +282,7 @@ private fun TablaRangos(ejercicio: String, pesoCorporal: Float, sexo: com.olimpo
         }
     }
     if (corporal) {
-        Text("Incluye tu peso corporal (${pesoCorporal.roundToInt()} kg).", fontSize = 10.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 6.dp))
+        Text("Incluye tu peso corporal (${pesoCorporal.roundToInt()} kg).", fontSize = 10.5.sp, color = CA.suave, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
@@ -293,7 +293,7 @@ private fun FilaTabla(izq: String, der: String, encabezado: Boolean = false, col
             .fillMaxWidth()
             .padding(horizontal = 6.dp, vertical = 2.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(if (resaltada) Olimpos.GoldSoft else androidx.compose.ui.graphics.Color.Transparent)
+            .background(if (resaltada) CA.amarilloSuave else androidx.compose.ui.graphics.Color.Transparent)
             .padding(horizontal = 10.dp, vertical = if (encabezado) 10.dp else 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -304,12 +304,12 @@ private fun FilaTabla(izq: String, der: String, encabezado: Boolean = false, col
         Text(
             izq, fontSize = if (encabezado) 11.sp else 12.5.sp, modifier = Modifier.weight(1f),
             fontWeight = if (resaltada) FontWeight.ExtraBold else FontWeight.Normal,
-            color = if (encabezado) Olimpos.Muted else Olimpos.Cream
+            color = if (encabezado) CA.suave else CA.texto
         )
         Text(
             der, fontSize = if (encabezado) 11.sp else 12.5.sp, modifier = Modifier.weight(0.8f),
             fontWeight = if (resaltada) FontWeight.ExtraBold else FontWeight.Normal,
-            color = if (encabezado) Olimpos.Muted else Olimpos.Cream
+            color = if (encabezado) CA.suave else CA.texto
         )
     }
 }
@@ -327,15 +327,15 @@ private fun TablaPesoIdeal(oneRM: Float, corporal: Boolean, pesoCorporal: Float)
             FilaTabla(
                 "$n rep · ${(total / oneRM * 100).roundToInt()}%", texto,
                 color = when {
-                    n <= 5 -> Olimpos.Gold
-                    n <= 12 -> Olimpos.GoldLight
-                    else -> Olimpos.Muted
+                    n <= 5 -> CA.amarillo
+                    n <= 12 -> CA.acento
+                    else -> CA.suave
                 }
             )
         }
     }
     Text(
         "1 a 5 repeticiones: fuerza · 6 a 12: hipertrofia · 15: resistencia.",
-        fontSize = 10.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 6.dp)
+        fontSize = 10.5.sp, color = CA.suave, modifier = Modifier.padding(top = 6.dp)
     )
 }

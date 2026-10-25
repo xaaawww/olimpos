@@ -87,7 +87,7 @@ fun MarcasScreen(onVolver: () -> Unit) {
 
     val enRegistro = registrando
     val enHistorial = ejercicioViendo
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(CA.fondo)) {
         when {
             enRegistro != null -> RegistrarMarcaScreen(
                 ejercicioInicial = enRegistro,
@@ -126,11 +126,11 @@ fun MarcasScreen(onVolver: () -> Unit) {
                     aviso?.let {
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            it, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = acentoTexto,
+                            it, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CA.acento,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(Olimpos.GoldSoft)
+                                .background(CA.amarilloSuave)
                                 .padding(12.dp)
                         )
                     }
@@ -159,11 +159,11 @@ fun MarcasScreen(onVolver: () -> Unit) {
 @Composable
 private fun BotonRegistrar(onClick: () -> Unit) {
     Text(
-        "+ Registrar", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Dark,
+        "+ Registrar", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = CA.tinta,
         modifier = Modifier
             .padding(top = 4.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Olimpos.Gold)
+            .background(CA.amarillo)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 9.dp)
     )
@@ -184,19 +184,19 @@ private fun FilaMarca(ejercicio: String, vigente: MarcaPersonal?, cargando: Bool
             ImagenEjercicio(imagenDeEjercicio(nombre = ejercicio), 64.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(ejercicio, fontSize = 12.sp, color = Olimpos.Muted)
+                Text(ejercicio, fontSize = 12.sp, color = CA.suave)
                 if (vigente != null) {
-                    Text(textoMarca(vigente), fontSize = 16.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                    Text(textoMarca(vigente), fontSize = 16.sp, fontWeight = FontWeight.Black, color = CA.texto)
                     Text(
                         fechaDe(vigente) + if (vigente.verificado) " · Verificada ✓" else " · Pendiente",
-                        fontSize = 10.5.sp, color = if (vigente.verificado) Olimpos.Green else Olimpos.Muted
+                        fontSize = 10.5.sp, color = if (vigente.verificado) Olimpos.Green else CA.suave
                     )
                 } else {
-                    Text(if (cargando) "Cargando…" else "Sin marcas todavía", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
-                    if (!cargando) Text("Tocá para registrar la primera", fontSize = 10.5.sp, color = Olimpos.Muted)
+                    Text(if (cargando) "Cargando…" else "Sin marcas todavía", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = CA.suave)
+                    if (!cargando) Text("Tocá para registrar la primera", fontSize = 10.5.sp, color = CA.suave)
                 }
             }
-            ChipSuave(categoriaDeEjercicio(ejercicio), fuerte = vigente != null)
+            ChipSuave(categoriaDeEjercicio(ejercicio), if (vigente != null) pastelDeCategoria(categoriaDeEjercicio(ejercicio)) else Pastel.GRIS)
             Spacer(Modifier.width(4.dp))
             Chevron()
             Spacer(Modifier.width(4.dp))
@@ -218,16 +218,16 @@ private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit,
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         EncabezadoArena("Registrar marca", "Cargá tu levantamiento: lo verifica un entrenador.", onVolver)
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp)) {
-            Text("Ejercicio", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, modifier = Modifier.padding(bottom = 9.dp))
+            Text("Ejercicio", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto, modifier = Modifier.padding(bottom = 9.dp))
             FilaChips {
-                EJERCICIOS_FUERZA.forEach { ej -> ChipSeleccionable(ej.nombre, ejercicio == ej.nombre) { ejercicio = ej.nombre } }
+                EJERCICIOS_FUERZA.forEach { ej -> ChipArena(ej.nombre, ejercicio == ej.nombre) { ejercicio = ej.nombre } }
             }
             Spacer(Modifier.height(14.dp))
             TarjetaLisa(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ImagenEjercicio(imagenDeEjercicio(nombre = ejercicio), 56.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text(ejercicio, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                    Text(ejercicio, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -239,7 +239,7 @@ private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit,
                 }
                 if (esPesoCorporal) {
                     Spacer(Modifier.height(8.dp))
-                    Text("Cuenta tu peso corporal: dejá el peso vacío si no sumaste lastre.", fontSize = 11.sp, color = Olimpos.Muted)
+                    Text("Cuenta tu peso corporal: dejá el peso vacío si no sumaste lastre.", fontSize = 11.sp, color = CA.suave)
                 }
                 if (pesoF != null && pesoF > 150f) {
                     Spacer(Modifier.height(10.dp))
@@ -274,20 +274,20 @@ private fun MarcasDeEjercicioScreen(
         )
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             if (marcas.isEmpty()) {
-                Text("Todavía no cargaste ninguna marca de este ejercicio.", fontSize = 12.5.sp, color = Olimpos.Muted)
+                Text("Todavía no cargaste ninguna marca de este ejercicio.", fontSize = 12.5.sp, color = CA.suave)
             }
             marcas.forEachIndexed { i, m ->
                 TarjetaLisa(Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(textoMarca(m), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                            Text(textoMarca(m), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = CA.texto)
                             Text(
                                 "${fechaDe(m)} · 1RM est. ${"%.0f".format(calcular1RM(cargaEfectivaDeMarca(m, pesoCorporalKg), m.reps))} kg" +
                                     if (i == 0) " · vigente" else "",
-                                fontSize = 11.sp, color = Olimpos.Muted
+                                fontSize = 11.sp, color = CA.suave
                             )
                         }
-                        ChipSuave(if (m.verificado) "Verificada ✓" else "Pendiente", fuerte = m.verificado)
+                        ChipSuave(if (m.verificado) "Verificada ✓" else "Pendiente", if (m.verificado) Pastel.VERDE else Pastel.GRIS)
                         Box(
                             Modifier.clip(RoundedCornerShape(10.dp)).clickable { onEliminar(m) }.padding(8.dp)
                         ) { Text("🗑️", fontSize = 16.sp) }
@@ -303,7 +303,7 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
     Box(
         Modifier
             .fillMaxSize()
-            .background(Olimpos.Dark.copy(alpha = 0.72f))
+            .background(CA.tinta.copy(alpha = 0.72f))
             .clickable(onClick = onCancelar),
         contentAlignment = Alignment.Center
     ) {
@@ -311,17 +311,17 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
             Modifier
                 .padding(horizontal = 36.dp)
                 .clip(RoundedCornerShape(24.dp))
-                .background(Olimpos.Card)
+                .background(CA.tarjeta)
                 .border(1.dp, Olimpos.Red.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
                 .clickable(enabled = false) {}
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("¿Eliminar esta marca?", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text("¿Eliminar esta marca?", fontSize = 16.sp, fontWeight = FontWeight.Black, color = CA.texto)
             Spacer(Modifier.height(8.dp))
             Text(
                 "${marca.ejercicio} · ${textoMarca(marca)} (${fechaDe(marca)}). Si era tu única marca de este ejercicio, tu rango general puede bajar.",
-                fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center
+                fontSize = 12.5.sp, color = CA.suave, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

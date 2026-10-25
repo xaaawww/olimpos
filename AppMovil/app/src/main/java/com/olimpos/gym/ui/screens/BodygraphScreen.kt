@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -79,37 +80,40 @@ fun BodygraphScreen(onVolver: () -> Unit) {
         DatosRemotos.recargarDatosFisicosPropios()
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(CA.fondo).verticalScroll(rememberScrollState())) {
         EncabezadoArena(
             "Mapa corporal", "Tu progreso muscular en cada grupo.", onVolver,
             derecha = ultimaMarca?.let { ts -> { PildoraFecha(ts) } }
         )
 
-        Column(Modifier.padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 26.dp)) {
+        Column(Modifier.padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 26.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // ── Cuerpo: el mismo de siempre, se da vuelta al tocarlo ──
-                Column(
+                // ── Cuerpo: el mismo de siempre, ocupa media pantalla y se da
+                // vuelta al tocarlo ──
+                BoxWithConstraints(
                     Modifier
-                        .weight(0.42f)
+                        .weight(0.54f)
                         .clickable {
                             vista = if (vista == VistaCuerpo.FRENTE) VistaCuerpo.ESPALDA else VistaCuerpo.FRENTE
-                        },
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        }
                 ) {
+                    val ancho = maxWidth
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     CuerpoMuscularRangosMini(
                         rangoPorZona = nivelesPorZona.mapValues { it.value?.rango },
-                        tamano = 124.dp,
+                        tamano = ancho,
                         vista = vista
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
                         (if (vista == VistaCuerpo.FRENTE) "Frente" else "Espalda") + "  ⇄",
-                        fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted
+                        fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = CA.suave
                     )
+                    }
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
                 // ── Los 6 grupos ──
-                Column(Modifier.weight(0.58f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(0.46f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     GrupoMuscular.entries.forEach { grupo ->
                         val puntajes = grupo.zonas.map { resumen.puntajes[it] ?: 0f }
                         val promedio = puntajes.average().toFloat()
@@ -128,7 +132,7 @@ fun BodygraphScreen(onVolver: () -> Unit) {
             AnimatedVisibility(visible = grupoAbierto != null) {
                 grupoAbierto?.let { grupo ->
                     TarjetaLisa(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-                        Text(grupo.etiqueta, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                        Text(grupo.etiqueta, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
                         Spacer(Modifier.height(8.dp))
                         grupo.zonas.forEach { zona ->
                             FilaMusculo(zona, nivelesPorZona[zona], resumen.puntajes[zona])
@@ -153,14 +157,14 @@ private fun PildoraFecha(timestamp: Long) {
     Column(
         Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Olimpos.Card)
-            .border(1.dp, Olimpos.Line, RoundedCornerShape(10.dp))
+            .background(CA.tarjeta)
+            .border(1.dp, CA.borde, RoundedCornerShape(10.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Text("Actualizado", fontSize = 9.sp, color = Olimpos.Muted)
+        Text("Actualizado", fontSize = 9.sp, color = CA.suave)
         Text(
             java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("es", "AR")).format(java.util.Date(timestamp)),
-            fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream
+            fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = CA.texto
         )
     }
 }
@@ -171,28 +175,33 @@ private fun FilaGrupo(grupo: GrupoMuscular, porcentaje: Float, nivel: NivelMuscu
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (abierto) Olimpos.GoldSoft else Olimpos.Card)
-            .border(1.dp, if (abierto) Olimpos.Gold.copy(alpha = 0.45f) else Olimpos.Line, RoundedCornerShape(14.dp))
+            .background(if (abierto) CA.amarilloSuave else CA.tarjeta)
+            .border(1.dp, if (abierto) CA.amarillo.copy(alpha = 0.45f) else CA.borde, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 9.dp),
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconoRedondo(grupo.emoji, tamano = 32.dp, apagado = nivel == null)
-        Spacer(Modifier.width(9.dp))
+        IconoRedondo(grupo.emoji, tamano = 30.dp, pastel = pastelDeGrupo(grupo), apagado = nivel == null)
+        Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            Text(grupo.etiqueta, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, maxLines = 1)
-            Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.sp, color = Olimpos.Muted, maxLines = 1)
+            Text(nombreCorto(grupo), fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto, maxLines = 1)
+            Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.sp, color = CA.suave, maxLines = 1)
         }
+        val pastel = pastelDeGrupo(grupo)
         Text(
             "${(porcentaje * 100).toInt()}%",
-            fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = acentoTexto,
+            fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = pastel.tono,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(Olimpos.GoldSoft)
-                .padding(horizontal = 7.dp, vertical = 3.dp)
+                .background(pastel.fondo)
+                .padding(horizontal = 6.dp, vertical = 3.dp)
         )
     }
 }
+
+/** "Abdomen" en vez de "Abdominales" (como en el diseño): entra en la tarjeta. */
+private fun nombreCorto(grupo: GrupoMuscular): String =
+    if (grupo == GrupoMuscular.ABDOMINALES) "Abdomen" else grupo.etiqueta
 
 @Composable
 private fun FilaMusculo(zona: ZonaMuscular, nivel: NivelMuscular?, puntaje: Float?) {
@@ -201,19 +210,19 @@ private fun FilaMusculo(zona: ZonaMuscular, nivel: NivelMuscular?, puntaje: Floa
             Image(painterResource(iconoDeRango(nivel)), contentDescription = nivel.etiquetaCompleta, modifier = Modifier.size(24.dp))
         } else {
             Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(9.dp).clip(CircleShape).background(Olimpos.Muted.copy(alpha = 0.4f)))
+                Box(Modifier.size(9.dp).clip(CircleShape).background(CA.suave.copy(alpha = 0.4f)))
             }
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(zona.etiqueta, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (nivel != null) Olimpos.Cream else Olimpos.Muted)
+            Text(zona.etiqueta, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (nivel != null) CA.texto else CA.suave)
             if (nivel != null && puntaje != null) {
                 Spacer(Modifier.height(4.dp))
-                BarraProgreso(nivel.progreso(puntaje), alto = 5)
+                BarraArena(nivel.progreso(puntaje), alto = 5.dp)
             }
         }
         Spacer(Modifier.width(10.dp))
-        Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (nivel != null) acentoTexto else Olimpos.Muted)
+        Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (nivel != null) CA.acento else CA.suave)
     }
 }
 
@@ -229,15 +238,15 @@ private fun TarjetaPuntuacion(puntajeGeneral: Float?, faltan: Int, tieneMarcas: 
             }
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1.1f)) {
-                Text("Puntuación general", fontSize = 11.sp, color = Olimpos.Muted, maxLines = 1)
+                Text("Puntuación general", fontSize = 11.sp, color = CA.suave, maxLines = 1)
                 if (puntajeGeneral != null && nivel != null) {
-                    Text("${(porcentajeDePuntaje(puntajeGeneral) * 100).toInt()}%", fontSize = 28.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
-                    ChipSuave(nivel.etiquetaCompleta)
+                    Text("${(porcentajeDePuntaje(puntajeGeneral) * 100).toInt()}%", fontSize = 28.sp, fontWeight = FontWeight.Black, color = CA.texto)
+                    ChipSuave(nivel.etiquetaCompleta, Pastel.AZUL)
                 } else {
-                    Text("Sin clasificar", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                    Text("Sin clasificar", fontSize = 18.sp, fontWeight = FontWeight.Black, color = CA.texto)
                 }
             }
-            Box(Modifier.width(1.dp).height(54.dp).background(Olimpos.Line))
+            Box(Modifier.width(1.dp).height(54.dp).background(CA.borde))
             Spacer(Modifier.width(12.dp))
             Text(
                 when {
@@ -246,7 +255,7 @@ private fun TarjetaPuntuacion(puntajeGeneral: Float?, faltan: Int, tieneMarcas: 
                     !verificado -> "Algunas marcas todavía no las verificó un entrenador."
                     else -> "¡Vas por buen camino! Mantené la constancia para seguir subiendo."
                 },
-                fontSize = 10.5.sp, lineHeight = 14.sp, color = Olimpos.Muted,
+                fontSize = 10.5.sp, lineHeight = 14.sp, color = CA.suave,
                 modifier = Modifier.weight(0.9f)
             )
         }

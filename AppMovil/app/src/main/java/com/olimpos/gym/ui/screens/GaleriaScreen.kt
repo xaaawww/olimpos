@@ -1,5 +1,6 @@
 package com.olimpos.gym.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -59,7 +60,7 @@ fun GaleriaScreen(onVolver: () -> Unit) {
             (tag == null || tag in ej.tags)
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().background(CA.fondo)) {
         EncabezadoArena("Ejercicios", "Explorá todos los ejercicios disponibles.", onVolver)
 
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 4.dp)) {
@@ -67,8 +68,8 @@ fun GaleriaScreen(onVolver: () -> Unit) {
             if (tags.isNotEmpty()) {
                 Spacer(Modifier.height(10.dp))
                 FilaChips {
-                    ChipSeleccionable("Todos", tag == null) { tag = null }
-                    tags.forEach { t -> ChipSeleccionable(t, tag == t) { tag = if (tag == t) null else t } }
+                    ChipArena("Todos", tag == null) { tag = null }
+                    tags.forEach { t -> ChipArena(t, tag == t) { tag = if (tag == t) null else t } }
                 }
             }
         }
@@ -83,7 +84,7 @@ fun GaleriaScreen(onVolver: () -> Unit) {
                     TarjetaLisa(Modifier.fillMaxWidth()) {
                         Text(
                             if (query.isNotEmpty()) "Sin resultados para \"$busqueda\"." else "Ningún ejercicio con la etiqueta \"$tag\".",
-                            fontSize = 12.sp, color = Olimpos.Muted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                            fontSize = 12.sp, color = CA.suave, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -103,13 +104,13 @@ private fun FilaEjercicio(ej: EjercicioCatalogo, onClick: () -> Unit) {
             ImagenEjercicio(imagenDeEjercicio(ej.id, ej.nombre), 64.dp, ej.puntos.map { it.zona }.toSet())
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(ej.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(ej.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(6.dp))
                 // Músculos trabajados: el primero (el protagonista) resaltado.
-                val musculos = ej.puntos.map { it.nombre }.distinct()
+                val musculos = ej.puntos.distinctBy { it.nombre }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    musculos.take(2).forEachIndexed { i, m -> ChipSuave(m, fuerte = i == 0) }
-                    if (musculos.size > 2) ChipSuave("+${musculos.size - 2}", fuerte = false)
+                    musculos.take(2).forEach { p -> ChipSuave(p.nombre, pastelDeZona(p.zona)) }
+                    if (musculos.size > 2) ChipSuave("+${musculos.size - 2}", Pastel.GRIS)
                 }
             }
             Chevron()
