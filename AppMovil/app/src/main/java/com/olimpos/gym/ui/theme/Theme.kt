@@ -56,6 +56,7 @@ object Olimpos {
     var Green by mutableStateOf(Color(0xFF22C55E)); private set
     var Red by mutableStateOf(Color(0xFFEF4444)); private set
     var Dark by mutableStateOf(Color(0xFF0D0B00)); private set // tinta siempre oscura (texto sobre dorado, pills)
+    val TintaClara = Color(0xFFFAFAF0) // texto sobre superficies siempre oscuras (carnet, etiquetas del plano)
 
     // Dependientes del modo claro/oscuro
     var Cream by mutableStateOf(Color(0xFFFAFAF0)); private set        // texto principal

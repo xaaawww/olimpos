@@ -260,7 +260,7 @@ private fun CarnetMedalla() {
             }
             Spacer(Modifier.width(17.dp))
             Column {
-                Text(socioActualNombre(), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Olimpos.Cream)
+                Text(socioActualNombre(), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Olimpos.TintaClara)
                 // Sin número de socio ni vencimiento de ejemplo: todavía no
                 // existe una asignación real de plan/membresía por socio.
                 Text(

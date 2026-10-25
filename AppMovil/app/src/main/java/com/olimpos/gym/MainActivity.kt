@@ -2,6 +2,7 @@ package com.olimpos.gym
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
@@ -215,6 +216,11 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
     // para que Bodygraph, Dieta y Galería ya tengan los datos reales listos
     // en vez de mostrar el catálogo de ejemplo un instante y reemplazarlo.
     LaunchedEffect(Unit) { DatosRemotos.precargar() }
+
+    // Atrás del celular desde otra pestaña vuelve a Inicio; recién desde
+    // Inicio sale de la app. Las sub-pantallas (EncabezadoVolver), el Plano y
+    // Argos se componen después, así que su propio Atrás tiene prioridad.
+    BackHandler(enabled = tab != Tab.INICIO) { tab = Tab.INICIO }
 
     // Vigila en segundo plano si se desbloqueó un logro nuevo, toda la
     // sesión — no solo cuando la pantalla de Logros está abierta.

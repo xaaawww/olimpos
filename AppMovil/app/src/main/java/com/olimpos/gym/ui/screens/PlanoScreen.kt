@@ -1,5 +1,6 @@
 package com.olimpos.gym.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
@@ -76,6 +77,9 @@ fun PlanoScreen(onVolver: () -> Unit) {
     var piso by remember { mutableIntStateOf(0) }
     var activo by remember { mutableStateOf<PuntoPlano?>(null) }
     val datos = PISOS[piso]
+
+    // Atrás del celular: primero sale del zoom de un área, después cierra el plano
+    BackHandler { if (activo != null) activo = null else onVolver() }
 
     // Para el logro "Cartógrafo" — se marca una sola vez, la primera vez
     // que el socio abre el Plano (el `if` evita reescribir el mismo true
@@ -283,9 +287,9 @@ fun PlanoScreen(onVolver: () -> Unit) {
                     .padding(horizontal = 13.dp, vertical = 8.dp)
             ) {
                 Row {
-                    Text("PISO ", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.Cream)
+                    Text("PISO ", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.TintaClara)
                     Text("${piso + 1}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.GoldLight)
-                    Text(" · ${datos.tag}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.Cream)
+                    Text(" · ${datos.tag}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.TintaClara)
                 }
             }
 

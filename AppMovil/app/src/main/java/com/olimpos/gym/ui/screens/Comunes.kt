@@ -1,5 +1,6 @@
 package com.olimpos.gym.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -143,9 +144,12 @@ fun IconoCheck(tamano: androidx.compose.ui.unit.Dp = 16.dp, fondo: Color = Olimp
     }
 }
 
-/** Encabezado estándar de sub-pantalla: flecha de volver + título */
+/** Encabezado estándar de sub-pantalla: flecha de volver + título.
+ *  También engancha el botón "Atrás" del celular a la misma acción: sin esto,
+ *  Atrás cerraba la app entera en vez de volver a la pantalla anterior. */
 @Composable
 fun EncabezadoVolver(titulo: String, subtitulo: String? = null, onVolver: () -> Unit) {
+    BackHandler(onBack = onVolver)
     Row(
         Modifier
             .fillMaxWidth()
