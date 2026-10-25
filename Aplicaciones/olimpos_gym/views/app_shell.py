@@ -11,7 +11,7 @@ import notificaciones_repo
 from views.dashboard import build_dashboard
 from views.socios import build_socios
 from views.asistencia import build_asistencia
-from views.personal import build_camaras
+from views.camaras import build_camaras
 from views.gestion_personal import build_personal
 from views.pagos import build_pagos
 from views.progreso import build_progreso
@@ -171,6 +171,7 @@ class AppShell:
             texto.color = DARK if is_active else NAV_TEXTO
             icono.color = DARK if is_active else NAV_ICONO
 
+        self.salir_de_seccion()
         self.content_area.controls.clear()
         content = self._build_section(section_id)
         self.content_area.controls.append(
@@ -178,6 +179,17 @@ class AppShell:
                          alignment=ft.Alignment.TOP_LEFT)
         )
         self.page.update()
+
+    def salir_de_seccion(self):
+        """Avisa a la sección que se deja (ej. Cámaras corta su actualización
+        en segundo plano). La sección lo pide con data={"al_salir": funcion}."""
+        for envoltorio in self.content_area.controls:
+            datos = getattr(getattr(envoltorio, "content", None), "data", None)
+            if isinstance(datos, dict) and callable(datos.get("al_salir")):
+                try:
+                    datos["al_salir"]()
+                except Exception:
+                    pass
 
     def _build_section(self, section_id: str) -> ft.Control:
         builders = {
@@ -195,7 +207,7 @@ class AppShell:
             "progreso":       lambda: build_progreso(self.page),
             "pagos":          lambda: build_pagos(self.page, self.role, empleados_credenciales.nombre_para_firmar()),
             "notificaciones": lambda: build_notificaciones(self.page, self.role, self._navigate, self.mostrar_contador),
-            "camaras":        build_camaras,
+            "camaras":        lambda: build_camaras(self.page, self.role),
             "configuracion":  lambda: build_configuracion(self.page, self.role, self),
             "argos":          lambda: build_argos(self.page, self.role),
         }
@@ -226,11 +238,13 @@ class AppShell:
     # ── sesión ──
     def _cerrar_sesion(self):
         if not configuracion_repo.pref("confirmar_salida"):
+            self.salir_de_seccion()
             self.on_logout()
             return
 
         def salir(e):
             self.page.pop_dialog()
+            self.salir_de_seccion()
             self.on_logout()
 
         self.page.show_dialog(ft.AlertDialog(
@@ -245,6 +259,7 @@ class AppShell:
     def recargar(self, seccion: str | None = None):
         """Rearma la pantalla con la apariencia nueva (colores, fondo, menú)."""
         if self.on_recargar:
+            self.salir_de_seccion()
             self.on_recargar(seccion or self.current_section)
 
     def build(self) -> ft.Row:
