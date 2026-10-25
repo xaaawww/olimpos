@@ -8,28 +8,33 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.Logro
@@ -37,81 +42,135 @@ import com.olimpos.gym.data.calcularLogros
 import com.olimpos.gym.data.construirContextoLogros
 import com.olimpos.gym.ui.theme.Olimpos
 
-/** Logros: grilla de 5 columnas solo con el ícono — tocar uno abre el
- *  detalle (título, descripción y barra de progreso) en una tarjeta
- *  superpuesta. Los secretos no aparecen en la grilla ni en el total hasta
- *  que se desbloquean — son un bonus raro, no parte del 100% normal. */
+/** Logros y medallas. "Logros" = los que faltan, ordenados por lo cerca que
+ *  estás, con su barra; "Medallas" = la vitrina de los ya ganados. Tocar
+ *  cualquiera abre su detalle. Los secretos no aparecen ni cuentan para el
+ *  total hasta que se desbloquean. */
 @Composable
 fun LogrosScreen(onVolver: () -> Unit) {
-    // remember con estas claves: los logros se recalculan si cambia
-    // alguna de las fuentes reales detrás (una marca nueva, una serie
-    // registrada, un ingreso marcado, etc.), pero no en cada recomposición
-    // suelta (por ejemplo, al abrir o cerrar el detalle de una medalla).
+    // Se recalculan si cambia alguna fuente real (marca, serie, ingreso…),
+    // no en cada recomposición suelta.
     val contexto = LocalContext.current
     val ctxLogros = construirContextoLogros(contexto)
     val logros = remember(ctxLogros) { calcularLogros(ctxLogros) }
     val publicos = remember(logros) { logros.filter { !it.secreto } }
-    val desbloqueados = remember(logros) { publicos.count { it.desbloqueado } }
-    val visibles = remember(logros) { logros.filter { !it.secreto || it.desbloqueado } }
+    val ganados = remember(logros) { logros.filter { it.desbloqueado } }
+    val pendientes = remember(logros) { publicos.filter { !it.desbloqueado }.sortedByDescending { it.progreso } }
+    var pestana by remember { mutableIntStateOf(0) }
     var seleccionado by remember { mutableStateOf<Logro?>(null) }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize()) {
-            EncabezadoVolver("Logros", "$desbloqueados de ${publicos.size} medallas desbloqueadas", onVolver)
-
-            Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
-                BarraProgreso(desbloqueados / publicos.size.toFloat())
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 26.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item(span = { GridItemSpan(3) }) {
+                Column {
+                    EncabezadoArena(
+                        "Logros y medallas", "Completá desafíos, ganá medallas y demostrá tu progreso.", onVolver,
+                        derecha = { ContadorLogros(publicos.count { it.desbloqueado }, publicos.size) }
+                    )
+                    PestanasPildora(
+                        listOf("Logros", "Medallas"), pestana, { pestana = it },
+                        Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 4.dp)
+                    )
+                }
             }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(5),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(visibles, key = { it.nombre }) { logro ->
-                    IconoLogro(logro) { seleccionado = logro }
+            if (pestana == 0) {
+                if (pendientes.isEmpty()) {
+                    item(span = { GridItemSpan(3) }) { Vacio("¡Completaste todos los logros! Mirá tus medallas.") }
+                }
+                items(pendientes, key = { it.nombre }, span = { GridItemSpan(3) }) { logro ->
+                    FilaLogro(logro, Modifier.padding(horizontal = 20.dp)) { seleccionado = logro }
+                }
+            } else {
+                if (ganados.isEmpty()) {
+                    item(span = { GridItemSpan(3) }) { Vacio("Todavía no ganaste medallas. Empezá por el logro que tengas más cerca.") }
+                }
+                items(ganados, key = { it.nombre }) { logro ->
+                    val i = ganados.indexOf(logro) % 3
+                    Medalla(
+                        logro,
+                        Modifier.padding(start = if (i == 0) 20.dp else 0.dp, end = if (i == 2) 20.dp else 0.dp)
+                    ) { seleccionado = logro }
                 }
             }
         }
 
-        androidx.compose.animation.AnimatedVisibility(
-            visible = seleccionado != null,
-            enter = fadeIn(), exit = fadeOut()
-        ) {
-            seleccionado?.let { logro ->
-                DetalleLogro(logro, onCerrar = { seleccionado = null })
-            }
+        androidx.compose.animation.AnimatedVisibility(visible = seleccionado != null, enter = fadeIn(), exit = fadeOut()) {
+            seleccionado?.let { logro -> DetalleLogro(logro, onCerrar = { seleccionado = null }) }
         }
     }
 }
 
 @Composable
-private fun IconoLogro(logro: Logro, onClick: () -> Unit) {
-    Box(
+private fun ContadorLogros(ganados: Int, total: Int) {
+    Row(
         Modifier
-            .aspectRatio(1f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (logro.desbloqueado) Olimpos.GoldSoft else Olimpos.Card)
-            .border(
-                1.dp,
-                if (logro.desbloqueado) Olimpos.Gold.copy(alpha = 0.4f) else Olimpos.Line,
-                RoundedCornerShape(16.dp)
-            )
-            .clickable(onClick = onClick)
-            .alpha(if (logro.desbloqueado) 1f else 0.55f),
-        contentAlignment = Alignment.Center
+            .clip(RoundedCornerShape(12.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, Olimpos.Line, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(logro.emoji, fontSize = 24.sp)
-        if (logro.desbloqueado) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopEnd) {
-                Text(
-                    "✓", color = Olimpos.Green, fontWeight = FontWeight.Black, fontSize = 12.sp,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
+        Text("🏆", fontSize = 18.sp)
+        Spacer(Modifier.width(6.dp))
+        Column {
+            Text("$ganados/$total", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text("logros", fontSize = 9.sp, color = Olimpos.Muted)
         }
+    }
+}
+
+@Composable
+private fun FilaLogro(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
+    TarjetaLisa(modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconoRedondo(logro.emoji, tamano = 48.dp, apagado = logro.progreso <= 0f)
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text(logro.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                Text(logro.descripcion, fontSize = 11.5.sp, color = Olimpos.Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BarraProgreso(logro.progreso, Modifier.weight(1f), alto = 6)
+                    Spacer(Modifier.width(10.dp))
+                    Text("${(logro.progreso * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Chevron()
+        }
+    }
+}
+
+@Composable
+private fun Medalla(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, Olimpos.Gold.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        IconoRedondo(logro.emoji, tamano = 52.dp)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            logro.nombre, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream,
+            textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 13.sp
+        )
+    }
+}
+
+@Composable
+private fun Vacio(texto: String) {
+    TarjetaLisa(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        Text(texto, fontSize = 12.sp, color = Olimpos.Muted, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -134,30 +193,20 @@ private fun DetalleLogro(logro: Logro, onCerrar: () -> Unit) {
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                Modifier
-                    .padding(bottom = 14.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(if (logro.desbloqueado) Olimpos.Gold.copy(alpha = 0.25f) else Olimpos.Superficie2)
-                    .padding(18.dp)
-            ) { Text(logro.emoji, fontSize = 36.sp) }
-
+            IconoRedondo(logro.emoji, tamano = 72.dp, apagado = !logro.desbloqueado)
+            Spacer(Modifier.height(14.dp))
             Text(logro.nombre, fontSize = 17.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
             Spacer(Modifier.height(6.dp))
             Text(
-                logro.descripcion, fontSize = 12.5.sp, color = Olimpos.Muted,
+                logro.descripcion, fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-
             if (logro.desbloqueado) {
-                ChipOro("✓ Desbloqueado")
+                ChipSuave("✓ Medalla ganada")
             } else {
                 BarraProgreso(logro.progreso, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    "${(logro.progreso * 100).toInt()}% completado",
-                    fontSize = 11.sp, color = Olimpos.Muted
-                )
+                Text("${(logro.progreso * 100).toInt()}% completado", fontSize = 11.sp, color = Olimpos.Muted)
             }
         }
     }

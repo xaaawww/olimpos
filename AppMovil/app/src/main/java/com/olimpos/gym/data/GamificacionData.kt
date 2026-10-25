@@ -320,6 +320,51 @@ fun puntajeDeMarca(marca: MarcaPersonal, pesoCorporalKg: Float, sexo: SexoBiolog
     return progreso * TOTAL_NIVELES * PUNTOS_POR_NIVEL
 }
 
+/** Puntaje como fracción 0f..1f del techo del sistema (Dios) — el "%" del
+ *  Mapa corporal. Misma escala que [nivelDesdePuntaje]: 50% es estar a mitad
+ *  de camino entre Mortal 1 y Dios. */
+fun porcentajeDePuntaje(puntaje: Float): Float =
+    (puntaje / (TOTAL_NIVELES * PUNTOS_POR_NIVEL)).coerceIn(0f, 1f)
+
+/** Carga total (kg) con la que se entra a [rango] en [ejercicio] — la inversa
+ *  exacta de [puntajeDeMarca], para la tabla de referencia de la Calculadora.
+ *  En dominadas/flexiones incluye el peso corporal. `null` si el ejercicio no
+ *  tiene ancla de fuerza o no hay peso corporal. */
+fun cargaParaEntrarEnRango(ejercicio: String, rango: RangoMuscular, pesoCorporalKg: Float, sexo: SexoBiologico?): Float? {
+    if (pesoCorporalKg <= 0f) return null
+    val ancla = ANCLAS_FUERZA[ejercicio] ?: return null
+    val (piso, techo) = when (sexo) {
+        SexoBiologico.MASCULINO -> ancla.beginnerM to ancla.diosM
+        SexoBiologico.FEMENINO -> ancla.beginnerF to ancla.diosF
+        else -> (ancla.beginnerM + ancla.beginnerF) / 2f to (ancla.diosM + ancla.diosF) / 2f
+    }
+    val progreso = ordenGlobal(rango, 1) / TOTAL_NIVELES.toFloat()
+    return piso * Math.pow((techo / piso).toDouble(), progreso.toDouble()).toFloat() * pesoCorporalKg
+}
+
+/** Familia de cada ejercicio de la Calculadora, para los filtros de Mis marcas. */
+fun categoriaDeEjercicio(ejercicio: String): String = when (ejercicio) {
+    "Sentadilla", "Press banca", "Peso muerto" -> "Fuerza"
+    "Dominadas", "Flexiones" -> "Corporal"
+    else -> "Aislados"
+}
+
+val CATEGORIAS_EJERCICIO = listOf("Fuerza", "Corporal", "Aislados")
+
+/** 1RM con la fórmula de Brzycki — se muestra junto a Epley ([calcular1RM])
+ *  como rango: con muchas repeticiones las dos se separan, y esa diferencia
+ *  es justamente cuánto hay que desconfiar de la estimación. */
+fun calcular1RMBrzycki(pesoKg: Float, reps: Int): Float =
+    if (reps >= 37) pesoKg else pesoKg * 36f / (37f - reps)
+
+/** Inversas de Epley: con qué peso hacer [reps] repeticiones, y cuántas
+ *  repeticiones salen con [pesoKg], sabiendo el 1RM. */
+fun pesoParaRepeticiones(oneRM: Float, reps: Int): Float = oneRM / (1f + reps / 30f)
+fun repeticionesConPeso(oneRM: Float, pesoKg: Float): Int = when {
+    pesoKg <= 0f || pesoKg > oneRM -> 0
+    else -> (30f * (oneRM / pesoKg - 1f)).toInt().coerceAtLeast(1)
+}
+
 /** Cuántos ejercicios distintos hay que tener registrados (con marca
  *  vigente) para entrar en la Escalera del Olimpo — sin este piso, alguien
  *  con una sola marca cargada (buena o mala) tendría un rango "general"

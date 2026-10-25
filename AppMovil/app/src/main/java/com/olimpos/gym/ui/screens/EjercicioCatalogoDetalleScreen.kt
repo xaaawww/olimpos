@@ -51,9 +51,16 @@ fun EjercicioCatalogoDetalleScreen(ejercicio: EjercicioCatalogo, onVolver: () ->
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        EncabezadoVolver(ejercicio.nombre, "Músculos trabajados y técnica", onVolver)
+        EncabezadoArena(ejercicio.nombre, "Músculos trabajados y técnica.", onVolver)
 
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
+            // El mismo dibujo que tiene en el sistema de empleados
+            com.olimpos.gym.data.imagenDeEjercicio(ejercicio.id, ejercicio.nombre)?.let { dibujo ->
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    ImagenEjercicio(dibujo, 190.dp, radio = 20.dp)
+                }
+            }
             // ── Frame 1: cuerpo con las zonas trabajadas ──
             SeccionLabel("Músculos trabajados")
             TarjetaOro(Modifier.fillMaxWidth()) {

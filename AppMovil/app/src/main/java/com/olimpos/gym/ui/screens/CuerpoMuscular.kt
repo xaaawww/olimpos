@@ -117,10 +117,11 @@ fun CuerpoMuscularRangos(
 fun CuerpoMuscularRangosMini(
     rangoPorZona: Map<ZonaMuscular, RangoMuscular?>,
     modifier: Modifier = Modifier,
-    tamano: Dp = 60.dp
+    tamano: Dp = 60.dp,
+    vista: VistaCuerpo = VistaCuerpo.FRENTE
 ) {
     Box(modifier) {
-        SiluetaReal(VistaCuerpo.FRENTE, tamano) { zona ->
+        SiluetaReal(vista, tamano) { zona ->
             rangoPorZona[zona]?.let { colorDeRango(it) } ?: Olimpos.GrayLight
         }
     }

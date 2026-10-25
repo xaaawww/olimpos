@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,281 +33,263 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.olimpos.gym.data.CATEGORIAS_EJERCICIO
 import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.EJERCICIOS_FUERZA
-import com.olimpos.gym.data.EjercicioFuerza
 import com.olimpos.gym.data.MarcaPersonal
-import com.olimpos.gym.data.cargaEfectivaDeMarca
 import com.olimpos.gym.data.calcular1RM
+import com.olimpos.gym.data.cargaEfectivaDeMarca
 import com.olimpos.gym.data.cargarMarcasDesdeFirebase
+import com.olimpos.gym.data.categoriaDeEjercicio
 import com.olimpos.gym.data.eliminarMarcaEnFirebase
 import com.olimpos.gym.data.esEjercicioPesoCorporal
 import com.olimpos.gym.data.fechaLegible
 import com.olimpos.gym.data.guardarMarcaEnFirebase
+import com.olimpos.gym.data.imagenDeEjercicio
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
 
+/** Mis marcas: la marca vigente (la más reciente) de cada ejercicio de la
+ *  Calculadora, filtrable por familia. Tocar uno abre su historial completo;
+ *  "+ Registrar" carga una marca nueva (que reemplaza la anterior en el
+ *  ranking y queda pendiente de verificación por un entrenador). */
 @Composable
 fun MarcasScreen(onVolver: () -> Unit) {
-    var ejercicio by remember { mutableStateOf(EJERCICIOS_FUERZA[0].nombre) }
-    var peso by remember { mutableStateOf("") }
-    var reps by remember { mutableStateOf("") }
-    var aviso by remember { mutableStateOf<String?>(null) }
-    // Sin datos de ejemplo de respaldo a propósito: un socio nuevo debe
-    // empezar en cero, no ver marcas que nunca cargó.
+    // Sin datos de ejemplo a propósito: un socio nuevo empieza en cero.
     var marcas by remember { mutableStateOf<List<MarcaPersonal>>(emptyList()) }
+    var cargando by remember { mutableStateOf(true) }
     var ejercicioViendo by remember { mutableStateOf<String?>(null) }
+    var registrando by remember { mutableStateOf<String?>(null) }
     var marcaAEliminar by remember { mutableStateOf<MarcaPersonal?>(null) }
+    var aviso by remember { mutableStateOf<String?>(null) }
+    var filtro by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val pesoCorporalKg = DatosRemotos.datosFisicosPropios?.pesoKg ?: 80f
 
     LaunchedEffect(Unit) {
         cargarMarcasDesdeFirebase()?.let { marcas = it }
+        cargando = false
     }
 
     fun eliminarMarca(marca: MarcaPersonal) {
         marcas = marcas.filter { it.id != marca.id }
         scope.launch {
             eliminarMarcaEnFirebase(marca.id)
-            // Sin esto, el Bodygraph y la Clasificación seguirían mostrando
-            // el rango calculado con la marca ya borrada hasta reiniciar la app.
+            // Sin esto el Bodygraph y la Clasificación seguirían con la marca borrada.
             DatosRemotos.recargarMarcas()
             DatosRemotos.recargarRangosSocios()
         }
         marcaAEliminar = null
     }
 
-    val ejercicioActivo = ejercicioViendo
+    val enRegistro = registrando
+    val enHistorial = ejercicioViendo
     Box(Modifier.fillMaxSize()) {
-        if (ejercicioActivo != null) {
-            MarcasDeEjercicioScreen(
-                ejercicio = ejercicioActivo,
-                marcas = marcas.filter { it.ejercicio == ejercicioActivo }.sortedByDescending { it.timestamp },
+        when {
+            enRegistro != null -> RegistrarMarcaScreen(
+                ejercicioInicial = enRegistro,
+                onVolver = { registrando = null },
+                onRegistrar = { ejercicio, p, r ->
+                    val ahora = System.currentTimeMillis()
+                    val fechaTexto = fechaLegible(ahora)
+                    marcas = marcas + MarcaPersonal(ejercicio = ejercicio, pesoKg = p, reps = r, fecha = fechaTexto, timestamp = ahora, verificado = false)
+                    scope.launch {
+                        guardarMarcaEnFirebase(ejercicio, p, r, fechaTexto, ahora)
+                        // Bodygraph y Clasificación leen de este caché.
+                        DatosRemotos.recargarMarcas()
+                        DatosRemotos.recargarRangosSocios()
+                        // Reemplaza la marca optimista (sin id real) por la lista real.
+                        cargarMarcasDesdeFirebase()?.let { marcas = it }
+                    }
+                    aviso = "Marca de $ejercicio registrada: reemplaza la anterior en el ranking y quedó enviada al entrenador para verificar."
+                    registrando = null
+                }
+            )
+            enHistorial != null -> MarcasDeEjercicioScreen(
+                ejercicio = enHistorial,
+                marcas = marcas.filter { it.ejercicio == enHistorial }.sortedByDescending { it.timestamp },
                 pesoCorporalKg = pesoCorporalKg,
                 onVolver = { ejercicioViendo = null },
-                onEliminar = { marcaAEliminar = it }
+                onEliminar = { marcaAEliminar = it },
+                onRegistrar = { registrando = enHistorial }
             )
-        } else {
-            // Column + verticalScroll y NO LazyColumn: el formulario tiene campos de
-            // texto, y en una lista lazy se destruyen/recrean al salir de pantalla
-            // (un TextField es de lo más caro de componer). Con pocas filas de
-            // historial conviene componer todo una vez.
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                EncabezadoVolver("Mis marcas", "Registrá tu PR y seguí tu progreso", onVolver)
-
-                Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
-                    SeccionLabel("Registrar levantamiento")
-                    TarjetaOro(Modifier.fillMaxWidth()) {
-                        Text("Ejercicio", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
-                        Spacer(Modifier.height(8.dp))
-                        FilaChips {
-                            EJERCICIOS_FUERZA.forEach { ej ->
-                                ChipSeleccionable("${ej.emoji} ${ej.nombre}", ejercicio == ej.nombre) { ejercicio = ej.nombre }
-                            }
-                        }
-                        val esPesoCorporal = esEjercicioPesoCorporal(ejercicio)
-                        Spacer(Modifier.height(14.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            CampoOro(
-                                peso, { peso = it },
-                                if (esPesoCorporal) "Peso agregado (kg, opcional)" else "Peso (kg)",
-                                Modifier.weight(1f), teclado = KeyboardType.Number
-                            )
-                            CampoOro(reps, { reps = it }, "Repeticiones", Modifier.weight(1f), teclado = KeyboardType.Number)
-                        }
-                        if (esPesoCorporal) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                "En este ejercicio cuenta tu propio peso corporal — dejá el peso vacío si no sumaste lastre extra.",
-                                fontSize = 11.sp, color = Olimpos.Muted
-                            )
-                        }
-                        // En peso corporal, un campo vacío es "sin lastre extra" (0kg
-                        // agregados), no un dato faltante — por eso el peso pasa a ser
-                        // opcional únicamente para estos ejercicios.
-                        val pesoF = if (esPesoCorporal) (peso.toFloatOrNull() ?: 0f) else peso.toFloatOrNull()
-                        val repsI = reps.toIntOrNull()
-                        val anomalia = pesoF != null && pesoF > 150f
-                        if (anomalia) {
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                "⚠️ Peso inusualmente alto respecto a tus marcas anteriores. Se marcará para revisión automática.",
-                                fontSize = 11.5.sp, color = Olimpos.Red, fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(Modifier.height(14.dp))
-                        BotonPrincipal("Registrar marca", habilitado = pesoF != null && repsI != null) {
-                            val p = pesoF ?: 0f
-                            val r = repsI ?: 0
-                            val ahora = System.currentTimeMillis()
-                            val fechaTexto = fechaLegible(ahora)
-                            marcas = marcas + MarcaPersonal(ejercicio = ejercicio, pesoKg = p, reps = r, fecha = fechaTexto, timestamp = ahora, verificado = false)
-                            scope.launch {
-                                guardarMarcaEnFirebase(ejercicio, p, r, fechaTexto, ahora)
-                                // Bodygraph y Clasificación leen de este caché — sin
-                                // esto se quedarían con la marca anterior hasta
-                                // reiniciar la app.
-                                DatosRemotos.recargarMarcas()
-                                DatosRemotos.recargarRangosSocios()
-                                // Reemplaza la marca optimista de arriba (sin id
-                                // real todavía) por la lista real de Firestore,
-                                // para poder borrarla ni bien se registra si hace falta.
-                                cargarMarcasDesdeFirebase()?.let { marcas = it }
-                            }
-                            aviso = "Marca registrada — reemplaza tu marca anterior de este ejercicio en el ranking. Enviada al entrenador para verificar ✓"
-                            peso = ""; reps = ""
-                        }
-                    }
-
+            else -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                EncabezadoArena(
+                    "Mis marcas", "Tus mejores resultados en cada ejercicio.", onVolver,
+                    derecha = { BotonRegistrar { registrando = EJERCICIOS_FUERZA[0].nombre } }
+                )
+                Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp)) {
+                    PestanasPildora(listOf("Todos") + CATEGORIAS_EJERCICIO, filtro, { filtro = it })
                     aviso?.let {
                         Spacer(Modifier.height(12.dp))
-                        Row(
-                            Modifier
+                        Text(
+                            it, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = acentoTexto,
+                            modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Olimpos.GoldSoft)
-                                .border(1.dp, Olimpos.Gold.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                                .padding(13.dp)
-                        ) {
-                            Text(it, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
+                                .padding(12.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    val visibles = EJERCICIOS_FUERZA.filter { filtro == 0 || categoriaDeEjercicio(it.nombre) == CATEGORIAS_EJERCICIO[filtro - 1] }
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        visibles.forEach { ej ->
+                            val vigente = marcas.filter { it.ejercicio == ej.nombre }.maxByOrNull { it.timestamp }
+                            FilaMarca(ej.nombre, vigente, cargando) {
+                                if (vigente == null) registrando = ej.nombre else ejercicioViendo = ej.nombre
+                            }
                         }
                     }
-
-                    SeccionLabel("Tus marcas por ejercicio")
-                    Text(
-                        "Tocá un ejercicio para ver el historial completo con fechas.",
-                        fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                    GrillaEjercicios(marcas, onSeleccionar = { ejercicioViendo = it })
                 }
             }
         }
 
         AnimatedVisibility(visible = marcaAEliminar != null, enter = fadeIn(), exit = fadeOut()) {
             marcaAEliminar?.let { m ->
-                ConfirmarEliminarMarca(
-                    marca = m,
-                    onCancelar = { marcaAEliminar = null },
-                    onConfirmar = { eliminarMarca(m) }
-                )
+                ConfirmarEliminarMarca(marca = m, onCancelar = { marcaAEliminar = null }, onConfirmar = { eliminarMarca(m) })
             }
         }
     }
 }
 
-/** Grilla de 2 columnas con los 8 ejercicios de la Calculadora — cada uno
- *  con la cantidad de marcas cargadas. Reemplaza el historial plano de
- *  antes: con muchas marcas encima era difícil encontrar las de un
- *  ejercicio puntual. */
 @Composable
-private fun GrillaEjercicios(marcas: List<MarcaPersonal>, onSeleccionar: (String) -> Unit) {
-    val filas = EJERCICIOS_FUERZA.chunked(2)
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        filas.forEach { fila ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                fila.forEach { ej ->
-                    TarjetaEjercicioMarcas(
-                        ejercicio = ej,
-                        cantidad = marcas.count { it.ejercicio == ej.nombre },
-                        modifier = Modifier.weight(1f),
-                        onClick = { onSeleccionar(ej.nombre) }
+private fun BotonRegistrar(onClick: () -> Unit) {
+    Text(
+        "+ Registrar", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Dark,
+        modifier = Modifier
+            .padding(top = 4.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Olimpos.Gold)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp)
+    )
+}
+
+private fun textoMarca(m: MarcaPersonal): String =
+    if (esEjercicioPesoCorporal(m.ejercicio)) {
+        if (m.pesoKg > 0f) "Corporal +${m.pesoKg.toInt()} kg × ${m.reps} rep" else "${m.reps} rep"
+    } else "${m.pesoKg.toInt()} kg × ${m.reps} rep"
+
+private fun fechaDe(m: MarcaPersonal): String =
+    if (m.timestamp > 0) java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("es", "AR")).format(java.util.Date(m.timestamp)) else m.fecha
+
+@Composable
+private fun FilaMarca(ejercicio: String, vigente: MarcaPersonal?, cargando: Boolean, onClick: () -> Unit) {
+    TarjetaLisa(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick), padding = 8.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ImagenEjercicio(imagenDeEjercicio(nombre = ejercicio), 64.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(ejercicio, fontSize = 12.sp, color = Olimpos.Muted)
+                if (vigente != null) {
+                    Text(textoMarca(vigente), fontSize = 16.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                    Text(
+                        fechaDe(vigente) + if (vigente.verificado) " · Verificada ✓" else " · Pendiente",
+                        fontSize = 10.5.sp, color = if (vigente.verificado) Olimpos.Green else Olimpos.Muted
+                    )
+                } else {
+                    Text(if (cargando) "Cargando…" else "Sin marcas todavía", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted)
+                    if (!cargando) Text("Tocá para registrar la primera", fontSize = 10.5.sp, color = Olimpos.Muted)
+                }
+            }
+            ChipSuave(categoriaDeEjercicio(ejercicio), fuerte = vigente != null)
+            Spacer(Modifier.width(4.dp))
+            Chevron()
+            Spacer(Modifier.width(4.dp))
+        }
+    }
+}
+
+/** Formulario para cargar una marca nueva. */
+@Composable
+private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit, onRegistrar: (String, Float, Int) -> Unit) {
+    var ejercicio by remember { mutableStateOf(ejercicioInicial) }
+    var peso by remember { mutableStateOf("") }
+    var reps by remember { mutableStateOf("") }
+    val esPesoCorporal = esEjercicioPesoCorporal(ejercicio)
+    // En peso corporal un campo vacío es "sin lastre" (0 kg), no un dato faltante.
+    val pesoF = if (esPesoCorporal) (peso.toFloatOrNull() ?: 0f) else peso.toFloatOrNull()
+    val repsI = reps.toIntOrNull()?.takeIf { it > 0 }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        EncabezadoArena("Registrar marca", "Cargá tu levantamiento: lo verifica un entrenador.", onVolver)
+        Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp)) {
+            Text("Ejercicio", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, modifier = Modifier.padding(bottom = 9.dp))
+            FilaChips {
+                EJERCICIOS_FUERZA.forEach { ej -> ChipSeleccionable(ej.nombre, ejercicio == ej.nombre) { ejercicio = ej.nombre } }
+            }
+            Spacer(Modifier.height(14.dp))
+            TarjetaLisa(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ImagenEjercicio(imagenDeEjercicio(nombre = ejercicio), 56.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(ejercicio, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                }
+                Spacer(Modifier.height(14.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CampoOro(
+                        peso, { peso = it }, if (esPesoCorporal) "Lastre (kg, opcional)" else "Peso (kg)",
+                        Modifier.weight(1f), teclado = KeyboardType.Number
+                    )
+                    CampoOro(reps, { reps = it }, "Repeticiones", Modifier.weight(1f), teclado = KeyboardType.Number)
+                }
+                if (esPesoCorporal) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Cuenta tu peso corporal: dejá el peso vacío si no sumaste lastre.", fontSize = 11.sp, color = Olimpos.Muted)
+                }
+                if (pesoF != null && pesoF > 150f) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "⚠️ Peso inusualmente alto: se marcará para revisión.",
+                        fontSize = 11.5.sp, color = Olimpos.Red, fontWeight = FontWeight.Bold
                     )
                 }
-                if (fila.size == 1) Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(14.dp))
+                BotonPrincipal("Registrar marca", habilitado = pesoF != null && repsI != null) {
+                    onRegistrar(ejercicio, pesoF ?: 0f, repsI ?: 0)
+                }
             }
         }
     }
 }
 
-@Composable
-private fun TarjetaEjercicioMarcas(ejercicio: EjercicioFuerza, cantidad: Int, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Column(
-        modifier
-            .aspectRatio(1.15f)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Olimpos.Card)
-            .border(1.dp, Olimpos.Line, RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(ejercicio.emoji, fontSize = 30.sp)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            ejercicio.nombre, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            if (cantidad == 0) "Sin marcas todavía" else "$cantidad marca${if (cantidad == 1) "" else "s"}",
-            fontSize = 11.sp, color = Olimpos.Muted
-        )
-    }
-}
-
-/** Historial completo de un ejercicio puntual, con fecha de cada marca y
- *  un botón para borrarla. */
+/** Historial completo de un ejercicio, con fecha y estado de cada marca. */
 @Composable
 private fun MarcasDeEjercicioScreen(
     ejercicio: String,
     marcas: List<MarcaPersonal>,
     pesoCorporalKg: Float,
     onVolver: () -> Unit,
-    onEliminar: (MarcaPersonal) -> Unit
+    onEliminar: (MarcaPersonal) -> Unit,
+    onRegistrar: () -> Unit
 ) {
-    val esPesoCorporal = esEjercicioPesoCorporal(ejercicio)
-    Column(Modifier.fillMaxSize()) {
-        EncabezadoVolver(ejercicio, "${marcas.size} marca${if (marcas.size == 1) "" else "s"} registrada${if (marcas.size == 1) "" else "s"}", onVolver)
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 26.dp)
-        ) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        EncabezadoArena(
+            ejercicio, "${marcas.size} marca${if (marcas.size == 1) "" else "s"} registrada${if (marcas.size == 1) "" else "s"}", onVolver,
+            derecha = { BotonRegistrar(onRegistrar) }
+        )
+        Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
             if (marcas.isEmpty()) {
-                Text(
-                    "Todavía no cargaste ninguna marca de este ejercicio.",
-                    fontSize = 12.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 20.dp)
-                )
-            } else {
-                marcas.forEach { m ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 9.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Olimpos.Card)
-                            .border(1.dp, Olimpos.Line, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 15.dp, vertical = 13.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                Text("Todavía no cargaste ninguna marca de este ejercicio.", fontSize = 12.5.sp, color = Olimpos.Muted)
+            }
+            marcas.forEachIndexed { i, m ->
+                TarjetaLisa(Modifier.fillMaxWidth()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
+                            Text(textoMarca(m), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
                             Text(
-                                if (esPesoCorporal) {
-                                    if (m.pesoKg > 0f) "Peso corporal +${m.pesoKg.toInt()}kg × ${m.reps}" else "Peso corporal × ${m.reps}"
-                                } else "${m.pesoKg.toInt()}kg × ${m.reps}",
-                                fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream
-                            )
-                            Text(
-                                "${m.fecha} · 1RM est. ${"%.0f".format(calcular1RM(cargaEfectivaDeMarca(m, pesoCorporalKg), m.reps))}kg",
-                                fontSize = 11.5.sp, color = Olimpos.Muted
+                                "${fechaDe(m)} · 1RM est. ${"%.0f".format(calcular1RM(cargaEfectivaDeMarca(m, pesoCorporalKg), m.reps))} kg" +
+                                    if (i == 0) " · vigente" else "",
+                                fontSize = 11.sp, color = Olimpos.Muted
                             )
                         }
-                        ChipOro(if (m.verificado) "Verificada ✓" else "Pendiente")
-                        Spacer(Modifier.width(8.dp))
+                        ChipSuave(if (m.verificado) "Verificada ✓" else "Pendiente", fuerte = m.verificado)
                         Box(
-                            Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .clickable { onEliminar(m) }
-                                .padding(8.dp)
+                            Modifier.clip(RoundedCornerShape(10.dp)).clickable { onEliminar(m) }.padding(8.dp)
                         ) { Text("🗑️", fontSize = 16.sp) }
                     }
                 }
@@ -337,12 +319,9 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
         ) {
             Text("¿Eliminar esta marca?", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
             Spacer(Modifier.height(8.dp))
-            val pesoTexto = if (esEjercicioPesoCorporal(marca.ejercicio)) {
-                if (marca.pesoKg > 0f) "peso corporal +${marca.pesoKg.toInt()}kg" else "peso corporal"
-            } else "${marca.pesoKg.toInt()}kg"
             Text(
-                "${marca.ejercicio} · $pesoTexto × ${marca.reps} (${marca.fecha}). Si era tu única marca de este ejercicio, tu rango general puede bajar.",
-                fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                "${marca.ejercicio} · ${textoMarca(marca)} (${fechaDe(marca)}). Si era tu única marca de este ejercicio, tu rango general puede bajar.",
+                fontSize = 12.5.sp, color = Olimpos.Muted, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -355,7 +334,7 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
                         .clickable { onConfirmar() }
                         .padding(vertical = 13.dp),
                     contentAlignment = Alignment.Center
-                ) { Text("Eliminar", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream) }
+                ) { Text("Eliminar", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.TintaClara) }
             }
         }
     }

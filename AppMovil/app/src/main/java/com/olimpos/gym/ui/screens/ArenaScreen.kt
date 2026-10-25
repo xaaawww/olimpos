@@ -100,12 +100,12 @@ private fun ArenaGrid(
         Spacer(Modifier.height(18.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TarjetaArena("🩻", "Bodygraph", "Mapa muscular de hoy", Modifier.weight(1f), onBodygraph)
-            TarjetaArena("🧮", "Calculadora", "Estimá tu 1RM", Modifier.weight(1f), onCalculadora)
+            TarjetaArena("💪", "Mapa corporal", "Tu progreso por músculo", Modifier.weight(1f), onBodygraph)
+            TarjetaArena("🧮", "Calculadora", "1RM, peso ideal y reps", Modifier.weight(1f), onCalculadora)
         }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TarjetaArena("🖼️", "Galería", "Tu rango por ejercicio", Modifier.weight(1f), onGaleria)
+            TarjetaArena("🏋️", "Ejercicios", "Técnica y músculos", Modifier.weight(1f), onGaleria)
             TarjetaArena("🎖️", "Logros y medallas", "Tu vitrina de insignias", Modifier.weight(1f), onLogros)
         }
         Spacer(Modifier.height(12.dp))

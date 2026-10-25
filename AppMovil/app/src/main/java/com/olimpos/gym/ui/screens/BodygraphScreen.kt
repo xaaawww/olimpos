@@ -1,5 +1,6 @@
 package com.olimpos.gym.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,220 +43,212 @@ import com.olimpos.gym.data.ZonaMuscular
 import com.olimpos.gym.data.cantidadEjerciciosVigentes
 import com.olimpos.gym.data.incrementarVistaBodygraph
 import com.olimpos.gym.data.nivelDesdePuntaje
+import com.olimpos.gym.data.porcentajeDePuntaje
 import com.olimpos.gym.data.puntajeGeneralDeSocio
 import com.olimpos.gym.data.resumenMuscular
 import com.olimpos.gym.ui.theme.Olimpos
 
-/** Bodygraph: el rango/nivel de cada músculo (no "qué trabajaste hoy"), a
- *  partir de las marcas cargadas en la Calculadora — ver [resumenMuscular].
- *  La insignia de la esquina indica si esas marcas ya fueron verificadas
- *  por un entrenador o el dueño (sistema de empleados), para que no se
- *  pueda "hacer trampa" cargando pesos falsos sin que nadie lo note. */
+/** Mapa corporal (el Bodygraph): el rango de cada músculo a partir de las
+ *  marcas cargadas en Mis marcas — ver [resumenMuscular]. El cuerpo es el
+ *  mismo de siempre; tocarlo lo da vuelta (frente/espalda). Cada grupo
+ *  muestra su % (qué tan cerca está de Dios) y su rango; tocar un grupo
+ *  abre el detalle de sus músculos. */
 @Composable
 fun BodygraphScreen(onVolver: () -> Unit) {
-    // DatosRemotos ya arrancó la carga apenas se entró a la app (ver
-    // MainActivity) — acá solo se lee lo que haya. Sin datos de ejemplo de
-    // respaldo a propósito: un socio nuevo debe ver el cuerpo en gris, no
-    // rangos que nunca ganó.
+    // Sin datos de ejemplo de respaldo a propósito: un socio nuevo debe ver
+    // el cuerpo en gris, no rangos que nunca ganó.
     val marcas = DatosRemotos.marcas ?: emptyList()
-
     val datosFisicos = DatosRemotos.datosFisicosPropios
     val pesoCorporal = datosFisicos?.pesoKg ?: 80f
     val resumen = remember(marcas, datosFisicos) { resumenMuscular(marcas, pesoCorporal, datosFisicos?.sexo) }
     val nivelesPorZona = remember(resumen) {
         ZonaMuscular.entries.associateWith { zona -> resumen.puntajes[zona]?.let(::nivelDesdePuntaje) }
     }
-    // Rango general = el mismo cálculo que la Escalera del Olimpo en
-    // Clasificación (promedio por EJERCICIO, no por zona muscular — ver
-    // puntajeGeneralDeSocio) para que un socio nunca vea un rango distinto
-    // acá que en Clasificación. Antes acá se promediaban las 19 zonas
-    // (varias en cero si nunca hizo las isolaciones de la Calculadora),
-    // lo que daba un número más bajo que el real.
-    val nivelGeneral = remember(marcas, datosFisicos) {
-        puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo)?.let { nivelDesdePuntaje(it) }
-    }
+    // Mismo cálculo que la Escalera del Olimpo en Clasificación (promedio por
+    // ejercicio), para que nunca se vea un rango distinto acá que allá.
+    val puntajeGeneral = remember(marcas, datosFisicos) { puntajeGeneralDeSocio(marcas, pesoCorporal, datosFisicos?.sexo) }
     val ejerciciosRegistrados = remember(marcas) { cantidadEjerciciosVigentes(marcas) }
+    val ultimaMarca = marcas.maxOfOrNull { it.timestamp }?.takeIf { it > 0 }
 
-    // Para el logro "Ojo en el progreso" (revisar el Bodygraph 20 veces) —
-    // LaunchedEffect(Unit) corre una sola vez por cada vez que se entra a
-    // esta pantalla, no en cada recomposición.
+    var vista by remember { mutableStateOf(VistaCuerpo.FRENTE) }
+    var grupoAbierto by remember { mutableStateOf<GrupoMuscular?>(null) }
+
+    // Para el logro "Ojo en el progreso" (revisar el Bodygraph 20 veces).
     LaunchedEffect(Unit) {
         incrementarVistaBodygraph()
         DatosRemotos.recargarDatosFisicosPropios()
     }
 
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        EncabezadoArena(
+            "Mapa corporal", "Tu progreso muscular en cada grupo.", onVolver,
+            derecha = ultimaMarca?.let { ts -> { PildoraFecha(ts) } }
+        )
+
+        Column(Modifier.padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 26.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // ── Cuerpo: el mismo de siempre, se da vuelta al tocarlo ──
+                Column(
+                    Modifier
+                        .weight(0.42f)
+                        .clickable {
+                            vista = if (vista == VistaCuerpo.FRENTE) VistaCuerpo.ESPALDA else VistaCuerpo.FRENTE
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CuerpoMuscularRangosMini(
+                        rangoPorZona = nivelesPorZona.mapValues { it.value?.rango },
+                        tamano = 124.dp,
+                        vista = vista
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        (if (vista == VistaCuerpo.FRENTE) "Frente" else "Espalda") + "  ⇄",
+                        fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                // ── Los 6 grupos ──
+                Column(Modifier.weight(0.58f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GrupoMuscular.entries.forEach { grupo ->
+                        val puntajes = grupo.zonas.map { resumen.puntajes[it] ?: 0f }
+                        val promedio = puntajes.average().toFloat()
+                        FilaGrupo(
+                            grupo = grupo,
+                            porcentaje = porcentajeDePuntaje(promedio),
+                            nivel = if (puntajes.any { it > 0f }) nivelDesdePuntaje(promedio) else null,
+                            abierto = grupo == grupoAbierto,
+                            onClick = { grupoAbierto = if (grupoAbierto == grupo) null else grupo }
+                        )
+                    }
+                }
+            }
+
+            // ── Detalle del grupo tocado: cada músculo con su rango ──
+            AnimatedVisibility(visible = grupoAbierto != null) {
+                grupoAbierto?.let { grupo ->
+                    TarjetaLisa(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                        Text(grupo.etiqueta, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                        Spacer(Modifier.height(8.dp))
+                        grupo.zonas.forEach { zona ->
+                            FilaMusculo(zona, nivelesPorZona[zona], resumen.puntajes[zona])
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            TarjetaPuntuacion(
+                puntajeGeneral = puntajeGeneral,
+                faltan = (MINIMO_EJERCICIOS_PARA_CLASIFICACION - ejerciciosRegistrados).coerceAtLeast(0),
+                tieneMarcas = resumen.tieneMarcas,
+                verificado = resumen.verificado
+            )
+        }
+    }
+}
+
+@Composable
+private fun PildoraFecha(timestamp: Long) {
     Column(
         Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .clip(RoundedCornerShape(10.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, Olimpos.Line, RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        EncabezadoVolver("Bodygraph", "El nivel de cada músculo, según tus marcas", onVolver)
-
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
-            TarjetaOro(Modifier.fillMaxWidth()) {
-                Box(Modifier.fillMaxWidth()) {
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        InsigniaRangoGeneral(nivelGeneral, ejerciciosRegistrados)
-                        Spacer(Modifier.height(14.dp))
-                        CuerpoMuscularRangos(rangoPorZona = nivelesPorZona.mapValues { it.value?.rango })
-                    }
-                    InsigniaVerificado(
-                        tieneMarcas = resumen.tieneMarcas,
-                        verificado = resumen.verificado,
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    )
-                }
-            }
-
-            SeccionLabel("Rankings de músculo")
-            var expandidos by remember { mutableStateOf(setOf<GrupoMuscular>()) }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                GrupoMuscular.entries.forEach { grupo ->
-                    FilaGrupoMuscular(
-                        grupo = grupo,
-                        nivelesPorZona = nivelesPorZona,
-                        expandido = grupo in expandidos,
-                        onToggle = {
-                            expandidos = if (grupo in expandidos) expandidos - grupo else expandidos + grupo
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilaGrupoMuscular(
-    grupo: GrupoMuscular,
-    nivelesPorZona: Map<ZonaMuscular, NivelMuscular?>,
-    expandido: Boolean,
-    onToggle: () -> Unit
-) {
-    val completados = grupo.zonas.count { nivelesPorZona[it] != null }
-    Column {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(if (expandido) Olimpos.GoldSoft else Olimpos.Card)
-                .border(1.dp, if (expandido) Olimpos.Gold.copy(alpha = 0.35f) else Olimpos.Line, RoundedCornerShape(14.dp))
-                .clickable(onClick = onToggle)
-                .padding(horizontal = 14.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(11.dp))
-                    .background(Olimpos.Superficie2),
-                contentAlignment = Alignment.Center
-            ) { Text(grupo.emoji, fontSize = 17.sp) }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(grupo.etiqueta, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
-                Text(
-                    "$completados/${grupo.zonas.size} completado" + if (completados == 1) "" else "s",
-                    fontSize = 11.sp, color = Olimpos.Muted
-                )
-            }
-            Text(
-                if (expandido) "⌃" else "⌄",
-                fontSize = 16.sp, fontWeight = FontWeight.Black, color = Olimpos.Muted
-            )
-        }
-        androidx.compose.animation.AnimatedVisibility(visible = expandido) {
-            Column(
-                Modifier.padding(top = 8.dp, start = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                grupo.zonas.forEach { zona -> FilaNivelMuscular(zona, nivelesPorZona[zona]) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InsigniaRangoGeneral(nivel: NivelMuscular?, ejerciciosRegistrados: Int) {
-    if (nivel == null) {
-        val faltan = (MINIMO_EJERCICIOS_PARA_CLASIFICACION - ejerciciosRegistrados).coerceAtLeast(0)
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "RANGO GENERAL", fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.2.sp, color = Olimpos.Muted
-            )
-            Text(
-                "Sin clasificar todavía", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            Text(
-                "Cargá marcas en $faltan ejercicio${if (faltan == 1) "" else "s"} más de la Calculadora",
-                fontSize = 11.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        return
-    }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Image(
-            painter = painterResource(iconoDeRango(nivel)),
-            contentDescription = nivel.etiquetaCompleta,
-            modifier = Modifier.height(84.dp)
-        )
-        Spacer(Modifier.height(4.dp))
+        Text("Actualizado", fontSize = 9.sp, color = Olimpos.Muted)
         Text(
-            "RANGO GENERAL", fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.2.sp, color = Olimpos.Muted
-        )
-        Text(
-            nivel.etiquetaCompleta, fontSize = 15.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream
+            java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("es", "AR")).format(java.util.Date(timestamp)),
+            fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream
         )
     }
 }
 
 @Composable
-private fun InsigniaVerificado(tieneMarcas: Boolean, verificado: Boolean, modifier: Modifier = Modifier) {
-    if (!tieneMarcas) return
-    val (texto, color) = if (verificado) "Verificado ✓" to Olimpos.Green else "No verificado" to Olimpos.Red
-    Row(
-        modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(color.copy(alpha = 0.16f))
-            .border(1.dp, color.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(texto, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = color)
-    }
-}
-
-@Composable
-private fun FilaNivelMuscular(zona: ZonaMuscular, nivel: NivelMuscular?) {
-    val activa = nivel != null
+private fun FilaGrupo(grupo: GrupoMuscular, porcentaje: Float, nivel: NivelMuscular?, abierto: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (activa) Olimpos.GoldSoft else Olimpos.Card)
-            .border(1.dp, if (activa) Olimpos.Gold.copy(alpha = 0.35f) else Olimpos.Line, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 11.dp),
+            .background(if (abierto) Olimpos.GoldSoft else Olimpos.Card)
+            .border(1.dp, if (abierto) Olimpos.Gold.copy(alpha = 0.45f) else Olimpos.Line, RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (nivel != null) {
-            Image(painter = painterResource(iconoDeRango(nivel)), contentDescription = nivel.etiquetaCompleta, modifier = Modifier.size(26.dp))
-        } else {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(Olimpos.Muted.copy(alpha = 0.4f)))
-        }
-        Spacer(Modifier.width(11.dp))
-        Text(zona.emoji, fontSize = 15.sp)
+        IconoRedondo(grupo.emoji, tamano = 32.dp, apagado = nivel == null)
         Spacer(Modifier.width(9.dp))
+        Column(Modifier.weight(1f)) {
+            Text(grupo.etiqueta, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, maxLines = 1)
+            Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.sp, color = Olimpos.Muted, maxLines = 1)
+        }
         Text(
-            zona.etiqueta, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold,
-            color = if (activa) Olimpos.Cream else Olimpos.Muted, modifier = Modifier.weight(1f)
+            "${(porcentaje * 100).toInt()}%",
+            fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = acentoTexto,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(Olimpos.GoldSoft)
+                .padding(horizontal = 7.dp, vertical = 3.dp)
         )
-        Text(
-            nivel?.etiquetaCompleta ?: "Sin marcas",
-            fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
-            color = if (activa) Olimpos.GoldLight else Olimpos.Muted
-        )
+    }
+}
+
+@Composable
+private fun FilaMusculo(zona: ZonaMuscular, nivel: NivelMuscular?, puntaje: Float?) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (nivel != null) {
+            Image(painterResource(iconoDeRango(nivel)), contentDescription = nivel.etiquetaCompleta, modifier = Modifier.size(24.dp))
+        } else {
+            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(9.dp).clip(CircleShape).background(Olimpos.Muted.copy(alpha = 0.4f)))
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(zona.etiqueta, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (nivel != null) Olimpos.Cream else Olimpos.Muted)
+            if (nivel != null && puntaje != null) {
+                Spacer(Modifier.height(4.dp))
+                BarraProgreso(nivel.progreso(puntaje), alto = 5)
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = if (nivel != null) acentoTexto else Olimpos.Muted)
+    }
+}
+
+@Composable
+private fun TarjetaPuntuacion(puntajeGeneral: Float?, faltan: Int, tieneMarcas: Boolean, verificado: Boolean) {
+    val nivel = puntajeGeneral?.let(::nivelDesdePuntaje)
+    TarjetaLisa(Modifier.fillMaxWidth(), padding = 16.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (nivel != null) {
+                Image(painterResource(iconoDeRango(nivel)), contentDescription = nivel.etiquetaCompleta, modifier = Modifier.size(46.dp))
+            } else {
+                IconoRedondo("📊", tamano = 46.dp, apagado = true)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1.1f)) {
+                Text("Puntuación general", fontSize = 11.sp, color = Olimpos.Muted, maxLines = 1)
+                if (puntajeGeneral != null && nivel != null) {
+                    Text("${(porcentajeDePuntaje(puntajeGeneral) * 100).toInt()}%", fontSize = 28.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                    ChipSuave(nivel.etiquetaCompleta)
+                } else {
+                    Text("Sin clasificar", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                }
+            }
+            Box(Modifier.width(1.dp).height(54.dp).background(Olimpos.Line))
+            Spacer(Modifier.width(12.dp))
+            Text(
+                when {
+                    !tieneMarcas -> "Cargá tus marcas en Mis marcas para empezar a ver tu progreso."
+                    puntajeGeneral == null -> "Cargá marcas en $faltan ejercicio${if (faltan == 1) "" else "s"} más para entrar en la clasificación."
+                    !verificado -> "Algunas marcas todavía no las verificó un entrenador."
+                    else -> "¡Vas por buen camino! Mantené la constancia para seguir subiendo."
+                },
+                fontSize = 10.5.sp, lineHeight = 14.sp, color = Olimpos.Muted,
+                modifier = Modifier.weight(0.9f)
+            )
+        }
     }
 }
