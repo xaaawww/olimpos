@@ -45,7 +45,8 @@ def cargar_asignaciones(forzar: bool = False) -> dict[str, dict]:
     global _cache_asignaciones
     if _cache_asignaciones is None or forzar:
         dietas = neon_db.consulta(
-            "SELECT d.cod_dieta, s.firebase_uid, d.fecha_actualizacion, pa.id_plan_alimentario,"
+            "SELECT d.cod_dieta, s.firebase_uid, COALESCE(d.fecha_actualizacion, d.fecha_creacion) AS fecha_actualizacion,"
+            " pa.id_plan_alimentario,"
             " trim(e.nombre || ' ' || e.apellido) || ' — ' || r.descripcion AS asignada_por"
             " FROM dietas d JOIN socios s USING (id_socio) JOIN planalimentario pa USING (cod_dieta)"
             " JOIN empleados e ON e.id_empleado = d.id_empleado JOIN rol r ON r.id_rol = e.rol"

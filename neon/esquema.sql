@@ -1064,6 +1064,11 @@ CREATE TABLE configuracionsistema (
 ALTER TABLE notificaciones ADD COLUMN clave VARCHAR(120);
 CREATE UNIQUE INDEX ux_notificaciones_empleado_clave ON notificaciones (id_empleado, clave);
 
+-- Rutinas y dietas nuevas nacen con fecha de actualización (las que creaba la app
+-- quedaban en NULL y el sistema de empleados no podía listar los socios).
+ALTER TABLE rutinas ALTER COLUMN fecha_actualizacion SET DEFAULT now();
+ALTER TABLE dietas ALTER COLUMN fecha_actualizacion SET DEFAULT now();
+
 -- ---- Personal: sueldos, turno y bajas ----
 -- Dar de baja NO borra al empleado: estado = 'inactivo' (el login lo rechaza) + fecha y motivo.
 ALTER TABLE empleados ADD COLUMN sueldo NUMERIC(12,2);

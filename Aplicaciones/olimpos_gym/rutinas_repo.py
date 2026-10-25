@@ -38,7 +38,9 @@ def cargar_rutinas(forzar: bool = False) -> dict[str, list[dict]]:
     global _cache_rutinas
     if _cache_rutinas is None or forzar:
         rutinas = neon_db.consulta(
-            "SELECT r.cod_rutina, s.firebase_uid, r.nombre, r.creada_por, r.origen, r.activa, r.fecha_actualizacion"
+            "SELECT r.cod_rutina, s.firebase_uid, r.nombre, r.creada_por, r.origen, r.activa,"
+            # una rutina recién creada puede no tener fecha de actualización: vale la de creación
+            " COALESCE(r.fecha_actualizacion, r.fecha_creacion) AS fecha_actualizacion"
             " FROM rutinas r JOIN socios s USING (id_socio) WHERE s.firebase_uid IS NOT NULL ORDER BY r.cod_rutina"
         )
         ejercicios = neon_db.consulta(
@@ -124,8 +126,8 @@ def guardar_rutina(rutina: dict) -> dict[str, list[dict]]:
             cur.execute("DELETE FROM rutinaejercicio WHERE cod_rutina = %s", (cod,))
         else:
             cur.execute(
-                "INSERT INTO rutinas (id_socio, id_empleado, nombre, creada_por, origen, activa) VALUES (%s,%s,%s,%s,%s,%s)"
-                " RETURNING cod_rutina",
+                "INSERT INTO rutinas (id_socio, id_empleado, nombre, creada_por, origen, activa, fecha_actualizacion)"
+                " VALUES (%s,%s,%s,%s,%s,%s,now()) RETURNING cod_rutina",
                 (id_socio, empleado, rutina["nombre"], rutina.get("creada_por"), rutina["origen"], rutina["activa"]),
             )
             cod = cur.fetchone()["cod_rutina"]
