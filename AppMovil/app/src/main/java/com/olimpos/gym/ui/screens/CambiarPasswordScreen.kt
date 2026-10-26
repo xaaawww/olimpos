@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.R
 import com.olimpos.gym.data.SocioAuth
+import com.olimpos.gym.data.errorDePassword
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
 
@@ -52,10 +53,9 @@ fun CambiarPasswordScreen(onListo: () -> Unit) {
 
     fun confirmarCambio() {
         if (cargando) return
-        if (nueva.length < 6) {
-            error = "La contraseña tiene que tener al menos 6 caracteres."
-            return
-        }
+        // Mismas reglas que el sistema de empleados (validaciones.password)
+        error = errorDePassword(nueva)
+        if (error != null) return
         if (nueva != confirmar) {
             error = "Las contraseñas no coinciden."
             return

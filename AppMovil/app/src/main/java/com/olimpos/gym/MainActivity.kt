@@ -108,9 +108,12 @@ class MainActivity : ComponentActivity() {
                 // que el socio eligió en su celular): más liviana, como el
                 // sistema de empleados.
                 val densidad = androidx.compose.ui.platform.LocalDensity.current
+                remember { com.olimpos.gym.ui.theme.PreferenciasApp.cargar(contexto) }
                 androidx.compose.runtime.CompositionLocalProvider(
-                    androidx.compose.ui.platform.LocalDensity provides
-                        androidx.compose.ui.unit.Density(densidad.density, densidad.fontScale * 0.92f)
+                    androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+                        densidad.density,
+                        densidad.fontScale * com.olimpos.gym.ui.theme.PreferenciasApp.escalaLetra.factor
+                    )
                 ) {
                     OlimposApp(
                         themeMode = themeMode,

@@ -22,6 +22,7 @@ from components import status_pill
 import empleados_credenciales
 import personal_repo as repo
 import validaciones as val
+import mensajeria
 
 COLOR_ROL = {
     "dueno": ("#FEF3C7", "#B45309"), "admin": ("#DBEAFE", "#1D4ED8"), "entrenador": ("#DCFCE7", "#15803D"),
@@ -654,7 +655,8 @@ class PersonalView:
             self._avisar(f"✓ {nombre.value.strip()} {apellido.value.strip()} dado de alta")
             self._recargar()
             self._mostrar_credenciales(f"{nombre.value.strip()} {apellido.value.strip()}",
-                                       usuario.value.strip().lower(), password, nuevo=True)
+                                       usuario.value.strip().lower(), password, nuevo=True,
+                                       email=val.email(email.value), telefono=telefono.value)
 
         self._dialogo("Agregar empleado", [
             ft.Row([nombre, apellido], spacing=10), ft.Row([dni, telefono], spacing=10), ft.Row([email]),
@@ -663,11 +665,25 @@ class PersonalView:
                     size=11.5, color=TEXT_MUTED), error,
         ], [self._cancelar(), self._boton_ok("Dar de alta", crear)], ancho=480)
 
-    def _mostrar_credenciales(self, nombre, usuario, password, nuevo=False):
+    def _mostrar_credenciales(self, nombre, usuario, password, nuevo=False, email=None, telefono=None):
         async def copiar(ev):
             await self.page.clipboard.set(f"Usuario: {usuario}\nContraseña: {password}")
-            aviso.value = "✓ Copiado"
+            aviso.value, aviso.color = "✓ Copiado", GREEN
             aviso.update()
+
+        def avisar(ok, texto):
+            aviso.value, aviso.color = texto, (GREEN if ok else RED)
+            aviso.update()
+
+        primer_nombre = nombre.split()[0]
+        enviar = []
+        if telefono and mensajeria.telefono_internacional(telefono):
+            enviar.append(ft.TextButton("WhatsApp", icon=ft.Icons.CHAT_OUTLINED, on_click=lambda ev: avisar(
+                *mensajeria.whatsapp(self.page, telefono, "acceso_sistema", [primer_nombre, usuario, password]))))
+        if email and mensajeria.email_configurado():
+            enviar.append(ft.TextButton("Email", icon=ft.Icons.MAIL_OUTLINE, on_click=lambda ev: avisar(
+                *mensajeria.enviar_email(email, "Tu acceso al sistema OlimpΩs",
+                                         mensajeria.texto_plantilla("acceso_sistema", [primer_nombre, usuario, password])))))
         aviso = ft.Text("", size=12, color=GREEN)
         demo = usuario in {u["usuario"] for u in empleados_credenciales.USUARIOS_DEMO}
         self._dialogo("Datos para entrar al sistema", [
@@ -683,7 +699,7 @@ class PersonalView:
             *([ft.Text("Ojo: es un usuario de demostración y el panel del login va a seguir mostrando la contraseña "
                        "vieja.", size=11.5, color="#B45309")] if demo else []),
             aviso,
-        ], [ft.TextButton("Copiar", icon=ft.Icons.CONTENT_COPY, on_click=copiar),
+        ], [ft.TextButton("Copiar", icon=ft.Icons.CONTENT_COPY, on_click=copiar), *enviar,
             self._boton_ok("Listo", lambda ev: self.page.pop_dialog())])
 
     def _confirmar_password(self, e):
@@ -695,7 +711,8 @@ class PersonalView:
                 self._avisar(f"No se pudo cambiar la contraseña: {ex}", RED)
                 self._render()
                 return
-            self._mostrar_credenciales(e["nombre_completo"], e["usuario"], password)
+            self._mostrar_credenciales(e["nombre_completo"], e["usuario"], password,
+                                       email=e["email"], telefono=e["telefono"])
         self._dialogo("¿Restablecer la contraseña?", [
             ft.Text(f"Se genera una contraseña nueva para {e['nombre_completo']} y la actual deja de funcionar.",
                     size=13, color=TEXT_MUTED)], [self._cancelar(), self._boton_ok("Restablecer", si)])

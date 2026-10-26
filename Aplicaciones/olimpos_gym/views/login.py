@@ -46,6 +46,64 @@ class LoginView:
         self.page.update()
         self.on_login(role)
 
+    def _dialogo_recuperar(self):
+        """Paso 1: usuario → se manda un código. Paso 2: código + contraseña nueva."""
+        usuario = ft.TextField(label="Tu usuario", value=(self.usuario_field.value or "").strip(), dense=True,
+                               input_filter=validaciones.USUARIO, max_length=30, counter=ft.Text(""), width=340)
+        codigo = ft.TextField(label="Código de 6 números", dense=True, input_filter=validaciones.SOLO_DIGITOS,
+                              max_length=6, counter=ft.Text(""), width=340, visible=False)
+        nueva = ft.TextField(label="Contraseña nueva", password=True, can_reveal_password=True, dense=True,
+                             max_length=64, counter=ft.Text(""), width=340, visible=False,
+                             helper="8 o más caracteres, con letras y números")
+        repetir = ft.TextField(label="Repetir contraseña nueva", password=True, can_reveal_password=True, dense=True,
+                               max_length=64, counter=ft.Text(""), width=340, visible=False)
+        mensaje = ft.Text("Te mandamos un código a tu email o WhatsApp para elegir una contraseña nueva.",
+                          size=12.5, color=TEXT_MUTED, width=340)
+        boton = ft.FilledButton("Mandarme el código", style=ft.ButtonStyle(bgcolor=GOLD, color=DARK))
+
+        def pedir(e):
+            if not usuario.value:
+                mensaje.value, mensaje.color = "Escribí tu usuario.", RED
+                self.page.update()
+                return
+            try:
+                ok, texto = _creds.iniciar_recuperacion(usuario.value)
+            except Exception as ex:
+                ok, texto = False, f"No se pudo: {ex}"
+            mensaje.value, mensaje.color = texto, (GREEN if ok else RED)
+            if ok:
+                for c in (codigo, nueva, repetir):
+                    c.visible = True
+                usuario.disabled = True
+                boton.content, boton.on_click = "Cambiar contraseña", confirmar
+            self.page.update()
+
+        def confirmar(e):
+            if (nueva.value or "") != (repetir.value or ""):
+                mensaje.value, mensaje.color = "Las contraseñas nuevas no coinciden.", RED
+                self.page.update()
+                return
+            try:
+                ok, texto = _creds.confirmar_recuperacion(usuario.value, codigo.value, nueva.value or "")
+            except Exception as ex:
+                ok, texto = False, f"No se pudo: {ex}"
+            mensaje.value, mensaje.color = texto, (GREEN if ok else RED)
+            if ok:
+                self.usuario_field.value, self.password_field.value = usuario.value.strip().lower(), ""
+                boton.content, boton.on_click = "Volver a entrar", lambda ev: self.page.pop_dialog()
+                for c in (codigo, nueva, repetir):
+                    c.disabled = True
+            self.page.update()
+
+        boton.on_click = pedir
+        self.page.show_dialog(ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Recuperar contraseña", weight=ft.FontWeight.W_600, font_family="Poppins"),
+            content=ft.Column([mensaje, usuario, codigo, nueva, repetir], spacing=10, tight=True, width=360),
+            actions=[ft.TextButton("Cerrar", on_click=lambda e: self.page.pop_dialog()), boton],
+            actions_alignment=ft.MainAxisAlignment.END,
+        ))
+
     def _mostrar_error(self, mensaje: str):
         self.error_text.value = mensaje
         self.page.update()
@@ -124,6 +182,8 @@ class LoginView:
                 self.error_text,
                 ft.Container(height=6),
                 login_button,
+                ft.TextButton("¿Olvidaste tu contraseña?", on_click=lambda e: self._dialogo_recuperar(),
+                              style=ft.ButtonStyle(color=ft.Colors.with_opacity(0.7, GOLD))),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10,
                scroll=ft.ScrollMode.AUTO),
             bgcolor=ft.Colors.with_opacity(0.04, ft.Colors.WHITE),

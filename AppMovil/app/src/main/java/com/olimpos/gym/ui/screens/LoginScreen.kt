@@ -2,6 +2,7 @@ package com.olimpos.gym.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -48,6 +49,9 @@ fun LoginScreen(onIngresar: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var cargando by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var recuperando by remember { mutableStateOf(false) }
+    var enviandoRecuperar by remember { mutableStateOf(false) }
+    var avisoRecuperar by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     fun intentarIngresar() {
@@ -104,6 +108,41 @@ fun LoginScreen(onIngresar: () -> Unit) {
             error?.let {
                 Spacer(Modifier.height(12.dp))
                 Text(it, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Olimpos.Red)
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "¿Olvidaste tu contraseña?", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { recuperando = true; avisoRecuperar = null }
+                    .padding(6.dp)
+            )
+            // ── Recuperar: Firebase manda el email con el link para elegir una nueva ──
+            androidx.compose.animation.AnimatedVisibility(visible = recuperando) {
+                Column(Modifier.padding(top = 6.dp)) {
+                    Text(
+                        "Te mandamos un email con un link para elegir una contraseña nueva. " +
+                            "Usá el mismo email con el que entrás a la app.",
+                        fontSize = 11.5.sp, color = Olimpos.Muted, lineHeight = 15.sp
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    BotonSecundario(if (enviandoRecuperar) "Enviando…" else "Enviarme el email") {
+                        if (enviandoRecuperar) return@BotonSecundario
+                        enviandoRecuperar = true
+                        scope.launch {
+                            val r = SocioAuth.enviarEmailRecuperacion(email)
+                            enviandoRecuperar = false
+                            avisoRecuperar = r ?: "Listo: si ${email.trim()} tiene cuenta, te llegó un email (revisá también " +
+                                "la carpeta de spam). Después volvé a entrar con la contraseña nueva."
+                        }
+                    }
+                    avisoRecuperar?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(it, fontSize = 11.5.sp, color = if (it.startsWith("Listo")) Olimpos.Green else Olimpos.Red,
+                            lineHeight = 15.sp)
+                    }
+                }
             }
         }
 

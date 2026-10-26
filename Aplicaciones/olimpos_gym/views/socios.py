@@ -1,26 +1,10 @@
-import urllib.parse
-
 import flet as ft
 from theme import *
 from components import stat_card, section_card, status_pill, avatar, action_button, page_header
 import auth_repo
 import socios_repo
 import validaciones
-
-
-def _link_whatsapp(telefono: str, nombre: str, email: str, password: str) -> str:
-    """Arma un enlace wa.me con el mensaje ya redactado — no manda nada solo,
-    el empleado lo confirma y lo envía él mismo al tocar "Enviar" en
-    WhatsApp. No hay ninguna cuenta de SMS/WhatsApp Business conectada al
-    proyecto; esto no tiene costo ni depende de un servicio externo."""
-    solo_digitos = "".join(c for c in telefono if c.isdigit())
-    mensaje = (
-        f"Hola {nombre}! Ya está listo tu acceso a la app OlimpΩs.\n\n"
-        f"Email: {email}\n"
-        f"Contraseña: {password}\n\n"
-        f"La primera vez que entres te va a pedir que la cambies por una que prefieras."
-    )
-    return f"https://wa.me/{solo_digitos}?text={urllib.parse.quote(mensaje)}"
+import mensajeria
 
 
 AVATAR_VARIANTES = ["gold", "blue", "red", "purple", "green", "dark"]
@@ -93,13 +77,29 @@ def _dialogo_perfil(page: ft.Page, s: dict):
 # después le pasa el email/contraseña en persona o por WhatsApp — la app
 # móvil ya no tiene forma de "crear cuenta" (ver LoginScreen.kt).
 
-def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str, telefono: str) -> ft.AlertDialog:
+def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str, telefono: str,
+                          titulo: str = "✅ Acceso creado") -> ft.AlertDialog:
+    resultado = ft.Text("", size=12, weight=ft.FontWeight.W_500)
+
+    def _mostrar(ok, texto):
+        resultado.value, resultado.color = texto, (GREEN if ok else RED)
+        page.update()
+
     def _enviar_whatsapp(e):
-        page.launch_url(_link_whatsapp(telefono, nombre, email, password))
+        clave = "acceso_app" if titulo.startswith("✅") else "password_temporal"
+        params = [nombre.split()[0], email, password] if clave == "acceso_app" else [nombre.split()[0], password]
+        _mostrar(*mensajeria.whatsapp(page, telefono, clave, params))
+
+    def _enviar_email(e):
+        _mostrar(*mensajeria.enviar_email(
+            email, "Tu acceso a la app OlimpΩs",
+            f"Hola {nombre.split()[0]}!\n\nEstos son tus datos para entrar a la app OlimpΩs:\n\n"
+            f"Email: {email}\nContraseña: {password}\n\n"
+            "La primera vez que entres te va a pedir que la cambies por una que prefieras."))
 
     dialog = ft.AlertDialog(
         modal=True,
-        title=ft.Text("✅ Acceso creado", weight=ft.FontWeight.W_600, font_family="Poppins"),
+        title=ft.Text(titulo, weight=ft.FontWeight.W_600, font_family="Poppins"),
         content=ft.Column([
             ft.Text(f"Pasale estos datos a {nombre} para que entre a la app OlimpΩs:",
                     size=12.5, color=TEXT_MUTED),
@@ -121,9 +121,11 @@ def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str,
                 "esta contraseña más adelante.",
                 size=11, color=RED, weight=ft.FontWeight.W_500,
             ),
-        ], tight=True, spacing=10, width=360),
+            resultado,
+        ], tight=True, spacing=10, width=380),
         actions=[
-            action_button("📲 Enviar por WhatsApp", "outline", on_click=_enviar_whatsapp),
+            action_button("📲 WhatsApp", "outline", on_click=_enviar_whatsapp),
+            *([action_button("✉️ Email", "outline", on_click=_enviar_email)] if mensajeria.email_configurado() else []),
             action_button("Listo", "gold", on_click=lambda e: page.pop_dialog()),
         ],
         actions_alignment=ft.MainAxisAlignment.END,
@@ -270,6 +272,113 @@ def _tarjeta_resumen(icono, color_icono: str, fondo_icono: str, titulo: str, val
     )
 
 
+def _dialogo_recuperar(page: ft.Page, s: dict):
+    """Recuperar la contraseña de la app: link por email o WhatsApp (el socio
+    elige una nueva), o una contraseña temporal para pasarle en el momento."""
+    nombre = s["nombre"].split()[0] if s["nombre"] else "socio"
+    resultado = ft.Text("", size=12.5, weight=ft.FontWeight.W_500)
+
+    def _mostrar(ok, texto):
+        resultado.value, resultado.color = texto, (GREEN if ok else RED)
+        page.update()
+
+    def _por_email(e):
+        try:
+            if mensajeria.email_configurado():
+                link = auth_repo.link_recuperacion(s["email"])
+                _mostrar(*mensajeria.enviar_email(
+                    s["email"], "Elegí una contraseña nueva",
+                    f"Hola {nombre}!\n\nPara elegir una contraseña nueva de la app OlimpΩs entrá a este link "
+                    f"(vence en 1 hora):\n\n{link}\n\nSi no lo pediste, ignorá este email."))
+            else:
+                _mostrar(*auth_repo.email_recuperacion_firebase(s["email"]))
+        except Exception as ex:
+            _mostrar(False, f"No se pudo: {ex}")
+
+    def _por_whatsapp(e):
+        try:
+            link = auth_repo.link_recuperacion(s["email"])
+            _mostrar(*mensajeria.whatsapp(page, s["telefono"] or "", "recuperar_password", [nombre, link]))
+        except Exception as ex:
+            _mostrar(False, f"No se pudo: {ex}")
+
+    def _temporal(e):
+        try:
+            password = auth_repo.password_temporal_socio(socios_repo.uid_de(s["id_socio"]))
+        except Exception as ex:
+            _mostrar(False, f"No se pudo generar: {ex}")
+            return
+        page.pop_dialog()
+        page.show_dialog(_dialogo_credenciales(page, s["nombre"], s["email"], password, s["telefono"] or "",
+                                               titulo="🔑 Contraseña temporal"))
+
+    tiene_tel = bool(mensajeria.telefono_internacional(s.get("telefono") or ""))
+    opcion = lambda icono, titulo, sub, accion, habilitada=True: ft.Container(
+        ft.Row([ft.Icon(icono, size=20, color=GOLD_DARK if habilitada else TEXT_MUTED),
+                ft.Column([ft.Text(titulo, size=13.5, weight=ft.FontWeight.W_500, color=DARK if habilitada else TEXT_MUTED),
+                           ft.Text(sub, size=11.5, color=TEXT_MUTED)], spacing=1, expand=True)], spacing=12),
+        border=ft.border.all(1, GRAY_LIGHT), border_radius=12, padding=12, ink=habilitada,
+        on_click=accion if habilitada else None)
+    page.show_dialog(ft.AlertDialog(
+        modal=True,
+        title=ft.Text(f"Recuperar contraseña de {s['nombre']}", weight=ft.FontWeight.W_600, font_family="Poppins"),
+        content=ft.Column([
+            opcion(ft.Icons.MAIL_OUTLINE, f"Enviar link por email ({s['email']})",
+                   "El socio elige una contraseña nueva desde el link." if mensajeria.email_configurado()
+                   else "Lo manda Firebase (el email del gimnasio todavía no está configurado).", _por_email),
+            opcion(ft.Icons.CHAT_OUTLINED, "Enviar link por WhatsApp",
+                   f"Al {s['telefono']}." if tiene_tel else "No tiene un teléfono válido cargado.", _por_whatsapp, tiene_tel),
+            opcion(ft.Icons.KEY_OUTLINED, "Darle una contraseña temporal",
+                   "La actual deja de andar; al entrar le pide cambiarla.", _temporal),
+            resultado,
+        ], spacing=10, tight=True, width=440),
+        actions=[ft.TextButton("Cerrar", on_click=lambda e: page.pop_dialog())],
+    ))
+
+
+def _dialogo_recordatorio(page: ft.Page, s: dict):
+    """Recordarle al socio que su cuota vence (o ya venció)."""
+    from datetime import date
+    nombre = s["nombre"].split()[0] if s["nombre"] else "socio"
+    vence = s.get("vencimiento")
+    if vence:
+        dias = (vence - date.today()).days
+        cuando = (f"venció el {vence:%d/%m}" if dias < 0 else "vence hoy" if dias == 0 else f"vence el {vence:%d/%m}")
+    else:
+        cuando = "no tiene una membresía activa"
+    try:
+        import pagos_repo
+        precio = next((p["precio"] for p in pagos_repo.planes() if p["nombre"] == s.get("plan")), None)
+    except Exception:
+        precio = None
+    valor = f"${precio:,.0f}".replace(",", ".") if precio else "el de tu plan"
+    params = [nombre, s.get("plan") or "", cuando, valor]
+    resultado = ft.Text("", size=12.5, weight=ft.FontWeight.W_500)
+
+    def _mostrar(ok, texto):
+        resultado.value, resultado.color = texto, (GREEN if ok else RED)
+        page.update()
+
+    page.show_dialog(ft.AlertDialog(
+        modal=True,
+        title=ft.Text(f"Recordarle la cuota a {s['nombre']}", weight=ft.FontWeight.W_600, font_family="Poppins"),
+        content=ft.Column([
+            ft.Container(ft.Text(mensajeria.texto_plantilla("recordatorio_cuota", params), size=13, color=DARK),
+                         bgcolor=CREAM, border_radius=10, padding=14),
+            resultado,
+        ], spacing=10, tight=True, width=420),
+        actions=[
+            ft.TextButton("Cancelar", on_click=lambda e: page.pop_dialog()),
+            action_button("📲 WhatsApp", "outline",
+                          on_click=lambda e: _mostrar(*mensajeria.whatsapp(page, s.get("telefono") or "", "recordatorio_cuota", params))),
+            *([action_button("✉️ Email", "outline", on_click=lambda e: _mostrar(*mensajeria.enviar_email(
+                s["email"], "Tu cuota de OlimpΩs", mensajeria.texto_plantilla("recordatorio_cuota", params))))]
+              if mensajeria.email_configurado() else []),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    ))
+
+
 def _confirmar_desactivar(page: ft.Page, s: dict, al_terminar):
     def _desactivar(e):
         page.pop_dialog()
@@ -320,6 +429,12 @@ def build_socios(page: ft.Page) -> ft.Column:
                 ft.PopupMenuItem(content=ft.Text("👤  Ver perfil"), on_click=lambda e, s=s: _dialogo_perfil(page, s)),
                 ft.PopupMenuItem(content=ft.Text("📋  Copiar email"), disabled=not s["email"],
                                  on_click=lambda e, s=s: _copiar(s["email"])),
+                ft.PopupMenuItem(content=ft.Text("🔑  Recuperar contraseña de la app"),
+                                 disabled=not s["tiene_app"] or s["estado"] == "Inactivo",
+                                 on_click=lambda e, s=s: _dialogo_recuperar(page, s)),
+                ft.PopupMenuItem(content=ft.Text("💬  Recordar vencimiento de la cuota"),
+                                 disabled=not s["plan"] or s["estado"] == "Inactivo",
+                                 on_click=lambda e, s=s: _dialogo_recordatorio(page, s)),
                 ft.PopupMenuItem(content=ft.Text("⛔  Desactivar acceso a la app", color=RED),
                                  disabled=not s["tiene_app"] or s["estado"] == "Inactivo",
                                  on_click=lambda e, s=s: _confirmar_desactivar(page, s, _tras_desactivar)),

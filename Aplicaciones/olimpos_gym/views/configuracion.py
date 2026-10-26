@@ -19,6 +19,8 @@ import empleados_credenciales
 import configuracion_repo as cfg
 import notificaciones_repo
 import validaciones
+import mensajeria
+import neon_db
 
 DESCRIPCION_AVISO = {
     "membresia_vencida": "Socios con la membresía vencida que todavía no renovaron.",
@@ -50,7 +52,9 @@ class ConfiguracionView:
             ("apariencia", ft.Icons.PALETTE_OUTLINED, "Apariencia", "Colores, fondo y menú"),
             ("inicio", ft.Icons.LOGIN, "Inicio y sesión", "Cómo entra y sale tu usuario"),
             ("avisos", ft.Icons.NOTIFICATIONS_NONE, "Notificaciones", "Qué avisos ver y cómo"),
-        ] + ([("club", ft.Icons.STOREFRONT_OUTLINED, "Club", "Datos del gimnasio")] if self.es_dueno else [])
+        ] + ([("club", ft.Icons.STOREFRONT_OUTLINED, "Club", "Datos del gimnasio")] if self.es_dueno else []) \
+          + ([("mensajes", ft.Icons.FORWARD_TO_INBOX_OUTLINED, "Mensajes", "Email y WhatsApp")]
+             if rol in ("dueno", "admin") else [])
         # al rearmar la pantalla (cambio de colores) vuelve al mismo grupo
         guardado = getattr(cfg, "_grupo_configuracion", "apariencia")
         self.grupo = guardado if guardado in [g[0] for g in self.grupos] else "apariencia"
@@ -103,7 +107,7 @@ class ConfiguracionView:
             width=260, bgcolor=WHITE, border=ft.border.all(1, GRAY_LIGHT), border_radius=18, padding=10,
         )
         contenido = {"apariencia": self._apariencia, "inicio": self._inicio, "avisos": self._avisos,
-                     "club": self._club}[self.grupo]()
+                     "club": self._club, "mensajes": self._mensajes}[self.grupo]()
         panel = ft.Container(contenido, expand=True, bgcolor=WHITE, border=ft.border.all(1, GRAY_LIGHT),
                              border_radius=18, padding=ft.padding.symmetric(horizontal=26, vertical=22))
         # sin scroll propio: el área de contenido del menú ya desplaza (y así queda arriba, no centrado)
@@ -297,6 +301,103 @@ class ConfiguracionView:
                                     f"{len(tipos) - len(apagados & set(tipos))} de {len(tipos)} encendidos.",
                                     debajo=ft.Column(filas_tipos, spacing=0)))
         return ft.Column(controles, spacing=0)
+
+    # ── Mensajes: email y WhatsApp (dueño y administrador) ──
+    def _mensajes(self) -> ft.Column:
+        cred = mensajeria.credenciales()
+        em, wa = cred.get("email") or {}, cred.get("whatsapp") or {}
+        campo = lambda etiqueta, valor="", **k: ft.TextField(label=etiqueta, value=str(valor or ""), dense=True,
+                                                             border_radius=10, text_size=13, **k)
+        servidor = campo("Servidor SMTP", em.get("servidor") or "smtp.gmail.com", expand=True)
+        puerto = campo("Puerto", em.get("puerto") or 587, width=90, input_filter=validaciones.SOLO_DIGITOS, max_length=3,
+                       counter=ft.Text(""))
+        usuario = campo("Email del gimnasio", em.get("usuario"), expand=True, input_filter=validaciones.EMAIL)
+        clave = campo("Contraseña de aplicación", em.get("password"), password=True, can_reveal_password=True, expand=True)
+        remitente = campo("Nombre que ven al recibirlo", em.get("remitente") or "OlimpΩs Gym", expand=True, max_length=40,
+                          counter=ft.Text(""))
+        token = campo("Token de acceso", wa.get("token"), password=True, can_reveal_password=True, expand=True)
+        phone_id = campo("Phone number ID", wa.get("phone_number_id"), expand=True, input_filter=validaciones.SOLO_DIGITOS)
+        idioma = campo("Idioma de las plantillas", wa.get("idioma") or "es_AR", width=170)
+        prueba_tel = campo("Teléfono para probar", width=200, input_filter=validaciones.TELEFONO)
+
+        def guardar(seccion, datos):
+            todo = mensajeria.credenciales()
+            todo[seccion] = {k: v for k, v in datos.items() if v not in (None, "")}
+            mensajeria.guardar_credenciales(todo)
+            self._render()
+            self._ok("✓ Guardado en esta computadora")
+
+        def guardar_email(e):
+            try:
+                datos = {"servidor": validaciones.texto(servidor.value, "el servidor", maximo=80),
+                         "puerto": validaciones.entero(puerto.value, "el puerto", minimo=1, maximo=999),
+                         "usuario": validaciones.email(usuario.value),
+                         "password": (clave.value or "").replace(" ", ""),
+                         "remitente": validaciones.texto(remitente.value, "el nombre", maximo=40, obligatorio=False)}
+            except ValueError as ex:
+                self._ok(str(ex), RED)
+                return
+            if not datos["password"]:
+                self._ok("Falta la contraseña de aplicación.", RED)
+                return
+            guardar("email", datos)
+
+        def probar_email(e):
+            destino = neon_db.una_fila("SELECT email FROM empleados WHERE id_empleado = %s", (self.id_empleado,))
+            ok, texto = mensajeria.enviar_email((destino or {}).get("email"), "Prueba de email de OlimpΩs",
+                                                "Si te llegó este email, el envío desde el sistema funciona. ✓")
+            self._ok(texto, GREEN if ok else RED)
+
+        def guardar_whatsapp(e):
+            guardar("whatsapp", {"token": (token.value or "").strip(), "phone_number_id": (phone_id.value or "").strip(),
+                                 "idioma": (idioma.value or "es_AR").strip()})
+
+        def probar_whatsapp(e):
+            ok, texto = mensajeria.whatsapp(self.page, prueba_tel.value or "", "codigo_empleado", ["123456"])
+            self._ok(texto, GREEN if ok else RED)
+
+        def estado(activo, si, no):
+            return ft.Container(ft.Text(si if activo else no, size=11.5, weight=ft.FontWeight.W_500,
+                                        color="#15803D" if activo else "#B45309"),
+                                bgcolor="#DCFCE7" if activo else "#FEF3C7", border_radius=8,
+                                padding=ft.padding.symmetric(horizontal=10, vertical=4))
+
+        boton = lambda texto, accion, principal=True: ft.Container(
+            ft.Text(texto, size=12.5, weight=ft.FontWeight.W_500, color=DARK), bgcolor=GOLD if principal else "#F4F2EB",
+            border_radius=10, padding=ft.padding.symmetric(horizontal=14, vertical=9), on_click=accion, ink=True)
+        ayuda = lambda t: ft.Text(t, size=11.5, color=TEXT_MUTED)
+        plantillas = [ft.Text(f"• {nombre}: \"{texto}\"", size=11, color=TEXT_MUTED, selectable=True)
+                      for nombre, texto in mensajeria.PLANTILLAS.values()]
+        return ft.Column([
+            self._titulo("Mensajes", "Emails y WhatsApp para recuperar contraseñas, pasar accesos y recordar cuotas."),
+            ft.Container(height=8),
+            ft.Row([ft.Text("Email", size=15, weight=ft.FontWeight.W_600, color=DARK),
+                    estado(mensajeria.email_configurado(), "Configurado", "Sin configurar")], spacing=10),
+            ayuda("Con Gmail: activá la verificación en 2 pasos de la cuenta del gimnasio y creá una "
+                  "\"contraseña de aplicación\" en myaccount.google.com/apppasswords (16 letras). Esa va acá, "
+                  "no la contraseña normal. Sin configurar, la recuperación de socios igual anda: la manda Firebase."),
+            ft.Row([servidor, puerto], spacing=10),
+            ft.Row([usuario, clave], spacing=10),
+            ft.Row([remitente], spacing=10),
+            ft.Row([boton("Guardar email", guardar_email),
+                    boton("Mandarme un email de prueba", probar_email, False)] if mensajeria.email_configurado()
+                   else [boton("Guardar email", guardar_email)], spacing=8),
+            ft.Divider(height=28, color=GRAY_LIGHT),
+            ft.Row([ft.Text("WhatsApp", size=15, weight=ft.FontWeight.W_600, color=DARK),
+                    estado(mensajeria.whatsapp_configurado(), "Envío automático", "Modo manual (abre WhatsApp)")],
+                   spacing=10),
+            ayuda("Sin configurar, el sistema abre WhatsApp Web con el mensaje escrito y vos tocás Enviar (gratis, con "
+                  "el WhatsApp que ya usen). Para que se envíe solo hace falta WhatsApp Business Cloud API de Meta: un "
+                  "número que NO esté usándose en la app de WhatsApp, una cuenta de Meta Business y estas plantillas "
+                  "aprobadas (en español):"),
+            *plantillas,
+            ft.Row([token, phone_id], spacing=10),
+            ft.Row([idioma, boton("Guardar WhatsApp", guardar_whatsapp)], spacing=10,
+                   vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ft.Row([prueba_tel, boton("Probar WhatsApp", probar_whatsapp, False)], spacing=10,
+                   vertical_alignment=ft.CrossAxisAlignment.CENTER),
+            ayuda("Las claves se guardan solo en esta computadora (mensajeria_credentials.json), nunca en GitHub."),
+        ], spacing=10)
 
     # ── Club (solo dueño) ──
     def _club(self) -> ft.Column:

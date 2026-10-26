@@ -157,6 +157,58 @@ def dni_de_todos(forzar: bool = False) -> dict[str, str]:
     return _cache_dni
 
 
+# ── recuperar la contraseña de un socio ──
+def _api_key_web() -> str | None:
+    """La clave web de Firebase (la misma que usa la app), para pedirle a
+    Firebase que mande su propio email de recuperación. Sale del
+    google-services.json de la app o de mensajeria_credentials.json."""
+    import json
+    import mensajeria
+    clave = (mensajeria.credenciales().get("firebase") or {}).get("api_key")
+    if clave:
+        return clave
+    ruta = os.path.join(os.path.dirname(__file__), "..", "..", "AppMovil", "app", "google-services.json")
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            return json.load(f)["client"][0]["api_key"][0]["current_key"]
+    except (OSError, ValueError, KeyError, IndexError):
+        return None
+
+
+def link_recuperacion(email: str) -> str:
+    """Link de Firebase para que el socio elija una contraseña nueva (vence en 1 hora)."""
+    return fb_auth.generate_password_reset_link(email, app=_app())
+
+
+def email_recuperacion_firebase(email: str) -> tuple[bool, str]:
+    """Firebase manda SU email de recuperación (gratis, sin configurar nada).
+    Sirve cuando el gimnasio todavía no configuró su propio email."""
+    import requests
+    clave = _api_key_web()
+    if not clave:
+        return False, "Falta la clave de Firebase (google-services.json) para mandar el email."
+    try:
+        r = requests.post(f"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={clave}",
+                          json={"requestType": "PASSWORD_RESET", "email": email},
+                          headers={"X-Firebase-Locale": "es"}, timeout=20)
+    except requests.RequestException as e:
+        return False, f"No se pudo conectar con Firebase: {e}"
+    if r.ok:
+        return True, f"Firebase le mandó a {email} un email para elegir una contraseña nueva."
+    return False, f"Firebase no pudo mandar el email: {r.json().get('error', {}).get('message', r.text)}"
+
+
+def password_temporal_socio(uid: str) -> str:
+    """Le pone una contraseña temporal nueva al socio (la anterior deja de
+    andar) y la app le va a pedir que la cambie al entrar."""
+    password = generar_password()
+    fb_auth.update_user(uid, password=password, app=_app())
+    neon_db.ejecutar(
+        "INSERT INTO perfilapp (id_socio, debe_cambiar_password) SELECT id_socio, TRUE FROM socios WHERE firebase_uid = %s"
+        " ON CONFLICT (id_socio) DO UPDATE SET debe_cambiar_password = TRUE", (uid,))
+    return password
+
+
 def desactivar_acceso_socio(uid: str) -> None:
     """Bloquea el login sin borrar el historial del socio (que queda igual
     en la base, referenciado por su misma fila)."""

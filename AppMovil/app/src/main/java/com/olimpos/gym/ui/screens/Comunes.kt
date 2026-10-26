@@ -4,6 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -279,13 +283,38 @@ fun CampoOro(
     esPassword: Boolean = false,
     teclado: KeyboardType = KeyboardType.Text
 ) {
+    // Contraseñas y emails: sin mayúscula automática ni autocorrector. Antes el
+    // teclado le ponía mayúscula a la primera letra de la contraseña generada
+    // por el sistema de empleados y el login fallaba sin que se notara (se ven
+    // puntitos). El ojo deja ver lo escrito para revisarlo.
+    var visible by remember { mutableStateOf(false) }
+    val sinCorrector = esPassword || teclado == KeyboardType.Email
     OutlinedTextField(
         value = valor,
         onValueChange = onValor,
         label = { Text(etiqueta, color = Olimpos.Muted) },
         singleLine = true,
-        visualTransformation = if (esPassword) PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = teclado),
+        visualTransformation = if (esPassword && !visible) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (esPassword) KeyboardType.Password else teclado,
+            capitalization = if (sinCorrector) androidx.compose.ui.text.input.KeyboardCapitalization.None
+            else androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+            autoCorrectEnabled = !sinCorrector
+        ),
+        trailingIcon = if (esPassword) {
+            {
+                androidx.compose.material3.Icon(
+                    if (visible) androidx.compose.material.icons.Icons.Outlined.VisibilityOff
+                    else androidx.compose.material.icons.Icons.Outlined.Visibility,
+                    contentDescription = if (visible) "Ocultar contraseña" else "Ver contraseña",
+                    tint = Olimpos.Muted,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { visible = !visible }
+                        .padding(8.dp)
+                )
+            }
+        } else null,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(

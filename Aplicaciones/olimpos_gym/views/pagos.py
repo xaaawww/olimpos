@@ -19,6 +19,7 @@ import flet.canvas as cv
 from theme import *
 import pagos_repo as repo
 import validaciones as val
+from views.socios import _dialogo_recordatorio
 
 COLOR_PLAN = {"Bronce": "#C2783E", "Oro": "#E0A800", "Platino": "#64748B"}
 COLORES_AVATAR = [("#FEF3C7", "#B45309"), ("#DBEAFE", "#1D4ED8"), ("#EDE9FE", "#6D28D9"),
@@ -541,6 +542,11 @@ class PagosView:
                                + (f" · {v['telefono']}" if v["telefono"] else ""), size=11.5, color=TEXT_MUTED)],
                       spacing=0, expand=True),
             ft.Text(_plata(v["precio"]), size=13, weight=ft.FontWeight.W_600, color="#DC2626"),
+            ft.TextButton("Avisar", tooltip="Recordarle la cuota por WhatsApp o email",
+                          on_click=lambda e, x=v: (self.page.pop_dialog(), _dialogo_recordatorio(self.page, {
+                              "nombre": x["socio"], "plan": x["plan"], "vencimiento": x["vencimiento"],
+                              "telefono": x["telefono"], "email": x["email"]})),
+                          style=ft.ButtonStyle(color=GOLD_DARK)),
             ft.TextButton("Cobrar", on_click=lambda e, x=v: (self.page.pop_dialog(),
                                                              self._dialogo_pago(x["id_socio"], x["plan"])),
                           style=ft.ButtonStyle(color=GOLD_DARK)),
