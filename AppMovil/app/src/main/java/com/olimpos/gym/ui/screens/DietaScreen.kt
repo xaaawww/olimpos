@@ -310,7 +310,7 @@ private fun TarjetaDieta(
                 Modifier
                     .align(Alignment.End)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
+                    .background(androidx.compose.ui.graphics.SolidColor(Olimpos.Gold))
                     .clickable(onClick = onVer)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -528,7 +528,7 @@ private fun DetalleDieta(plato: Plato, onVolver: () -> Unit) {
                         Box(
                             Modifier
                                 .clip(RoundedCornerShape(100.dp))
-                                .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
+                                .background(androidx.compose.ui.graphics.SolidColor(Olimpos.Gold))
                                 .clickable { activar(0); reproduciendo = true }
                                 .padding(horizontal = 26.dp, vertical = 13.dp)
                         ) {
@@ -728,7 +728,7 @@ private fun PanelIngrediente(
                     Modifier
                         .size(50.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
+                        .background(androidx.compose.ui.graphics.SolidColor(Olimpos.Gold))
                         .clickable(onClick = onTogglePlay),
                     contentAlignment = Alignment.Center
                 ) {

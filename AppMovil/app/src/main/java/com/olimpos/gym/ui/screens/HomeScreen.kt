@@ -345,7 +345,7 @@ private fun OcupacionEnVivo() {
                     .fillMaxWidth(frac)
                     .height(10.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
+                    .background(androidx.compose.ui.graphics.SolidColor(Olimpos.Gold))
             )
         }
         Spacer(Modifier.height(8.dp))

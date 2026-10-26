@@ -144,7 +144,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
                     .width(mitad + 4.dp)
                     .height(38.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
+                    .background(androidx.compose.ui.graphics.SolidColor(Olimpos.Gold))
             )
             Row {
                 PISOS.forEachIndexed { i, p ->

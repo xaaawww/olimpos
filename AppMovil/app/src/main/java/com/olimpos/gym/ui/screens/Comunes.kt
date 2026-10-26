@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -216,20 +217,24 @@ fun IconoCuadrado(emoji: String) {
 @Composable
 fun BotonPrincipal(texto: String, modifier: Modifier = Modifier, habilitado: Boolean = true, onClick: () -> Unit) {
     val (padV, fuente) = tamanoBoton()
-    Box(
-        modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                if (habilitado) Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold))
-                else Brush.linearGradient(listOf(Olimpos.Muted, Olimpos.Muted))
+    // key(): al pasar de deshabilitado a habilitado se arma la caja de nuevo.
+    // Sin esto, el fondo dorado a veces no se redibujaba y el botón quedaba
+    // sin fondo (solo el texto) hasta salir y volver a la pantalla.
+    key(habilitado) {
+        Box(
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (habilitado) Olimpos.Gold else Olimpos.Muted.copy(alpha = 0.45f))
+                .clickable(enabled = habilitado, onClick = onClick)
+                .padding(vertical = padV),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                texto, fontSize = fuente.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.5.sp,
+                color = if (habilitado) Olimpos.Dark else Olimpos.Dark.copy(alpha = 0.5f)
             )
-            .alpha(if (habilitado) 1f else 0.5f)
-            .clickable(enabled = habilitado, onClick = onClick)
-            .padding(vertical = padV),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(texto, fontSize = fuente.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp, color = Olimpos.Dark)
+        }
     }
 }
 

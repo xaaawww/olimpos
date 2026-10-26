@@ -342,6 +342,20 @@ fun cargaParaEntrarEnRango(ejercicio: String, rango: RangoMuscular, pesoCorporal
     return piso * Math.pow((techo / piso).toDouble(), progreso.toDouble()).toFloat() * pesoCorporalKg
 }
 
+/** Cuánto puede subir de golpe una marca nueva respecto de la mejor ya
+ *  VERIFICADA por un entrenador: un 25% más, o 10 kg más si eso es poco
+ *  (pesos chicos, lastre en dominadas). Si todavía no tiene ninguna marca
+ *  verificada en ese ejercicio no hay tope: devuelve null y puede cargar
+ *  cualquier peso (igual queda pendiente hasta que la verifiquen). */
+fun pesoMaximoPermitido(ejercicio: String, marcas: List<MarcaPersonal>): Float? {
+    val mejorVerificada = marcas.filter { it.ejercicio == ejercicio && it.verificado }.maxOfOrNull { it.pesoKg }
+        ?: return null
+    return maxOf(mejorVerificada * 1.25f, mejorVerificada + 10f)
+}
+
+/** Peso como lo escribe la gente: "102,5" o "102.5". */
+fun leerPeso(texto: String): Float? = texto.trim().replace(",", ".").toFloatOrNull()?.takeIf { it >= 0f }
+
 /** Familia de cada ejercicio de la Calculadora, para los filtros de Mis marcas. */
 fun categoriaDeEjercicio(ejercicio: String): String = when (ejercicio) {
     "Sentadilla", "Press banca", "Peso muerto" -> "Fuerza"

@@ -49,6 +49,8 @@ import com.olimpos.gym.data.esEjercicioPesoCorporal
 import com.olimpos.gym.data.fechaLegible
 import com.olimpos.gym.data.guardarMarcaEnFirebase
 import com.olimpos.gym.data.imagenDeEjercicio
+import com.olimpos.gym.data.leerPeso
+import com.olimpos.gym.data.pesoMaximoPermitido
 import com.olimpos.gym.ui.theme.Olimpos
 import kotlinx.coroutines.launch
 
@@ -91,6 +93,7 @@ fun MarcasScreen(onVolver: () -> Unit) {
         when {
             enRegistro != null -> RegistrarMarcaScreen(
                 ejercicioInicial = enRegistro,
+                marcas = marcas,
                 onVolver = { registrando = null },
                 onRegistrar = { ejercicio, p, r ->
                     val ahora = System.currentTimeMillis()
@@ -204,16 +207,29 @@ private fun FilaMarca(ejercicio: String, vigente: MarcaPersonal?, cargando: Bool
     }
 }
 
-/** Formulario para cargar una marca nueva. */
+/** "120" o "102,5" */
+private fun formatoKg(kg: Float): String =
+    if (kg % 1f == 0f) kg.toInt().toString() else "%.1f".format(kg).replace(".", ",")
+
+/** Formulario para cargar una marca nueva. [marcas] = las del socio, para el tope por marca verificada. */
 @Composable
-private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit, onRegistrar: (String, Float, Int) -> Unit) {
+private fun RegistrarMarcaScreen(
+    ejercicioInicial: String,
+    marcas: List<MarcaPersonal>,
+    onVolver: () -> Unit,
+    onRegistrar: (String, Float, Int) -> Unit
+) {
     var ejercicio by remember { mutableStateOf(ejercicioInicial) }
     var peso by remember { mutableStateOf("") }
     var reps by remember { mutableStateOf("") }
     val esPesoCorporal = esEjercicioPesoCorporal(ejercicio)
     // En peso corporal un campo vacío es "sin lastre" (0 kg), no un dato faltante.
-    val pesoF = if (esPesoCorporal) (peso.toFloatOrNull() ?: 0f) else peso.toFloatOrNull()
+    val pesoF = if (esPesoCorporal && peso.isBlank()) 0f else leerPeso(peso)
     val repsI = reps.toIntOrNull()?.takeIf { it > 0 }
+    // Tope solo si ya tiene una marca verificada de este ejercicio; si no, puede poner cualquier peso.
+    val maximo = pesoMaximoPermitido(ejercicio, marcas)
+    val mejorVerificada = marcas.filter { it.ejercicio == ejercicio && it.verificado }.maxOfOrNull { it.pesoKg }
+    val excede = maximo != null && pesoF != null && pesoF > maximo
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         EncabezadoArena("Registrar marca", "Cargá tu levantamiento: lo verifica un entrenador.", onVolver)
@@ -241,15 +257,23 @@ private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit,
                     Spacer(Modifier.height(8.dp))
                     Text("Cuenta tu peso corporal: dejá el peso vacío si no sumaste lastre.", fontSize = 11.sp, color = CA.suave)
                 }
-                if (pesoF != null && pesoF > 150f) {
+                if (excede && maximo != null && mejorVerificada != null) {
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "⚠️ Peso inusualmente alto: se marcará para revisión.",
-                        fontSize = 11.5.sp, color = Olimpos.Red, fontWeight = FontWeight.Bold
+                        "Es demasiado de golpe: tu mejor marca verificada en $ejercicio es de ${formatoKg(mejorVerificada)} kg, " +
+                            "así que ahora podés cargar hasta ${formatoKg(maximo)} kg. Cuando tu entrenador la verifique, " +
+                            "vas a poder seguir subiendo.",
+                        fontSize = 11.5.sp, lineHeight = 15.sp, color = Olimpos.Red, fontWeight = FontWeight.SemiBold
+                    )
+                } else if (maximo != null && mejorVerificada != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Tu mejor marca verificada: ${formatoKg(mejorVerificada)} kg · podés cargar hasta ${formatoKg(maximo)} kg.",
+                        fontSize = 11.sp, color = CA.suave
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                BotonPrincipal("Registrar marca", habilitado = pesoF != null && repsI != null) {
+                BotonPrincipal("Registrar marca", habilitado = pesoF != null && repsI != null && !excede) {
                     onRegistrar(ejercicio, pesoF ?: 0f, repsI ?: 0)
                 }
             }

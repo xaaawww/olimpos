@@ -427,7 +427,7 @@ fun ArgosBurbujaFlotante(bloqueado: Boolean = false, modifier: Modifier = Modifi
             .size(TAMANO_BURBUJA)
             .shadow(8.dp, CircleShape)
             .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
+            .background(androidx.compose.ui.graphics.SolidColor(Olimpos.Gold))
             .border(1.5.dp, Olimpos.Gold, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
