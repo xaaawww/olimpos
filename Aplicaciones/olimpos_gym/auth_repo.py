@@ -20,6 +20,7 @@ from firebase_admin import auth as fb_auth
 from firebase_admin import credentials
 
 import neon_db
+import validaciones
 
 CRED_PATH = os.path.join(os.path.dirname(__file__), "firebase_credentials.json")
 _app_fb = None
@@ -46,42 +47,64 @@ def _app():
 
 def generar_password(largo: int = 10) -> str:
     """Contraseña temporal para pasarle al socio — no hace falta que la
-    recuerde el sistema, solo que se pueda leer y copiar una vez."""
-    alfabeto = string.ascii_letters + string.digits
-    return "".join(random.choices(alfabeto, k=largo))
+    recuerde el sistema, solo que se pueda leer y copiar una vez. Siempre
+    trae letras y números (sin 0/O ni 1/l/I, que se confunden al dictarla)."""
+    letras = "".join(c for c in string.ascii_letters if c not in "OlI")
+    numeros = "23456789"
+    base = [random.choice(letras) for _ in range(largo - 2)] + [random.choice(numeros) for _ in range(2)]
+    random.shuffle(base)
+    return "".join(base)
 
 
 def _dividir_nombre(completo: str) -> tuple[str, str]:
     partes = completo.split()
-    if len(partes) <= 1:
-        return (partes[0] if partes else "-"), ""
     return " ".join(partes[:-1]), partes[-1]
 
 
-def crear_acceso_socio(nombre: str, email: str, password: str, dni: str) -> tuple[bool, str]:
+def validar_socio(nombre: str, email: str, password: str, dni: str, telefono: str = "") -> dict:
+    """Revisa y limpia todos los datos de un socio nuevo; ValueError con el
+    primer problema. Incluye los repetidos: DNI y email (sin importar mayúsculas)."""
+    nombre = validaciones.nombre_persona(nombre, "el nombre y apellido")
+    if len(nombre.split()) < 2:
+        raise ValueError("Escribí nombre y apellido (por lo menos dos palabras).")
+    datos = {
+        "nombre": nombre,
+        "dni": validaciones.dni(dni),
+        "telefono": validaciones.telefono(telefono, obligatorio=True),
+        "email": validaciones.email(email),
+        "password": validaciones.password(password),
+    }
+    if validaciones.ya_existe("socios", "dni", datos["dni"]):
+        raise ValueError("Ya hay un socio registrado con ese DNI.")
+    if validaciones.ya_existe("socios", "email", datos["email"], sin_mayusculas=True):
+        raise ValueError("Ya hay un socio registrado con ese email.")
+    return datos
+
+
+def crear_acceso_socio(nombre: str, email: str, password: str, dni: str, telefono: str = "") -> tuple[bool, str]:
     """Crea el usuario en Firebase Auth y su ficha en la tabla "socios".
     Devuelve (True, uid) si salió bien, o (False, mensaje de error) si no."""
-    dni = (dni or "").strip()
-    if dni and not re.fullmatch(r"[0-9]{6,10}", dni):
-        return False, "El DNI debe tener solo números (entre 6 y 10 dígitos)."
-    if dni and neon_db.una_fila("SELECT 1 AS x FROM socios WHERE dni = %s", (dni,)):
-        return False, "Ya existe un socio con ese DNI."
+    try:
+        d = validar_socio(nombre, email, password, dni, telefono)
+    except ValueError as e:
+        return False, str(e)
+    nombre, email, password, dni = d["nombre"], d["email"], d["password"], d["dni"]
 
     try:
-        user = fb_auth.create_user(email=email.strip(), password=password, display_name=nombre.strip(), app=_app())
+        user = fb_auth.create_user(email=email, password=password, display_name=nombre, app=_app())
     except fb_auth.EmailAlreadyExistsError:
-        return False, "Ya existe una cuenta con ese email."
+        return False, "Ya existe una cuenta de la app con ese email."
     except ValueError as e:
         return False, f"Datos inválidos: {e}"
     except Exception as e:
         return False, str(e)
 
-    nom, ape = _dividir_nombre(nombre.strip())
+    nom, ape = _dividir_nombre(nombre)
     try:
         with neon_db.transaccion() as cur:
             cur.execute(
-                "INSERT INTO socios (firebase_uid, dni, nombre, apellido, email) VALUES (%s,%s,%s,%s,%s) RETURNING id_socio",
-                (user.uid, dni or None, nom, ape, email.strip()),
+                "INSERT INTO socios (firebase_uid, dni, nombre, apellido, email, telefono) VALUES (%s,%s,%s,%s,%s,%s) RETURNING id_socio",
+                (user.uid, dni, nom, ape, email, d["telefono"]),
             )
             id_socio = cur.fetchone()["id_socio"]
             # En el primer login la app móvil obliga a cambiar esta contraseña
@@ -92,9 +115,14 @@ def crear_acceso_socio(nombre: str, email: str, password: str, dni: str) -> tupl
             fb_auth.delete_user(user.uid, app=_app())
         except Exception:
             pass
-        return False, f"No se pudo guardar la ficha del socio: {e}"
+        texto = str(e)
+        if "socios_dni_key" in texto:
+            return False, "Ya hay un socio registrado con ese DNI."
+        if "socios_email" in texto:
+            return False, "Ya hay un socio registrado con ese email."
+        return False, f"No se pudo guardar la ficha del socio: {texto.splitlines()[0]}"
 
-    ficha = {"uid": user.uid, "nombre": nombre.strip(), "email": email.strip(), "activo": True,
+    ficha = {"uid": user.uid, "nombre": nombre, "email": email, "activo": True,
              "creado_ms": int(time.time() * 1000), "debe_cambiar_password": True}
     global _cache_socios_app, _cache_dni
     if _cache_socios_app is not None:

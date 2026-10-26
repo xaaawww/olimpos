@@ -21,6 +21,7 @@ import time
 import uuid
 
 import neon_db
+import validaciones
 
 # Mismas categorías que reconoce la app móvil (TablonRepository.kt) para
 # elegir el ícono y el color de cada publicación.
@@ -72,6 +73,10 @@ def nueva_publicacion(autor: str) -> dict:
 
 def guardar_publicacion(publicaciones: list[dict], pub: dict) -> list[dict]:
     global _cache_publicaciones
+    pub["titulo"] = validaciones.texto(pub.get("titulo"), "el título", maximo=MAX_TITULO, minimo=3)
+    pub["mensaje"] = validaciones.texto(pub.get("mensaje"), "el mensaje", maximo=MAX_MENSAJE, minimo=5, multilinea=True)
+    if pub.get("categoria") not in CATEGORIAS:
+        raise ValueError("Elegí una categoría.")
     pub["actualizado_ms"] = int(time.time() * 1000)
     if str(pub["id"]).isdigit():
         neon_db.ejecutar(

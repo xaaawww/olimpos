@@ -5,6 +5,7 @@ from theme import *
 from components import stat_card, section_card, status_pill, avatar, action_button, page_header
 import auth_repo
 import socios_repo
+import validaciones
 
 
 def _link_whatsapp(telefono: str, nombre: str, email: str, password: str) -> str:
@@ -131,12 +132,21 @@ def _dialogo_credenciales(page: ft.Page, nombre: str, email: str, password: str,
 
 
 def _dialogo_nuevo_socio(page: ft.Page, on_creado=None):
-    campo_nombre = ft.TextField(label="Nombre y apellido", width=360, autofocus=True)
-    campo_dni = ft.TextField(label="DNI", width=360, keyboard_type=ft.KeyboardType.NUMBER)
-    campo_telefono = ft.TextField(label="Teléfono (con código de área)", width=360,
-                                   keyboard_type=ft.KeyboardType.PHONE, hint_text="Ej: 5491122334455")
-    campo_email = ft.TextField(label="Email", width=360, keyboard_type=ft.KeyboardType.EMAIL)
-    campo_password = ft.TextField(label="Contraseña", width=270, value=auth_repo.generar_password())
+    # Cada campo solo deja escribir lo que corresponde (el DNI solo números, etc.)
+    campo_nombre = ft.TextField(label="Nombre y apellido *", width=360, autofocus=True,
+                                input_filter=validaciones.NOMBRE, max_length=validaciones.MAX_NOMBRE, counter=ft.Text(""), error_max_lines=2,
+                                capitalization=ft.TextCapitalization.WORDS)
+    campo_dni = ft.TextField(label="DNI *", width=360, keyboard_type=ft.KeyboardType.NUMBER,
+                             input_filter=validaciones.SOLO_DIGITOS, max_length=8, hint_text="Solo números, sin puntos",
+                             counter=ft.Text(""), error_max_lines=2)
+    campo_telefono = ft.TextField(label="Teléfono (con código de área) *", width=360,
+                                   keyboard_type=ft.KeyboardType.PHONE, hint_text="Ej: 5491122334455",
+                                   input_filter=validaciones.TELEFONO, max_length=20, counter=ft.Text(""), error_max_lines=2)
+    campo_email = ft.TextField(label="Email *", width=360, keyboard_type=ft.KeyboardType.EMAIL,
+                               input_filter=validaciones.EMAIL, max_length=validaciones.MAX_EMAIL, counter=ft.Text(""),
+                               error_max_lines=2)
+    campo_password = ft.TextField(label="Contraseña *", width=270, value=auth_repo.generar_password(), max_length=64,
+                                  counter=ft.Text(""), error_max_lines=2)
     error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_500, visible=False)
 
     def _regenerar(e):
@@ -144,22 +154,57 @@ def _dialogo_nuevo_socio(page: ft.Page, on_creado=None):
         page.update()
 
     def _crear(e):
-        nombre = (campo_nombre.value or "").strip()
-        dni = (campo_dni.value or "").strip()
-        telefono = (campo_telefono.value or "").strip()
-        email = (campo_email.value or "").strip()
-        password = (campo_password.value or "").strip()
-        if not nombre or not dni or not telefono or not email or not password:
-            error_text.value = "Completá nombre, DNI, teléfono, email y contraseña."
-            error_text.visible = True
+        # Primero el formato de cada campo, con el error debajo de cada uno
+        def regla_nombre(v):
+            n = validaciones.nombre_persona(v, "el nombre y apellido")
+            if len(n.split()) < 2:
+                raise ValueError("Escribí nombre y apellido (por lo menos dos palabras).")
+
+        def regla_dni(v):
+            if validaciones.ya_existe("socios", "dni", validaciones.dni(v)):
+                raise ValueError("Ya hay un socio registrado con ese DNI.")
+
+        def regla_email(v):
+            if validaciones.ya_existe("socios", "email", validaciones.email(v), sin_mayusculas=True):
+                raise ValueError("Ya hay un socio registrado con ese email.")
+
+        # Se revisan todos a la vez: cada error aparece debajo de su campo
+        reglas = [
+            (campo_nombre, regla_nombre),
+            (campo_dni, regla_dni),
+            (campo_telefono, lambda v: validaciones.telefono(v, obligatorio=True)),
+            (campo_email, regla_email),
+            (campo_password, validaciones.password),
+        ]
+        hay_errores = False
+        for campo, regla in reglas:
+            try:
+                regla(campo.value)
+                campo.error = None
+            except ValueError as ex:
+                campo.error = str(ex)
+                hay_errores = True
+        error_text.visible = False
+        if hay_errores:
             page.update()
             return
-        ok, resultado = auth_repo.crear_acceso_socio(nombre, email, password, dni)
+        # Después, lo que necesita la base (nombre y apellido, DNI/email repetidos)
+        ok, resultado = auth_repo.crear_acceso_socio(campo_nombre.value, campo_email.value, campo_password.value,
+                                                     campo_dni.value, campo_telefono.value)
         if not ok:
-            error_text.value = resultado
-            error_text.visible = True
+            destino = campo_dni if "DNI" in resultado else campo_email if "email" in resultado else \
+                campo_nombre if "nombre" in resultado else None
+            if destino is not None:
+                destino.error = resultado
+            else:
+                error_text.value = resultado
+                error_text.visible = True
             page.update()
             return
+        nombre = validaciones.nombre_persona(campo_nombre.value)
+        email = validaciones.email(campo_email.value)
+        password = campo_password.value
+        telefono = validaciones.telefono(campo_telefono.value)
         page.pop_dialog()
         if on_creado:
             on_creado()

@@ -14,6 +14,8 @@ from theme import *
 from components import section_card, action_button, page_header, status_pill, avatar
 import auth_repo
 import membresias_repo as repo
+import validaciones
+from datetime import datetime
 
 
 class EditorMembresiasView:
@@ -129,6 +131,7 @@ class EditorMembresiasView:
         )
         campo_fecha = ft.TextField(
             label="Fecha de inicio (dd/mm/aaaa)", value=self.fecha_texto, width=200,
+            input_filter=validaciones.FECHA, max_length=10,
             on_change=lambda e: setattr(self, "fecha_texto", e.control.value),
         )
 
@@ -162,14 +165,13 @@ class EditorMembresiasView:
         ], spacing=16, scroll=ft.ScrollMode.AUTO, expand=True)
 
     def _guardar(self, e):
-        fecha_ms = repo.parsear_fecha(self.fecha_texto or "")
-        if fecha_ms is None:
-            self.aviso = "Fecha inválida — usá el formato dd/mm/aaaa."
-            self._render()
-            return
         try:
+            inicio = validaciones.fecha(self.fecha_texto, "la fecha de inicio")
+            fecha_ms = int(datetime.combine(inicio, datetime.min.time()).timestamp() * 1000)
             self.membresias = repo.asignar_membresia(self.socio_id, self.plan_sel, fecha_ms, self.nombre_asignador)
             self.aviso = "Membresía guardada ✓ Ya está disponible en la app del socio."
+        except ValueError as ex:
+            self.aviso = f"⚠️ {ex}"
         except Exception as ex:
             self.aviso = f"No se pudo guardar: {ex}"
         self._render()

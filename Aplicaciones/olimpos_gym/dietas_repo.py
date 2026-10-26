@@ -39,6 +39,7 @@ import psycopg
 from PIL import Image as PILImage
 
 import neon_db
+import validaciones
 
 # Tamaño máximo del lado más largo y calidad JPEG.
 DIMENSION_MAXIMA = 700
@@ -151,8 +152,45 @@ def procesar_imagen(ruta_origen: str) -> str:
     return comprimir_imagen(PILImage.open(ruta_origen))
 
 
+MAX_KCAL = 3000          # un plato, no un día entero
+MAX_GRAMOS = 300
+
+
+def validar_plato(plato: dict) -> None:
+    """Revisa y limpia el plato antes de guardarlo (ValueError con el primer problema)."""
+    plato["nombre"] = validaciones.texto(plato.get("nombre"), "el nombre del plato", maximo=80, minimo=3)
+    excluir = ("id_plato", int(plato["id"])) if str(plato.get("id", "")).isdigit() else None
+    if validaciones.ya_existe("platos", "nombre", plato["nombre"], excluir, sin_mayusculas=True):
+        raise ValueError(f"Ya hay un plato llamado \"{plato['nombre']}\".")
+    plato["descripcion"] = validaciones.texto(plato.get("descripcion"), "la descripción", maximo=255,
+                                              obligatorio=False) or ""
+    m = plato.setdefault("macros", {})
+    m["kcal"] = validaciones.entero(m.get("kcal") or 0, "las calorías", minimo=0, maximo=MAX_KCAL)
+    for clave, nombre in (("proteinas", "las proteínas"), ("carbs", "los carbohidratos"), ("grasas", "las grasas")):
+        m[clave] = validaciones.entero(m.get(clave) or 0, nombre, minimo=0, maximo=MAX_GRAMOS)
+    plato["tags"] = validaciones.etiquetas(plato.get("tags", []), maximo_items=3, maximo_largo=20)
+    for p in plato.get("puntos", []):
+        p["nombre"] = validaciones.texto(p.get("nombre"), "el nombre del ingrediente", maximo=80, minimo=2)
+        p["kcal"] = validaciones.texto(p.get("kcal"), f"las calorías de {p['nombre']}", maximo=50, obligatorio=False) or ""
+        p["aporte"] = validaciones.texto(p.get("aporte"), f"el aporte de {p['nombre']}", maximo=500, obligatorio=False,
+                                         multilinea=True) or ""
+        p["tags"] = validaciones.etiquetas(p.get("tags", []), maximo_items=3, maximo_largo=20,
+                                           campo=f"las etiquetas de {p['nombre']}")
+        beneficios = [validaciones.texto(b, f"un beneficio de {p['nombre']}", maximo=200)
+                      for b in p.get("beneficios", []) if str(b).strip()]
+        if len(beneficios) > 8:
+            raise ValueError(f"{p['nombre']} puede tener hasta 8 beneficios.")
+        p["beneficios"] = beneficios
+    if plato.get("publicado"):
+        if not m["kcal"]:
+            raise ValueError("Para publicarlo, cargá las calorías del plato.")
+        if not plato.get("imagen"):
+            raise ValueError("Para publicarlo, agregá una foto del plato.")
+
+
 def guardar_plato(platos: list[dict], plato: dict) -> list[dict]:
     global _cache_platos
+    validar_plato(plato)
     plato["actualizado"] = datetime.now().isoformat(timespec="seconds")
     m = plato.get("macros") or {}
     estado = "publicado" if plato.get("publicado") else "borrador"

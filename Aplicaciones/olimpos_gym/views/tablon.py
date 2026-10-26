@@ -203,6 +203,10 @@ class TablonView:
         self.pub["mensaje"] = self.pub["mensaje"].strip()
         try:
             self.publicaciones = repo.guardar_publicacion(self.publicaciones, self.pub)
+        except ValueError as ex:
+            self.aviso = f"⚠ {ex}"
+            self._render()
+            return
         except Exception as ex:
             self.aviso = f"No se pudo guardar: {ex}"
             self._render()

@@ -21,6 +21,7 @@ from theme import *
 from components import status_pill
 import empleados_credenciales
 import personal_repo as repo
+import validaciones as val
 
 COLOR_ROL = {
     "dueno": ("#FEF3C7", "#B45309"), "admin": ("#DBEAFE", "#1D4ED8"), "entrenador": ("#DCFCE7", "#15803D"),
@@ -87,6 +88,39 @@ def _fecha(texto: str) -> date | None:
         return datetime.strptime((texto or "").strip(), "%d/%m/%Y").date()
     except ValueError:
         return None
+
+
+def _reglas_empleado(nombre, apellido, dni, telefono, email, sueldo, ingreso, id_empleado=None,
+                     usuario=None, dni_obligatorio=True) -> list:
+    """Las reglas de cada campo del empleado (alta o edición), para mostrar
+    todos los errores juntos. Incluye DNI, email y usuario repetidos."""
+    excluir = ("id_empleado", id_empleado) if id_empleado else None
+
+    def regla_dni(v):
+        limpio = val.dni(v, obligatorio=dni_obligatorio)
+        if val.ya_existe("empleados", "dni", limpio, excluir):
+            raise ValueError("Ya hay un empleado con ese DNI.")
+
+    def regla_email(v):
+        if val.ya_existe("empleados", "email", val.email(v), excluir, sin_mayusculas=True):
+            raise ValueError("Ya hay un empleado con ese email.")
+
+    def regla_usuario(v):
+        if val.ya_existe("empleados", "usuario", val.usuario(v), sin_mayusculas=True):
+            raise ValueError("Ese usuario ya existe: elegí otro.")
+
+    reglas = [
+        (nombre, lambda v: val.nombre_persona(v, "el nombre")),
+        (apellido, lambda v: val.nombre_persona(v, "el apellido")),
+        (dni, regla_dni),
+        (telefono, lambda v: val.telefono(v)),
+        (email, regla_email),
+        (sueldo, lambda v: val.decimal(v, "el sueldo", minimo=0, maximo=repo.SUELDO_MAXIMO, obligatorio=False)),
+        (ingreso, lambda v: val.fecha(v, "la fecha de ingreso", minimo=date(1990, 1, 1), maximo=date.today())),
+    ]
+    if usuario is not None:
+        reglas.append((usuario, regla_usuario))
+    return reglas
 
 
 class PersonalView:
@@ -335,12 +369,15 @@ class PersonalView:
 
         def campo(etiqueta, valor, **k):
             return ft.TextField(label=etiqueta, value=valor or "", dense=True, border_radius=10, border_color=GRAY_LIGHT,
-                                text_size=13, disabled=not editable, expand=k.pop("expand", True), **k)
-        nombre, apellido = campo("Nombre", e["nombre"]), campo("Apellido", e["apellido"])
-        dni = campo("DNI", e["dni"], keyboard_type=ft.KeyboardType.NUMBER)
-        telefono = campo("Teléfono", e["telefono"], keyboard_type=ft.KeyboardType.PHONE)
-        email = campo("Email", e["email"], keyboard_type=ft.KeyboardType.EMAIL)
-        direccion = campo("Dirección", e["direccion"])
+                                text_size=13, disabled=not editable, expand=k.pop("expand", True), error_max_lines=2, **k)
+        nombre = campo("Nombre *", e["nombre"], input_filter=val.NOMBRE, max_length=val.MAX_NOMBRE)
+        apellido = campo("Apellido *", e["apellido"], input_filter=val.NOMBRE, max_length=val.MAX_NOMBRE)
+        dni = campo("DNI *", e["dni"], keyboard_type=ft.KeyboardType.NUMBER, input_filter=val.SOLO_DIGITOS, max_length=8)
+        telefono = campo("Teléfono", e["telefono"], keyboard_type=ft.KeyboardType.PHONE, input_filter=val.TELEFONO,
+                         max_length=20)
+        email = campo("Email *", e["email"], keyboard_type=ft.KeyboardType.EMAIL, input_filter=val.EMAIL,
+                      max_length=val.MAX_EMAIL)
+        direccion = campo("Dirección", e["direccion"], max_length=val.MAX_DIRECCION)
         roles = [(k, v) for k, v in repo.ROLES.items() if self.rol_actual == "dueno" or k != "dueno"]
         rol = ft.Dropdown(label="Rol", value=e["rol"], dense=True, border_radius=10, border_color=GRAY_LIGHT, text_size=13,
                           options=[ft.DropdownOption(key=k, text=v) for k, v in roles], expand=True,
@@ -348,10 +385,12 @@ class PersonalView:
         turno = ft.Dropdown(label="Turno", value=e["turno"], dense=True, border_radius=10, border_color=GRAY_LIGHT,
                             text_size=13, options=[ft.DropdownOption(key=t, text=t) for t in repo.TURNOS], expand=True,
                             disabled=not editable)
-        especialidad = campo("Especialidad", e["especialidad"], hint_text="Ej.: Musculación, Nutrición deportiva")
-        ingreso = campo("Fecha de ingreso", f"{e['ingreso']:%d/%m/%Y}" if e["ingreso"] else "", hint_text="dd/mm/aaaa")
+        especialidad = campo("Especialidad", e["especialidad"], hint_text="Ej.: Musculación, Nutrición deportiva",
+                             max_length=120)
+        ingreso = campo("Fecha de ingreso *", f"{e['ingreso']:%d/%m/%Y}" if e["ingreso"] else "", hint_text="dd/mm/aaaa",
+                        input_filter=val.FECHA, max_length=10)
         sueldo = campo("Sueldo mensual", f"{e['sueldo']:.0f}" if e["sueldo"] else "", prefix="$ ",
-                       keyboard_type=ft.KeyboardType.NUMBER)
+                       keyboard_type=ft.KeyboardType.NUMBER, input_filter=val.MONTO, max_length=15)
         fila_esp = ft.Row([especialidad], visible=e["rol"] in repo.CON_ESPECIALIDAD)
 
         def cambio_rol(ev):
@@ -360,20 +399,25 @@ class PersonalView:
         rol.on_select = cambio_rol
         error = ft.Text("", size=12, color=RED)
 
+        campos = {"apellido": apellido, "nombre": nombre, "DNI": dni, "email": email, "teléfono": telefono,
+                  "dirección": direccion, "especialidad": especialidad, "ingreso": ingreso, "sueldo": sueldo}
+
         def guardar(ev):
-            f = _fecha(ingreso.value)
-            if not f:
-                error.value = "Revisá la fecha de ingreso (dd/mm/aaaa)."
-                error.update()
+            reglas = _reglas_empleado(nombre, apellido, dni, telefono, email, sueldo, ingreso, e["id_empleado"],
+                                      dni_obligatorio=bool(e["dni"]))
+            if not val.revisar_varios(reglas):
+                error.value = "Revisá los campos marcados en rojo."
+                self.page.update()
                 return
             try:
+                f = val.fecha(ingreso.value, "la fecha de ingreso")
                 repo.actualizar(e["id_empleado"], {
                     "nombre": nombre.value, "apellido": apellido.value, "dni": dni.value, "email": email.value,
                     "telefono": telefono.value, "direccion": direccion.value, "rol": rol.value, "turno": turno.value,
                     "especialidad": especialidad.value, "sueldo": sueldo.value, "ingreso": f}, self.firma)
             except ValueError as ex:
-                error.value = str(ex)
-                error.update()
+                val.error_en_campo(str(ex), campos, error)
+                self.page.update()
                 return
             self._avisar(f"✓ Datos de {nombre.value.strip()} guardados")
             self._recargar()
@@ -542,17 +586,27 @@ class PersonalView:
 
     def _dialogo_alta(self):
         def campo(etiqueta, **k):
-            return ft.TextField(label=etiqueta, dense=True, border_radius=10, text_size=13, expand=True, **k)
-        nombre, apellido, dni, telefono = campo("Nombre *"), campo("Apellido *"), campo("DNI"), campo("Teléfono")
-        email, usuario = campo("Email *"), campo("Usuario para entrar *")
+            return ft.TextField(label=etiqueta, dense=True, border_radius=10, text_size=13, expand=True, error_max_lines=2,
+                                counter=ft.Text(""), **k)
+        nombre = campo("Nombre *", input_filter=val.NOMBRE, max_length=val.MAX_NOMBRE,
+                       capitalization=ft.TextCapitalization.WORDS)
+        apellido = campo("Apellido *", input_filter=val.NOMBRE, max_length=val.MAX_NOMBRE,
+                         capitalization=ft.TextCapitalization.WORDS)
+        dni = campo("DNI *", input_filter=val.SOLO_DIGITOS, max_length=8, keyboard_type=ft.KeyboardType.NUMBER,
+                    hint_text="Solo números")
+        telefono = campo("Teléfono", input_filter=val.TELEFONO, max_length=20, keyboard_type=ft.KeyboardType.PHONE)
+        email = campo("Email *", input_filter=val.EMAIL, max_length=val.MAX_EMAIL, keyboard_type=ft.KeyboardType.EMAIL)
+        usuario = campo("Usuario para entrar *", input_filter=val.USUARIO, max_length=30)
         roles = [(k, v) for k, v in repo.ROLES.items() if self.rol_actual == "dueno" or k != "dueno"]
         rol = ft.Dropdown(label="Rol *", dense=True, border_radius=10, text_size=13, expand=True,
                           options=[ft.DropdownOption(key=k, text=v) for k, v in roles])
         turno = ft.Dropdown(label="Turno", dense=True, border_radius=10, text_size=13, expand=True,
                             options=[ft.DropdownOption(key=t, text=t) for t in repo.TURNOS])
-        sueldo = campo("Sueldo mensual", prefix="$ ", keyboard_type=ft.KeyboardType.NUMBER)
-        ingreso = campo("Fecha de ingreso", value=date.today().strftime("%d/%m/%Y"))
-        especialidad = campo("Especialidad")
+        sueldo = campo("Sueldo mensual", prefix="$ ", keyboard_type=ft.KeyboardType.NUMBER, input_filter=val.MONTO,
+                       max_length=15)
+        ingreso = campo("Fecha de ingreso *", value=date.today().strftime("%d/%m/%Y"), input_filter=val.FECHA,
+                        max_length=10, hint_text="dd/mm/aaaa")
+        especialidad = campo("Especialidad", max_length=120)
         fila_esp = ft.Row([especialidad], visible=False)
         error = ft.Text("", size=12, color=RED)
 
@@ -570,20 +624,30 @@ class PersonalView:
             fila_esp.update()
         rol.on_select = cambio_rol
 
+        campos = {"apellido": apellido, "nombre": nombre, "DNI": dni, "email": email, "teléfono": telefono,
+                  "usuario": usuario, "especialidad": especialidad, "ingreso": ingreso, "sueldo": sueldo}
+
         def crear(ev):
-            f = _fecha(ingreso.value)
-            if not f:
-                error.value = "Revisá la fecha de ingreso (dd/mm/aaaa)."
-                error.update()
+            reglas = _reglas_empleado(nombre, apellido, dni, telefono, email, sueldo, ingreso, usuario=usuario)
+            todo_bien = val.revisar_varios(reglas)
+            if not rol.value:
+                error.value = "Elegí el rol."
+                todo_bien = False
+            elif not todo_bien:
+                error.value = "Revisá los campos marcados en rojo."
+            if not todo_bien:
+                self.page.update()
                 return
+            error.value = ""
             try:
+                f = val.fecha(ingreso.value, "la fecha de ingreso")
                 nuevo, password = repo.crear({
                     "nombre": nombre.value, "apellido": apellido.value, "dni": dni.value, "email": email.value,
                     "telefono": telefono.value, "direccion": None, "rol": rol.value, "turno": turno.value,
                     "especialidad": especialidad.value, "sueldo": sueldo.value, "ingreso": f}, usuario.value, self.firma)
             except ValueError as ex:
-                error.value = str(ex)
-                error.update()
+                val.error_en_campo(str(ex), campos, error)
+                self.page.update()
                 return
             self.page.pop_dialog()
             self.sel, self.pestana, self.filtro = nuevo, "datos", "activos"
@@ -637,23 +701,19 @@ class PersonalView:
                     size=13, color=TEXT_MUTED)], [self._cancelar(), self._boton_ok("Restablecer", si)])
 
     def _dialogo_baja(self, e):
-        fecha = ft.TextField(label="Fecha de baja", value=date.today().strftime("%d/%m/%Y"), dense=True,
-                             border_radius=10, text_size=13)
+        fecha = ft.TextField(label="Fecha de baja *", value=date.today().strftime("%d/%m/%Y"), dense=True,
+                             border_radius=10, text_size=13, input_filter=val.FECHA, max_length=10, hint_text="dd/mm/aaaa")
         motivo = ft.TextField(label="Motivo *", dense=True, border_radius=10, text_size=13, multiline=True,
                               min_lines=2, max_length=255)
         error = ft.Text("", size=12, color=RED)
 
         def si(ev):
-            f = _fecha(fecha.value)
-            if not f:
-                error.value = "Revisá la fecha (dd/mm/aaaa)."
-                error.update()
-                return
             try:
+                f = val.fecha(fecha.value, "la fecha de baja")
                 repo.dar_de_baja(e["id_empleado"], f, motivo.value)
             except ValueError as ex:
-                error.value = str(ex)
-                error.update()
+                val.error_en_campo(str(ex), {"fecha": fecha, "motivo": motivo}, error)
+                self.page.update()
                 return
             self.page.pop_dialog()
             self._avisar(f"{e['nombre_completo']} quedó dado de baja", GOLD_DARK)
@@ -684,8 +744,9 @@ class PersonalView:
                               text_size=13, expand=True,
                               options=[ft.DropdownOption(key=p.isoformat(), text=f"{MESES[p.month - 1].capitalize()} {p.year}")
                                        for p in meses])
-        monto = ft.TextField(label="Monto", value=f"{e['sueldo']:.0f}" if e["sueldo"] else "", prefix="$ ", dense=True,
-                             border_radius=10, text_size=13, expand=True, keyboard_type=ft.KeyboardType.NUMBER)
+        monto = ft.TextField(label="Monto *", value=f"{e['sueldo']:.0f}" if e["sueldo"] else "", prefix="$ ", dense=True,
+                             border_radius=10, text_size=13, expand=True, keyboard_type=ft.KeyboardType.NUMBER,
+                             input_filter=val.MONTO, max_length=15)
         medio = ft.Dropdown(label="Cómo se pagó", value="Transferencia", dense=True, border_radius=10, text_size=13,
                             expand=True, options=[ft.DropdownOption(key=x, text=x) for x in repo.MEDIOS])
         nota = ft.TextField(label="Nota (opcional)", dense=True, border_radius=10, text_size=13, max_length=255)
@@ -699,16 +760,15 @@ class PersonalView:
 
         def guardar(ev):
             try:
-                valor = repo.numero(monto.value)
-            except ValueError:
-                error.value = "El monto tiene que ser un número."
-                error.update()
-                return
-            try:
+                valor = val.monto(monto.value, maximo=repo.SUELDO_MAXIMO)
                 repo.registrar_pago(e["id_empleado"], date.fromisoformat(periodo.value), concepto.value, valor,
                                     medio.value, nota.value, self.firma)
+            except ValueError as ex:
+                val.error_en_campo(str(ex), {"monto": monto, "nota": nota}, error)
+                self.page.update()
+                return
             except Exception as ex:
-                error.value = str(ex)
+                error.value = f"No se pudo registrar: {ex}"
                 error.update()
                 return
             self.page.pop_dialog()

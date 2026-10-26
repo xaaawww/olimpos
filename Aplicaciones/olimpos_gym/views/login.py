@@ -5,6 +5,8 @@ import flet as ft
 from theme import *
 import empleados_credenciales as _creds
 import configuracion_repo
+import neon_db
+import validaciones
 
 
 class LoginView:
@@ -29,7 +31,15 @@ class LoginView:
             self._mostrar_error(str(ex))
             return
         if role is None:
-            self._mostrar_error("Usuario o contraseña incorrectos")
+            # Avisa cuántos intentos le quedan antes del bloqueo (sin decir si el usuario existe)
+            try:
+                fila = neon_db.una_fila("SELECT id_empleado FROM empleados WHERE usuario = %s AND estado = 'activo'",
+                                        (usuario.lower(),))
+                quedan = _creds.MAX_INTENTOS - _creds._fallidos_recientes(fila["id_empleado"]) if fila else None
+            except Exception:
+                quedan = None
+            self._mostrar_error("Usuario o contraseña incorrectos"
+                                + (f" · te quedan {quedan} intento{'s' if quedan != 1 else ''}" if quedan and quedan <= 3 else ""))
             return
 
         self.error_text.value = ""
@@ -72,13 +82,14 @@ class LoginView:
             label="Usuario", width=320, border_color=ft.Colors.with_opacity(0.25, GOLD),
             focused_border_color=GOLD, color=ft.Colors.WHITE, label_style=ft.TextStyle(color=GRAY),
             cursor_color=GOLD, on_submit=lambda e: self.password_field.focus(),
+            input_filter=validaciones.USUARIO, max_length=30, counter=ft.Text(""),
             value=configuracion_repo.usuario_recordado(),   # "Recordar mi usuario" (Configuración)
         )
         self.password_field = ft.TextField(
             label="Contraseña", width=320, password=True, can_reveal_password=True,
             border_color=ft.Colors.with_opacity(0.25, GOLD), focused_border_color=GOLD,
             color=ft.Colors.WHITE, label_style=ft.TextStyle(color=GRAY), cursor_color=GOLD,
-            on_submit=self._do_login,
+            on_submit=self._do_login, max_length=64, counter=ft.Text(""),
         )
         self.error_text = ft.Text("", size=12, color=RED, weight=ft.FontWeight.W_500)
 

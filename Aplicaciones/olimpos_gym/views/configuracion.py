@@ -18,6 +18,7 @@ from theme import *
 import empleados_credenciales
 import configuracion_repo as cfg
 import notificaciones_repo
+import validaciones
 
 DESCRIPCION_AVISO = {
     "membresia_vencida": "Socios con la membresía vencida que todavía no renovaron.",
@@ -317,22 +318,21 @@ class ConfiguracionView:
                               text_size=13, max_length=40, counter=ft.Text(""))
         capacidad = ft.TextField(value=str(club["capacidad_maxima"]), width=90, dense=True, border_radius=10,
                                  border_color=GRAY_LIGHT, text_size=13, keyboard_type=ft.KeyboardType.NUMBER,
-                                 suffix="pers.")
+                                 suffix="pers.", input_filter=validaciones.SOLO_DIGITOS, max_length=4, counter=ft.Text(""))
 
         def guardar_nombre(e=None):
-            texto = (nombre.value or "").strip()
-            if not texto:
-                self._ok("Escribí el nombre del gimnasio.", RED)
+            try:
+                texto = validaciones.texto(nombre.value, "el nombre del gimnasio", maximo=40, minimo=2)
+            except ValueError as ex:
+                self._ok(str(ex), RED)
                 return
-            guardar_club("nombre", texto[:40], recargar=True)
+            guardar_club("nombre", texto, recargar=True)
 
         def guardar_capacidad(e=None):
             try:
-                n = int((capacidad.value or "").strip())
-                if not 1 <= n <= 5000:
-                    raise ValueError
-            except ValueError:
-                self._ok("La capacidad tiene que ser un número entre 1 y 5000.", RED)
+                n = validaciones.entero(capacidad.value, "la capacidad", minimo=1, maximo=5000)
+            except ValueError as ex:
+                self._ok(str(ex), RED)
                 return
             guardar_club("capacidad_maxima", n)
 

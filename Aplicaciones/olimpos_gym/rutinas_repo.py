@@ -26,6 +26,7 @@
 from datetime import datetime
 
 import neon_db
+import validaciones
 from empleados_credenciales import id_empleado_actual
 
 # Caché en memoria: uid -> lista de TODAS las rutinas de ese socio (de cualquier origen).
@@ -103,14 +104,42 @@ def nuevo_ejercicio_rutina() -> dict:
     return {"ejercicio_id": None, "nombre": "", "series_objetivo": 3, "peso_base_kg": 0.0, "es_peso_corporal": False}
 
 
+MAX_EJERCICIOS = 30
+MAX_SERIES = 20
+MAX_PESO_KG = 500
+
+
+def validar_rutina(rutina: dict) -> None:
+    """Revisa y limpia la rutina antes de guardarla (ValueError con el primer problema)."""
+    rutina["nombre"] = validaciones.texto(rutina.get("nombre"), "el nombre de la rutina", maximo=80, minimo=3)
+    ejercicios = rutina.get("ejercicios") or []
+    if not ejercicios:
+        raise ValueError("Agregá al menos un ejercicio.")
+    if len(ejercicios) > MAX_EJERCICIOS:
+        raise ValueError(f"Una rutina puede tener hasta {MAX_EJERCICIOS} ejercicios.")
+    for e in ejercicios:
+        nombre = e.get("nombre") or "un ejercicio"
+        e["series_objetivo"] = validaciones.entero(e.get("series_objetivo"), f"las series de {nombre}",
+                                                   minimo=1, maximo=MAX_SERIES)
+        if e.get("es_peso_corporal"):
+            e["peso_base_kg"] = 0.0
+        else:
+            e["peso_base_kg"] = validaciones.decimal(e.get("peso_base_kg") or 0, f"el peso de {nombre}",
+                                                     minimo=0, maximo=MAX_PESO_KG, decimales=1)
+
+
 def guardar_rutina(rutina: dict) -> dict[str, list[dict]]:
     global _cache_rutinas
+    validar_rutina(rutina)
     rutina["actualizado"] = datetime.now().isoformat(timespec="seconds")
     rutina.setdefault("origen", "entrenador")
     rutina.setdefault("activa", False)
     with neon_db.transaccion() as cur:
         cur.execute("SELECT id_socio FROM socios WHERE firebase_uid = %s", (rutina["socio_id"],))
-        id_socio = cur.fetchone()["id_socio"]
+        socio = cur.fetchone()
+        if not socio:
+            raise ValueError("Ese socio no existe.")
+        id_socio = socio["id_socio"]
         if rutina["activa"]:
             # una sola activa por socio (índice único): se apagan las demás primero
             cur.execute("UPDATE rutinas SET activa = FALSE WHERE id_socio = %s AND activa AND cod_rutina IS DISTINCT FROM %s",

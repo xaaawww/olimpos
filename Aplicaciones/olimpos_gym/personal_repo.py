@@ -12,9 +12,10 @@
 
 import secrets
 import string
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import neon_db
+import validaciones
 
 ROLES = {
     "dueno": "Dueño", "admin": "Administrador", "entrenador": "Entrenador",
@@ -31,20 +32,8 @@ def hoy() -> date:
 
 
 def numero(valor) -> float:
-    """Lee un monto como lo escribe la gente: "650.000", "650000", "650000,50"
-    o "1.250.000,5" (punto de miles, coma decimal). Un número ya numérico
-    pasa tal cual. Lanza ValueError si no es un número."""
-    if isinstance(valor, (int, float)):
-        return float(valor)
-    texto = str(valor or "").strip().replace("$", "").replace(" ", "")
-    if not texto:
-        raise ValueError
-    import re
-    if "," in texto:                                  # coma decimal: los puntos son de miles
-        texto = texto.replace(".", "").replace(",", ".")
-    elif re.fullmatch(r"\d{1,3}(\.\d{3})+", texto):   # 650.000 / 1.250.000
-        texto = texto.replace(".", "")
-    return float(texto)
+    """Lee un monto como lo escribe la gente ("650.000", "650000,50"…) — ver validaciones.numero."""
+    return validaciones.numero(valor)
 
 
 def mes_actual() -> date:
@@ -129,34 +118,41 @@ def actividad(emp: dict) -> dict:
 
 
 # ── validaciones ──
-def _limpiar(datos: dict) -> dict:
-    d = {k: (v.strip() if isinstance(v, str) else v) for k, v in datos.items()}
-    if not d.get("nombre"):
-        raise ValueError("Poné el nombre.")
-    if not d.get("apellido"):
-        raise ValueError("Poné el apellido.")
-    if not d.get("email") or "@" not in d["email"] or "." not in d["email"].split("@")[-1]:
-        raise ValueError("Revisá el email.")
-    if d.get("dni") and not (d["dni"].isdigit() and 6 <= len(d["dni"]) <= 10):
-        raise ValueError("El DNI tiene que tener entre 6 y 10 números, sin puntos.")
+SUELDO_MAXIMO = 50_000_000   # tope contra errores de tipeo (un cero de más)
+
+
+def _limpiar(datos: dict, id_empleado: int | None = None) -> dict:
+    """Revisa y limpia los datos de un empleado (alta o edición). Incluye los
+    repetidos (DNI y email, sin importar mayúsculas), sin chocar consigo mismo."""
+    d = dict(datos)
+    d["nombre"] = validaciones.nombre_persona(d.get("nombre"), "el nombre")
+    d["apellido"] = validaciones.nombre_persona(d.get("apellido"), "el apellido")
+    # Obligatorio al dar de alta; al editar, solo si ya tenía uno (los usuarios
+    # de demostración se crearon sin DNI y tienen que poder seguir editándose).
+    tenia_dni = id_empleado is None or bool(neon_db.una_fila(
+        "SELECT 1 AS x FROM empleados WHERE id_empleado = %s AND dni IS NOT NULL", (id_empleado,)))
+    d["dni"] = validaciones.dni(d.get("dni"), obligatorio=tenia_dni)
+    d["email"] = validaciones.email(d.get("email"))
+    d["telefono"] = validaciones.telefono(d.get("telefono"), obligatorio=False)
+    d["direccion"] = validaciones.texto(d.get("direccion"), "la dirección", maximo=validaciones.MAX_DIRECCION,
+                                        minimo=4, obligatorio=False)
     if d.get("rol") not in ROLES:
         raise ValueError("Elegí el rol.")
-    if d.get("sueldo") not in (None, ""):
-        try:
-            d["sueldo"] = numero(d["sueldo"])
-        except ValueError:
-            raise ValueError("El sueldo tiene que ser un número.")
-        if d["sueldo"] < 0:
-            raise ValueError("El sueldo no puede ser negativo.")
+    if d.get("turno") and d["turno"] not in TURNOS:
+        raise ValueError("Elegí un turno de la lista.")
+    d["turno"] = d.get("turno") or None
+    d["sueldo"] = validaciones.decimal(d.get("sueldo"), "el sueldo", minimo=0, maximo=SUELDO_MAXIMO, obligatorio=False)
+    if d["rol"] in CON_ESPECIALIDAD:
+        d["especialidad"] = validaciones.texto(d.get("especialidad"), "la especialidad", maximo=120, obligatorio=False)
     else:
-        d["sueldo"] = None
-    for campo in ("dni", "telefono", "direccion", "turno", "especialidad"):
-        d[campo] = d.get(campo) or None
-    d["ingreso"] = d.get("ingreso") or hoy()
-    if d["ingreso"] > hoy():
-        raise ValueError("La fecha de ingreso no puede ser futura.")
-    if d["rol"] not in CON_ESPECIALIDAD:
         d["especialidad"] = None
+    d["ingreso"] = validaciones.fecha(d.get("ingreso") or hoy(), "la fecha de ingreso",
+                                      minimo=date(1990, 1, 1), maximo=hoy())
+    excluir = ("id_empleado", id_empleado) if id_empleado else None
+    if validaciones.ya_existe("empleados", "dni", d["dni"], excluir):
+        raise ValueError("Ya hay un empleado con ese DNI.")
+    if validaciones.ya_existe("empleados", "email", d["email"], excluir, sin_mayusculas=True):
+        raise ValueError("Ya hay un empleado con ese email.")
     return d
 
 
@@ -192,9 +188,9 @@ def sugerir_usuario(nombre: str, apellido: str) -> str:
 def crear(datos: dict, usuario: str, firma: str) -> tuple[int, str]:
     """Da de alta al empleado. Devuelve (id, contraseña inicial)."""
     d = _limpiar(datos)
-    usuario = (usuario or "").strip().lower()
-    if not usuario or not all(c.isalnum() or c in "._" for c in usuario):
-        raise ValueError("El usuario solo puede tener letras, números, punto y guion bajo.")
+    usuario = validaciones.usuario(usuario)
+    if validaciones.ya_existe("empleados", "usuario", usuario, sin_mayusculas=True):
+        raise ValueError("Ese usuario ya existe: elegí otro.")
     password = generar_password()
     ingreso = d["ingreso"]
     try:
@@ -220,7 +216,7 @@ def crear(datos: dict, usuario: str, firma: str) -> tuple[int, str]:
 
 
 def actualizar(id_empleado: int, datos: dict, firma: str) -> None:
-    d = _limpiar(datos)
+    d = _limpiar(datos, id_empleado)
     try:
         with neon_db.transaccion() as cur:
             cur.execute("SELECT sueldo FROM empleados WHERE id_empleado = %s", (id_empleado,))
@@ -243,10 +239,12 @@ def actualizar(id_empleado: int, datos: dict, firma: str) -> None:
 
 
 def dar_de_baja(id_empleado: int, fecha: date, motivo: str) -> None:
-    if not (motivo or "").strip():
-        raise ValueError("Escribí el motivo de la baja.")
+    motivo = validaciones.texto(motivo, "el motivo de la baja", maximo=255, minimo=4)
+    ingreso = neon_db.una_fila("SELECT fecha_ingreso::date AS f FROM empleados WHERE id_empleado = %s", (id_empleado,))
+    fecha = validaciones.fecha(fecha, "la fecha de baja", minimo=ingreso["f"] if ingreso else None,
+                               maximo=hoy() + timedelta(days=60))
     neon_db.ejecutar("UPDATE empleados SET estado = 'inactivo', fecha_baja = %s, motivo_baja = %s WHERE id_empleado = %s",
-                     (fecha, motivo.strip()[:255], id_empleado))
+                     (fecha, motivo, id_empleado))
 
 
 def reactivar(id_empleado: int) -> None:
@@ -267,9 +265,11 @@ def registrar_pago(id_empleado: int, periodo: date, concepto: str, monto: float,
         raise ValueError("Elegí el concepto.")
     if medio not in MEDIOS:
         raise ValueError("Elegí cómo se pagó.")
-    if not monto or monto <= 0:
-        raise ValueError("El monto tiene que ser mayor a cero.")
+    monto = validaciones.monto(monto, maximo=SUELDO_MAXIMO)
+    nota = validaciones.texto(nota, "la nota", maximo=255, obligatorio=False)
     periodo = date(periodo.year, periodo.month, 1)
+    if periodo > date(hoy().year + (hoy().month == 12), hoy().month % 12 + 1, 1):
+        raise ValueError("No se pueden registrar pagos de más de un mes adelantado.")
     if concepto == "Sueldo" and neon_db.una_fila(
             "SELECT 1 AS x FROM liquidacionessueldo WHERE id_empleado = %s AND periodo = %s AND concepto = 'Sueldo'"
             " AND estado = 'pagado'", (id_empleado, periodo)):

@@ -18,6 +18,7 @@ import flet as ft
 import flet.canvas as cv
 from theme import *
 import pagos_repo as repo
+import validaciones as val
 
 COLOR_PLAN = {"Bronce": "#C2783E", "Oro": "#E0A800", "Platino": "#64748B"}
 COLORES_AVATAR = [("#FEF3C7", "#B45309"), ("#DBEAFE", "#1D4ED8"), ("#EDE9FE", "#6D28D9"),
@@ -429,14 +430,15 @@ class PagosView:
                                  value=plan or (por_id[id_socio]["plan"] if id_socio in por_id else None),
                                  options=[ft.DropdownOption(key=p["nombre"], text=f"{p['nombre']} · {_plata(p['precio'])}")
                                           for p in self.planes])
-        campo_monto = ft.TextField(label="Monto", prefix="$ ", width=200, border_radius=10,
-                                   keyboard_type=ft.KeyboardType.NUMBER,
+        campo_monto = ft.TextField(label="Monto *", prefix="$ ", width=200, border_radius=10,
+                                   keyboard_type=ft.KeyboardType.NUMBER, input_filter=val.MONTO, max_length=15,
                                    value=f"{precios[campo_plan.value]['precio']:.0f}" if campo_plan.value in precios else "")
         campo_metodo = ft.Dropdown(label="Medio de pago", value="Efectivo", width=200, border_radius=10,
                                    options=[ft.DropdownOption(key=m, text=m) for m in repo.METODOS])
-        campo_fecha = ft.TextField(label="Fecha (dd/mm/aaaa)", value=repo.hoy().strftime("%d/%m/%Y"), width=200,
-                                   border_radius=10)
-        campo_comprobante = ft.TextField(label="N° de comprobante (opcional)", width=420, border_radius=10)
+        campo_fecha = ft.TextField(label="Fecha (dd/mm/aaaa) *", value=repo.hoy().strftime("%d/%m/%Y"), width=200,
+                                   border_radius=10, input_filter=val.FECHA, max_length=10)
+        campo_comprobante = ft.TextField(label="N° de comprobante (opcional)", width=420, border_radius=10,
+                                         max_length=40, input_filter=ft.InputFilter(regex_string=r"[A-Za-z0-9\-/.]"))
         renovar = ft.Checkbox(label="Renovar la membresía con este pago", value=True, active_color=GOLD)
 
         def fecha():
@@ -485,20 +487,23 @@ class PagosView:
         actualizar_renovacion()
 
         def guardar(e):
+            for c in (campo_monto, campo_fecha, campo_comprobante):
+                c.error = None
+            error.value = ""
             if not (campo_socio.value or "").isdigit() or int(campo_socio.value) not in por_id:
                 error.value = "Elegí un socio de la lista."
             elif campo_plan.value not in precios:
                 error.value = "Elegí el plan."
-            elif fecha() is None or fecha() > repo.hoy():
-                error.value = "Revisá la fecha (dd/mm/aaaa, no puede ser futura)."
             else:
                 try:
-                    monto = float((campo_monto.value or "").replace(".", "").replace(",", "."))
+                    monto = val.monto(campo_monto.value, maximo=repo.MONTO_MAXIMO)
+                    f = val.fecha(campo_fecha.value, "la fecha del pago", maximo=repo.hoy())
                     resultado = repo.registrar_pago(int(campo_socio.value), campo_plan.value, monto,
-                                                    campo_metodo.value, fecha(), campo_comprobante.value,
+                                                    campo_metodo.value, f, campo_comprobante.value,
                                                     bool(renovar.value), self.firma)
                 except ValueError as ex:
-                    error.value = str(ex) if str(ex) else "El monto tiene que ser un número."
+                    val.error_en_campo(str(ex), {"monto": campo_monto, "fecha": campo_fecha,
+                                                 "comprobante": campo_comprobante}, error)
                 except Exception as ex:
                     error.value = f"No se pudo guardar: {ex}"
                 else:
@@ -509,7 +514,7 @@ class PagosView:
                     self.mensaje.color = GREEN
                     self._recargar()
                     return
-            error.update()
+            self.page.update()
 
         self.page.show_dialog(ft.AlertDialog(
             modal=True,
@@ -595,24 +600,22 @@ class PagosView:
         error = ft.Text("", size=12, color=RED)
         for p in self.planes:
             precio = ft.TextField(value=f"{p['precio']:.0f}", prefix="$ ", width=150, dense=True, border_radius=10,
-                                  label="Precio", keyboard_type=ft.KeyboardType.NUMBER)
+                                  label="Precio", keyboard_type=ft.KeyboardType.NUMBER, input_filter=val.MONTO, max_length=12)
             dias = ft.TextField(value=str(p["duracion_dias"]), suffix="días", width=120, dense=True, border_radius=10,
-                                label="Duración", keyboard_type=ft.KeyboardType.NUMBER)
+                                label="Duración", keyboard_type=ft.KeyboardType.NUMBER, input_filter=val.SOLO_DIGITOS,
+                                max_length=4)
             campos.append((p, precio, dias))
 
         def guardar(e):
             cambios = []
             for p, precio, dias in campos:
+                precio.error = dias.error = None
                 try:
-                    nuevo_precio = float((precio.value or "").replace(".", "").replace(",", "."))
-                    nuevos_dias = int(dias.value)
-                except ValueError:
-                    error.value = f"Revisá los números de {p['nombre']}."
-                    error.update()
-                    return
-                if nuevo_precio <= 0 or nuevos_dias <= 0:
-                    error.value = f"El precio y los días de {p['nombre']} tienen que ser mayores a cero."
-                    error.update()
+                    nuevo_precio = val.revisar(precio, val.monto, "el precio", maximo=repo.MONTO_MAXIMO)
+                    nuevos_dias = val.revisar(dias, val.entero, "la duración", minimo=1, maximo=repo.DURACION_MAXIMA)
+                except ValueError as ex:
+                    error.value = f"{p['nombre']}: {ex}"
+                    self.page.update()
                     return
                 if nuevo_precio != p["precio"] or nuevos_dias != p["duracion_dias"]:
                     cambios.append((p, nuevo_precio, nuevos_dias))

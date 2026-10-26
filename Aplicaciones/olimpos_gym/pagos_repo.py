@@ -13,6 +13,23 @@ import csv
 from datetime import date, datetime, timedelta
 
 import neon_db
+import validaciones
+
+MONTO_MAXIMO = 10_000_000     # tope contra errores de tipeo (un cero de más)
+DURACION_MAXIMA = 3650        # un plan dura como mucho 10 años
+
+
+def comprobante_valido(valor) -> str | None:
+    """N° de comprobante opcional: letras, números, guion, barra y punto (máx. 40)."""
+    import re
+    v = re.sub(r"\s+", "", str(valor or ""))
+    if not v:
+        return None
+    if len(v) > 40:
+        raise ValueError("El comprobante puede tener hasta 40 caracteres.")
+    if not re.fullmatch(r"[A-Za-z0-9\-/.]+", v):
+        raise ValueError("El comprobante solo puede tener letras, números, guion, barra y punto.")
+    return v.upper()
 
 METODOS = ["Efectivo", "Transferencia", "Tarjeta de débito", "Tarjeta de crédito", "Mercado Pago"]
 ZONA = "America/Argentina/Buenos_Aires"
@@ -156,11 +173,13 @@ def meses_disponibles() -> list[tuple[int, int]]:
 def registrar_pago(id_socio: int, plan: str, monto: float, metodo: str, fecha: date,
                    comprobante: str | None, renovar: bool, registrado_por: str) -> dict:
     """Guarda el pago (y renueva la membresía si se pidió), todo junto."""
-    if monto <= 0:
-        raise ValueError("El monto tiene que ser mayor a cero.")
+    monto = validaciones.monto(monto, maximo=MONTO_MAXIMO)
     if metodo not in METODOS:
         raise ValueError("Elegí un medio de pago.")
-    comprobante = (comprobante or "").strip() or None
+    fecha = validaciones.fecha(fecha, "la fecha del pago", minimo=hoy() - timedelta(days=366), maximo=hoy())
+    comprobante = comprobante_valido(comprobante)
+    if not neon_db.una_fila("SELECT 1 AS x FROM socios WHERE id_socio = %s AND estado = 'activo'", (id_socio,)):
+        raise ValueError("Ese socio no existe o está dado de baja.")
     with neon_db.transaccion() as cur:
         cur.execute("SELECT id_membresia, duracion_dias FROM membresias WHERE nombre = %s", (plan,))
         m = cur.fetchone()
@@ -216,8 +235,8 @@ def anular_pago(id_pago: int) -> None:
 def actualizar_plan(id_membresia: int, precio: float, duracion_dias: int) -> None:
     """Cambia el precio y la duración de un plan. Es el mismo catálogo que usa
     la app (Mercado Pago cobra este precio)."""
-    if precio <= 0 or duracion_dias <= 0:
-        raise ValueError("El precio y la duración tienen que ser mayores a cero.")
+    precio = validaciones.monto(precio, "el precio", maximo=MONTO_MAXIMO)
+    duracion_dias = validaciones.entero(duracion_dias, "la duración", minimo=1, maximo=DURACION_MAXIMA)
     neon_db.ejecutar("UPDATE membresias SET precio = %s, duracion_dias = %s WHERE id_membresia = %s",
                      (precio, duracion_dias, id_membresia))
 

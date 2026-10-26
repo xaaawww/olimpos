@@ -23,6 +23,7 @@ from PIL import Image
 from theme import *
 from components import status_pill
 import ejercicios_repo as repo
+import validaciones
 
 # Bodygraph de la pestaña Músculos y su resolución real (para tocar pixel a pixel).
 CANVAS_W, CANVAS_H = 150, 300
@@ -428,7 +429,7 @@ class EditorEjerciciosView:
         texto_pasos = "\n".join(e.get("pasos") or [])
         self.contador.value = f"{len(texto_pasos)}/{MAX_PASOS_CHARS}"
         campo_nombre = ft.TextField(value=e["nombre"], dense=True, border_radius=10, border_color=GRAY_LIGHT,
-                                    hint_text="Ej.: Press de banca", text_size=13.5,
+                                    hint_text="Ej.: Press de banca", text_size=13.5, max_length=80, counter=ft.Text(""),
                                     on_change=lambda ev: self._cambio("nombre", ev.control.value))
         campo_pasos = ft.TextField(
             value=texto_pasos, multiline=True, min_lines=4, max_lines=8, border_radius=10, border_color=GRAY_LIGHT,
@@ -474,7 +475,8 @@ class EditorEjerciciosView:
             )
 
         sin_borde = dict(dense=True, border=ft.InputBorder.NONE, content_padding=0, text_size=13)
-        aparato = ft.TextField(value=e.get("aparato", ""), hint_text="Ej.: Barra", **sin_borde,
+        aparato = ft.TextField(value=e.get("aparato", ""), hint_text="Ej.: Barra", **sin_borde, max_length=100,
+                               counter=ft.Text(""),
                                on_change=lambda ev: self._cambio("aparato", ev.control.value))
         nivel = ft.PopupMenuButton(
             content=ft.Row([ft.Text(e.get("nivel") or "Elegir", size=13, color=DARK if e.get("nivel") else TEXT_MUTED),
@@ -484,8 +486,10 @@ class EditorEjerciciosView:
             tooltip="Nivel del ejercicio",
         )
         series = ft.TextField(value=str(e.get("series") or ""), width=26, hint_text="3", **sin_borde,
-                              keyboard_type=ft.KeyboardType.NUMBER, on_change=self._cambio_series)
+                              keyboard_type=ft.KeyboardType.NUMBER, on_change=self._cambio_series,
+                              input_filter=validaciones.SOLO_DIGITOS, max_length=2, counter=ft.Text(""))
         reps = ft.TextField(value=e.get("repeticiones", ""), hint_text="8-12", expand=True, **sin_borde,
+                            input_filter=ft.InputFilter(regex_string=r"[0-9\-]"), max_length=7, counter=ft.Text(""),
                             on_change=lambda ev: self._cambio("repeticiones", ev.control.value))
 
         return ft.Column([
@@ -695,6 +699,9 @@ class EditorEjerciciosView:
             self.ejercicio["id"] = nuevo_id
             if self.imagen_nueva:
                 self._aplicar_imagen(nuevo_id)
+        except ValueError as ex:
+            self._mostrar(f"⚠ {ex}", RED)
+            return False
         except Exception as ex:
             self._mostrar(f"No se pudo guardar: {ex}", RED)
             return False
@@ -709,6 +716,8 @@ class EditorEjerciciosView:
         copia["publicado"] = not copia.get("publicado")
         try:
             self.ejercicios = repo.guardar_ejercicio(self.ejercicios, copia)
+        except ValueError as ex:
+            self.error_carga = f"No se pudo {'publicar' if copia.get('publicado') else 'despublicar'} \"{copia.get('nombre')}\": {ex}"
         except Exception as ex:
             self.error_carga = str(ex)
         if self.sel == copia["id"] and not self.sin_guardar:

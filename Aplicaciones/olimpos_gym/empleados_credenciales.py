@@ -12,12 +12,32 @@ import neon_db
 
 _actual: dict | None = None
 
+# Contra los que prueban contraseñas: tantos intentos mal seguidos (sin uno
+# bueno en el medio) dentro de la ventana bloquean a ese usuario un rato.
+MAX_INTENTOS = 5
+MINUTOS_BLOQUEO = 15
+
+
+class UsuarioBloqueado(RuntimeError):
+    pass
+
+
+def _fallidos_recientes(id_empleado: int) -> int:
+    fila = neon_db.una_fila(
+        "SELECT count(*) AS n FROM intentosacceso WHERE id_empleado = %s AND resultado = 'fallido'"
+        " AND fecha > now() - make_interval(mins => %s)"
+        " AND fecha > COALESCE((SELECT max(fecha) FROM intentosacceso WHERE id_empleado = %s AND resultado = 'exitoso'),"
+        "                      '-infinity')",
+        (id_empleado, MINUTOS_BLOQUEO, id_empleado))
+    return int(fila["n"]) if fila else 0
+
 
 def validar(usuario: str, password: str) -> str | None:
     """Devuelve el rol ('dueno', 'admin', ...) si el usuario/contraseña son
-    correctos, o None. Lanza RuntimeError si no se puede consultar la base."""
+    correctos, o None. Lanza RuntimeError si no se puede consultar la base, y
+    UsuarioBloqueado si ese usuario se equivocó demasiadas veces seguidas."""
     global _actual
-    usuario = usuario.strip().lower()
+    usuario = (usuario or "").strip().lower()[:50]
     try:
         fila = neon_db.una_fila(
             "SELECT e.id_empleado, e.usuario, e.nombre, e.apellido, e.contraseña AS clave, r.nombre AS rol, r.descripcion AS rol_label"
@@ -25,6 +45,11 @@ def validar(usuario: str, password: str) -> str | None:
             " WHERE e.usuario = %s AND e.estado = 'activo'",
             (usuario,),
         )
+        if fila and _fallidos_recientes(fila["id_empleado"]) >= MAX_INTENTOS:
+            raise UsuarioBloqueado(f"Demasiados intentos fallidos: el usuario queda bloqueado {MINUTOS_BLOQUEO} minutos. "
+                                   "Si no recordás la contraseña, pedile al dueño o al administrador que la restablezca.")
+    except UsuarioBloqueado:
+        raise
     except Exception as ex:
         raise RuntimeError(f"No se pudo consultar la base de datos: {ex}") from ex
 

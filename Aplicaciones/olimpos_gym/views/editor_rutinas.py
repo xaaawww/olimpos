@@ -22,6 +22,7 @@ from components import status_pill
 import auth_repo
 import ejercicios_repo
 import rutinas_repo as repo
+import validaciones
 
 COLORES_AVATAR = [("#FEF3C7", "#A16207"), ("#DCFCE7", "#15803D"), ("#FCE7F3", "#BE185D"),
                   ("#EDE9FE", "#6D28D9"), ("#DBEAFE", "#1D4ED8"), ("#FFEDD5", "#C2410C")]
@@ -359,7 +360,7 @@ class EditorRutinasView:
     def _form_rutina(self, existe: bool) -> ft.Column:
         campo_nombre = ft.TextField(
             value=self.rutina["nombre"], dense=True, border_radius=10, border_color=GRAY_LIGHT,
-            hint_text="Ej.: Fuerza tren superior",
+            hint_text="Ej.: Fuerza tren superior", max_length=80, counter=ft.Text(""),
             on_change=lambda e: self._cambio_rutina("nombre", e.control.value),
         )
         ejercicios = self.rutina["ejercicios"]
@@ -396,13 +397,16 @@ class EditorRutinasView:
         musculos = ejercicios_repo.resumen_musculos(cat) if cat else ""
         series = ft.TextField(
             value=str(ej["series_objetivo"]), width=56, dense=True, text_align=ft.TextAlign.CENTER,
-            border_radius=8, border_color=GRAY_LIGHT, keyboard_type=ft.KeyboardType.NUMBER, tooltip="Series",
+            border_radius=8, border_color=GRAY_LIGHT, keyboard_type=ft.KeyboardType.NUMBER, tooltip="Series (1 a 20)",
+            input_filter=validaciones.SOLO_DIGITOS, max_length=2, counter=ft.Text(""),
             on_change=lambda e, x=ej: self._cambio_entero(x, "series_objetivo", e.control.value),
         )
         peso = ft.TextField(
-            value=f"{ej['peso_base_kg']:g}", width=92, dense=True, text_align=ft.TextAlign.CENTER, suffix="kg",
+            value=f"{ej['peso_base_kg']:g}" if isinstance(ej["peso_base_kg"], (int, float)) else str(ej["peso_base_kg"]),
+            width=92, dense=True, text_align=ft.TextAlign.CENTER, suffix="kg",
             border_radius=8, border_color=GRAY_LIGHT, keyboard_type=ft.KeyboardType.NUMBER,
-            tooltip="Peso de partida", disabled=ej["es_peso_corporal"],
+            tooltip="Peso de partida (0 a 500 kg)", disabled=ej["es_peso_corporal"],
+            input_filter=validaciones.DECIMAL, max_length=6, counter=ft.Text(""),
             on_change=lambda e, x=ej: self._cambio_decimal(x, "peso_base_kg", e.control.value),
         )
         corporal = ft.Container(
@@ -500,18 +504,13 @@ class EditorRutinasView:
         self._marcar()
 
     def _cambio_entero(self, ej: dict, campo: str, valor: str):
-        try:
-            ej[campo] = max(1, int(valor))
-            self._marcar()
-        except ValueError:
-            pass
+        # Se guarda lo escrito tal cual: si no sirve, lo frena la validación al guardar
+        ej[campo] = valor
+        self._marcar()
 
     def _cambio_decimal(self, ej: dict, campo: str, valor: str):
-        try:
-            ej[campo] = max(0.0, float(valor.replace(",", ".")))
-            self._marcar()
-        except ValueError:
-            pass
+        ej[campo] = valor
+        self._marcar()
 
     def _alternar_corporal(self, ej: dict):
         ej["es_peso_corporal"] = not ej["es_peso_corporal"]
@@ -559,8 +558,13 @@ class EditorRutinasView:
             self._mostrar("Agregá al menos un ejercicio antes de guardar.", RED)
             return False
         try:
-            self.rutinas = repo.guardar_rutina(copy.deepcopy(self.rutina))
+            copia = copy.deepcopy(self.rutina)
+            self.rutinas = repo.guardar_rutina(copia)
+            self.rutina.update({k: copia[k] for k in ("nombre", "ejercicios")})
             self.rutina["id"] = self._rutina_de(self.socio_id)["id"]
+        except ValueError as ex:
+            self._mostrar(f"⚠ {ex}", RED)
+            return False
         except Exception as ex:
             self._mostrar(f"No se pudo guardar: {ex}", RED)
             return False

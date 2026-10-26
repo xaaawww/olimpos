@@ -15,6 +15,7 @@ import flet as ft
 from theme import *
 from components import section_card, action_button, page_header, status_pill, divider
 import dietas_repo as repo
+import validaciones
 import generador_imagenes as gen_ia
 
 CANVAS = 460
@@ -193,7 +194,7 @@ class EditorDietasView:
 
     def _vista_editor(self) -> ft.Column:
         campo_nombre = ft.TextField(
-            label="Nombre del plato", value=self.plato["nombre"], width=280,
+            label="Nombre del plato *", value=self.plato["nombre"], width=280, max_length=80, counter=ft.Text(""),
             on_change=lambda e: self._set_plato_campo("nombre", e.control.value),
         )
         publicado = self.plato.get("publicado", False)
@@ -206,7 +207,8 @@ class EditorDietasView:
         def campo_macro(clave: str, etiqueta: str) -> ft.TextField:
             return ft.TextField(
                 label=etiqueta, value=str(macros.get(clave, 0) or 0), width=150,
-                keyboard_type=ft.KeyboardType.NUMBER,
+                keyboard_type=ft.KeyboardType.NUMBER, input_filter=validaciones.SOLO_DIGITOS, max_length=4,
+                counter=ft.Text(""),
                 on_change=lambda e, c=clave: self._set_macro(c, e.control.value),
             )
 
@@ -219,7 +221,7 @@ class EditorDietasView:
         ], spacing=10, wrap=True, vertical_alignment=ft.CrossAxisAlignment.CENTER)
         campo_descripcion = ft.TextField(
             label="Descripción breve (se ve en la tarjeta del catálogo)",
-            value=self.plato.get("descripcion", ""), multiline=True, min_lines=2, max_lines=3,
+            value=self.plato.get("descripcion", ""), multiline=True, min_lines=2, max_lines=3, max_length=255,
             on_change=lambda e: self._set_plato_campo("descripcion", e.control.value),
         )
         campo_tags = ft.TextField(
@@ -496,6 +498,9 @@ class EditorDietasView:
             self.platos = repo.guardar_plato(self.platos, self.plato)
             self.aviso = "Plato publicado ✓ Ya está disponible en la app móvil." if e.control.value else \
                          "Plato pasado a borrador. Ya no se muestra en la app móvil."
+        except ValueError as ex:
+            self.plato["publicado"] = False
+            self.aviso = f"⚠ {ex}"
         except Exception as ex:
             self.aviso = f"No se pudo guardar: {ex}"
         self._render()
@@ -655,6 +660,8 @@ class EditorDietasView:
         try:
             self.platos = repo.guardar_plato(self.platos, self.plato)
             self.aviso = "Cambios guardados ✓"
+        except ValueError as ex:
+            self.aviso = f"⚠ {ex}"
         except Exception as ex:
             self.aviso = f"No se pudo guardar: {ex}"
         self._render()

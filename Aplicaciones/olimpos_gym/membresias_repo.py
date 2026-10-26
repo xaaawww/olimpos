@@ -17,6 +17,7 @@
 from datetime import date, datetime, timedelta
 
 import neon_db
+import validaciones
 
 # Mismos 3 planes que el catálogo "membresias" de la base y que PLANES_MEMBRESIA
 # en la app móvil (precio/beneficios viven en la base).
@@ -70,12 +71,22 @@ def parsear_fecha(texto: str) -> int | None:
 
 def asignar_membresia(socio_id: str, plan: str, fecha_inicio_ms: int, asignado_por: str) -> dict[str, dict]:
     global _cache_membresias
-    inicio = datetime.fromtimestamp(fecha_inicio_ms / 1000).date()
+    if not plan:
+        raise ValueError("Elegí el plan.")
+    inicio = validaciones.fecha(datetime.fromtimestamp(fecha_inicio_ms / 1000).date(), "la fecha de inicio",
+                                minimo=date.today() - timedelta(days=366), maximo=date.today() + timedelta(days=90))
     with neon_db.transaccion() as cur:
-        cur.execute("SELECT id_socio FROM socios WHERE firebase_uid = %s", (socio_id,))
-        id_socio = cur.fetchone()["id_socio"]
+        cur.execute("SELECT id_socio, estado FROM socios WHERE firebase_uid = %s", (socio_id,))
+        socio = cur.fetchone()
+        if not socio:
+            raise ValueError("Ese socio no existe.")
+        if socio["estado"] != "activo":
+            raise ValueError("Ese socio está dado de baja: no se le puede asignar una membresía.")
+        id_socio = socio["id_socio"]
         cur.execute("SELECT id_membresia, duracion_dias FROM membresias WHERE nombre = %s", (plan,))
         m = cur.fetchone()
+        if not m:
+            raise ValueError("Ese plan no existe.")
         cur.execute("UPDATE sociomembresia SET estado = 'cancelada', fecha_cancelacion = %s WHERE id_socio = %s AND estado = 'activa'",
                     (date.today(), id_socio))
         cur.execute(

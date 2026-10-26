@@ -31,6 +31,7 @@ import uuid
 from datetime import datetime
 
 import neon_db
+import validaciones
 
 # Mismas 19 zonas que ZonaMuscular.kt en la app móvil — etiqueta y emoji
 # calcados para que se vea igual de un lado y del otro. Nivel de detalle
@@ -194,8 +195,44 @@ def nuevo_punto(zona: str) -> dict:
     }
 
 
+def validar_ejercicio(ejercicio: dict) -> None:
+    """Revisa y limpia el ejercicio antes de guardarlo (ValueError con el primer problema)."""
+    import re
+    ejercicio["nombre"] = validaciones.texto(ejercicio.get("nombre"), "el nombre del ejercicio", maximo=80, minimo=3)
+    excluir = ("id_ejercicio", int(ejercicio["id"])) if str(ejercicio.get("id", "")).isdigit() else None
+    # Los de la Calculadora ("competencia") comparten nombre a propósito: no cuentan.
+    sql = ("SELECT 1 AS x FROM ejercicios WHERE lower(nombre) = %s AND estado IN ('publicado', 'borrador')"
+           + (" AND id_ejercicio <> %s" if excluir else "") + " LIMIT 1")
+    if neon_db.una_fila(sql, (ejercicio["nombre"].lower(), *([excluir[1]] if excluir else []))):
+        raise ValueError(f"Ya hay un ejercicio llamado \"{ejercicio['nombre']}\".")
+    ejercicio["descripcion"] = validaciones.texto(ejercicio.get("descripcion"), "la descripción", maximo=255,
+                                                  obligatorio=False) or ""
+    ejercicio["aparato"] = validaciones.texto(ejercicio.get("aparato"), "el aparato", maximo=100, obligatorio=False) or ""
+    ejercicio["series"] = validaciones.entero(ejercicio.get("series"), "las series", minimo=1, maximo=20, obligatorio=False)
+    reps = re.sub(r"\s+", "", str(ejercicio.get("repeticiones") or ""))
+    if reps and not re.fullmatch(r"\d{1,3}(-\d{1,3})?", reps):
+        raise ValueError("Las repeticiones van como número o rango (ej.: 10 o 8-12).")
+    if "-" in reps:
+        a, b = (int(x) for x in reps.split("-"))
+        if not 0 < a < b:
+            raise ValueError("En el rango de repeticiones, el primero tiene que ser menor (ej.: 8-12).")
+    elif reps and int(reps) == 0:
+        raise ValueError("Las repeticiones tienen que ser mayores a cero.")
+    ejercicio["repeticiones"] = reps
+    pasos = [validaciones.texto(p, f"el paso {i + 1}", maximo=300) for i, p in enumerate(ejercicio.get("pasos", []))
+             if str(p).strip()]
+    if len(pasos) > 15:
+        raise ValueError("La técnica puede tener hasta 15 pasos.")
+    ejercicio["pasos"] = pasos
+    ejercicio["consejo"] = validaciones.texto(ejercicio.get("consejo"), "el consejo", maximo=300, obligatorio=False) or ""
+    ejercicio["tags"] = validaciones.etiquetas(ejercicio.get("tags", []), maximo_items=3, maximo_largo=20)
+    if ejercicio.get("publicado") and not ejercicio.get("puntos"):
+        raise ValueError("Para publicarlo, marcá al menos un músculo trabajado.")
+
+
 def guardar_ejercicio(ejercicios: list[dict], ejercicio: dict) -> list[dict]:
     global _cache_ejercicios
+    validar_ejercicio(ejercicio)
     ejercicio["actualizado"] = datetime.now().isoformat(timespec="seconds")
     estado = "publicado" if ejercicio.get("publicado") else "borrador"
     musculos = ", ".join(dict.fromkeys(ZONAS_MUSCULARES[p["zona"]]["etiqueta"] for p in ejercicio.get("puntos", [])))[:255] or None
