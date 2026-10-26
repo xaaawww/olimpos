@@ -108,7 +108,7 @@ private fun FilaSwitch(emoji: String, titulo: String, sub: String, activo: Boole
         IconoCuadrado(emoji)
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f)) {
-            Text(titulo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+            Text(titulo, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
             Text(sub, fontSize = 11.sp, color = Olimpos.Muted)
         }
         Switch(
@@ -150,7 +150,7 @@ private fun OpcionTema(modo: ThemeMode, seleccionado: Boolean, onClick: () -> Un
         IconoCuadrado(emoji)
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f)) {
-            Text(modo.etiqueta, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+            Text(modo.etiqueta, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
             Text(descripcion, fontSize = 11.5.sp, color = Olimpos.Muted)
         }
         Box(
@@ -161,7 +161,7 @@ private fun OpcionTema(modo: ThemeMode, seleccionado: Boolean, onClick: () -> Un
                 .border(1.5.dp, if (seleccionado) Olimpos.Gold else Olimpos.Line, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            if (seleccionado) Text("✓", fontWeight = FontWeight.Black, fontSize = 12.sp, color = Olimpos.Dark)
+            if (seleccionado) Text("✓", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Olimpos.Dark)
         }
     }
 }

@@ -117,10 +117,10 @@ fun PlanoScreen(onVolver: () -> Unit) {
             ) { Text("←", fontSize = 17.sp, color = Olimpos.GoldLight) }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("Plano del club", fontSize = 17.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                Text("Plano del club", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
                 Text(
                     "RECORRIDO INTERACTIVO",
-                    fontSize = 10.sp, fontWeight = FontWeight.ExtraBold,
+                    fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.6.sp, color = Olimpos.Muted
                 )
             }
@@ -144,7 +144,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
                     .width(mitad + 4.dp)
                     .height(38.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.GoldDark)))
+                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
             )
             Row {
                 PISOS.forEachIndexed { i, p ->
@@ -159,7 +159,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 if (i == 0) "Piso 1" else "Piso 2",
-                                fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
                                 color = if (i == piso) Olimpos.Dark else Olimpos.Muted
                             )
                             Spacer(Modifier.width(5.dp))
@@ -271,7 +271,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
                                 .clickable { activo = p },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("${p.n}", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Olimpos.Dark)
+                            Text("${p.n}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Olimpos.Dark)
                         }
                     }
                 }
@@ -287,9 +287,9 @@ fun PlanoScreen(onVolver: () -> Unit) {
                     .padding(horizontal = 13.dp, vertical = 8.dp)
             ) {
                 Row {
-                    Text("PISO ", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.TintaClara)
-                    Text("${piso + 1}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.GoldLight)
-                    Text(" · ${datos.tag}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.TintaClara)
+                    Text("PISO ", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = Olimpos.TintaClara)
+                    Text("${piso + 1}", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = Olimpos.GoldLight)
+                    Text(" · ${datos.tag}", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = Olimpos.TintaClara)
                 }
             }
 
@@ -311,7 +311,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
                 ) {
                     Text(
                         "VISTA GENERAL",
-                        fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
+                        fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp, color = Olimpos.GoldLight
                     )
                 }
@@ -346,9 +346,9 @@ fun PlanoScreen(onVolver: () -> Unit) {
                             Box(
                                 Modifier.size(30.dp).clip(CircleShape).background(Olimpos.Gold),
                                 contentAlignment = Alignment.Center
-                            ) { Text("${p.n}", fontWeight = FontWeight.Black, fontSize = 13.sp, color = Olimpos.Dark) }
+                            ) { Text("${p.n}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Olimpos.Dark) }
                             Spacer(Modifier.width(11.dp))
-                            Text(p.titulo, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                            Text(p.titulo, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
                         }
                         Spacer(Modifier.height(8.dp))
                         Text(p.desc, fontSize = 12.5.sp, lineHeight = 19.sp, color = Olimpos.Cream.copy(alpha = 0.78f))
@@ -360,7 +360,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
 
             Text(
                 "ÁREAS DEL PISO — ${datos.titulo.uppercase()}",
-                fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
+                fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.6.sp, color = Olimpos.Muted,
                 modifier = Modifier.padding(bottom = 9.dp)
             )
@@ -384,7 +384,7 @@ fun PlanoScreen(onVolver: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "${p.n}", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold,
+                            "${p.n}", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold,
                             color = if (on) Olimpos.Dark else Olimpos.GoldLight
                         )
                     }

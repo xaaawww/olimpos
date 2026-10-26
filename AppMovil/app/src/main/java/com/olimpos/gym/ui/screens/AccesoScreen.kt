@@ -62,7 +62,7 @@ fun AccesoScreen(onVolver: () -> Unit) {
 
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
             TarjetaOro(Modifier.fillMaxWidth()) {
-                Text("Aforo actual", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                Text("Aforo actual", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                 Spacer(Modifier.height(10.dp))
                 val capacidad = ocupacion?.capacidadMaxima ?: 120
                 BarraProgreso(if (capacidad > 0) (ocupacion?.personas ?: 0) / capacidad.toFloat() else 0f)
@@ -77,7 +77,7 @@ fun AccesoScreen(onVolver: () -> Unit) {
             TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 Text(
                     if (yaMarcado) "Ya marcaste tu ingreso de hoy ✓" else "¿Llegaste al club? Marcalo acá.",
-                    fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream
+                    fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -168,7 +168,7 @@ private fun OpcionAcceso(emoji: String, titulo: String, sub: String, activo: Boo
             IconoCuadrado(emoji)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(titulo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                Text(titulo, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                 Text(sub, fontSize = 11.sp, color = Olimpos.Muted)
             }
             androidx.compose.material3.Switch(

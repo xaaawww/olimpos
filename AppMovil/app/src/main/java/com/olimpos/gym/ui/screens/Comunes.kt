@@ -1,6 +1,9 @@
 package com.olimpos.gym.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -78,7 +81,7 @@ fun Eyebrow(texto: String) {
         Text(
             texto.uppercase(),
             fontSize = 10.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.SemiBold,
             letterSpacing = 2.2.sp,
             color = Olimpos.Gold
         )
@@ -91,7 +94,7 @@ fun SeccionLabel(texto: String, modifier: Modifier = Modifier) {
     Text(
         texto.uppercase(),
         fontSize = 11.sp,
-        fontWeight = FontWeight.ExtraBold,
+        fontWeight = FontWeight.SemiBold,
         letterSpacing = 1.8.sp,
         color = Olimpos.Muted,
         modifier = modifier.padding(top = 24.dp, bottom = 11.dp)
@@ -111,7 +114,7 @@ fun ChipOro(texto: String) {
         Text(
             texto,
             fontSize = 11.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.SemiBold,
             color = Olimpos.GoldLight
         )
     }
@@ -170,11 +173,41 @@ fun EncabezadoVolver(titulo: String, subtitulo: String? = null, onVolver: () -> 
                     onClick = onVolver
                 ),
             contentAlignment = Alignment.Center
-        ) { Text("←", color = Olimpos.GoldLight, fontWeight = FontWeight.Black, fontSize = 17.sp) }
+        ) { IconoVolver(Olimpos.Cream) }
         Spacer(Modifier.width(13.dp))
         Column {
-            Text(titulo, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            Text(titulo, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
             subtitulo?.let { Text(it, fontSize = 12.sp, color = Olimpos.Muted) }
+        }
+    }
+}
+
+/** Flecha de volver dibujada como ícono (el carácter "←" de la fuente queda
+ *  corrido dentro de su caja, por eso se veía descentrada). */
+@Composable
+fun IconoVolver(color: Color, tamano: androidx.compose.ui.unit.Dp = 20.dp) {
+    androidx.compose.material3.Icon(
+        Icons.AutoMirrored.Outlined.ArrowBack,
+        contentDescription = "Volver", tint = color, modifier = Modifier.size(tamano)
+    )
+}
+
+/** Ícono de línea en un cuadrado redondeado suave, como en el sistema de
+ *  empleados. Recibe el emoji de siempre y lo traduce (ver ICONO_DE_EMOJI). */
+@Composable
+fun IconoCuadrado(emoji: String) {
+    Box(
+        Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(Olimpos.GoldSoft),
+        contentAlignment = Alignment.Center
+    ) {
+        val icono = com.olimpos.gym.ui.theme.ICONO_DE_EMOJI[emoji]
+        if (icono != null) {
+            androidx.compose.material3.Icon(icono, contentDescription = null, tint = Olimpos.GoldLight, modifier = Modifier.size(19.dp))
+        } else {
+            Text(emoji, fontSize = 16.sp)
         }
     }
 }
@@ -188,7 +221,7 @@ fun BotonPrincipal(texto: String, modifier: Modifier = Modifier, habilitado: Boo
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(
-                if (habilitado) Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.Gold, Olimpos.GoldDark))
+                if (habilitado) Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold))
                 else Brush.linearGradient(listOf(Olimpos.Muted, Olimpos.Muted))
             )
             .alpha(if (habilitado) 1f else 0.5f)
@@ -196,7 +229,7 @@ fun BotonPrincipal(texto: String, modifier: Modifier = Modifier, habilitado: Boo
             .padding(vertical = padV),
         contentAlignment = Alignment.Center
     ) {
-        Text(texto, fontSize = fuente.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp, color = Olimpos.Dark)
+        Text(texto, fontSize = fuente.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp, color = Olimpos.Dark)
     }
 }
 
@@ -214,7 +247,7 @@ fun BotonSecundario(texto: String, modifier: Modifier = Modifier, onClick: () ->
             .padding(vertical = padV),
         contentAlignment = Alignment.Center
     ) {
-        Text(texto, fontSize = fuente.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
+        Text(texto, fontSize = fuente.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
     }
 }
 
@@ -320,7 +353,7 @@ fun ChipSeleccionable(texto: String, seleccionado: Boolean, modifier: Modifier =
         Text(
             texto,
             fontSize = 12.5.sp,
-            fontWeight = FontWeight.ExtraBold,
+            fontWeight = FontWeight.SemiBold,
             color = if (seleccionado) Olimpos.Dark else Olimpos.Cream
         )
     }
@@ -417,7 +450,7 @@ fun OpcionGrande(emoji: String, texto: String, seleccionado: Boolean, onClick: (
     ) {
         IconoCuadrado(emoji)
         Spacer(Modifier.width(13.dp))
-        Text(texto, fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, modifier = Modifier.weight(1f))
+        Text(texto, fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream, modifier = Modifier.weight(1f))
         Box(
             Modifier
                 .size(24.dp)
@@ -426,7 +459,7 @@ fun OpcionGrande(emoji: String, texto: String, seleccionado: Boolean, onClick: (
                 .border(1.5.dp, if (seleccionado) Olimpos.Gold else Olimpos.Line, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            if (seleccionado) Text("✓", fontWeight = FontWeight.Black, fontSize = 12.sp, color = Olimpos.Dark)
+            if (seleccionado) Text("✓", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Olimpos.Dark)
         }
     }
 }
@@ -447,19 +480,29 @@ fun BadgeObjetivo(objetivo: ObjetivoCompetencia, modifier: Modifier = Modifier, 
     ) {
         Text(
             "${objetivo.emoji} ${objetivo.etiqueta}",
-            fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.GoldLight
+            fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight
         )
     }
 }
 
-/** Avatar circular con inicial */
+/** Flecha chica al final de una fila tocable (centrada, gris suave). */
+@Composable
+fun FlechaFila() {
+    androidx.compose.material3.Icon(
+        androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+        contentDescription = null, tint = Olimpos.Muted, modifier = Modifier.size(20.dp)
+    )
+}
+
+/** Avatar circular con inicial: círculo suave con la letra en dorado, como
+ *  los avatares de la lista de socios/personal del sistema de empleados. */
 @Composable
 fun AvatarInicial(inicial: String, tamano: Int = 44) {
     Box(
         Modifier
             .size(tamano.dp)
             .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark))),
+            .background(Olimpos.GoldSoft),
         contentAlignment = Alignment.Center
-    ) { Text(inicial, fontWeight = FontWeight.Black, color = Olimpos.Dark, fontSize = (tamano * 0.38f).sp) }
+    ) { Text(inicial, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight, fontSize = (tamano * 0.38f).sp) }
 }

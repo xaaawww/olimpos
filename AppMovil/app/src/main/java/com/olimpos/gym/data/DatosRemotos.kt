@@ -43,9 +43,6 @@ object DatosRemotos {
     var cuposClases by mutableStateOf<Map<String, Int>>(emptyMap()); private set
     /** clase_id -> capacidad máxima (tabla "clases"). Vacío = todavía no llegó. */
     var capacidadesClases by mutableStateOf<Map<String, Int>>(emptyMap()); private set
-    /** uid del ocupante -> número de locker, de TODOS los socios (hace
-     *  falta para saber qué lockers están libres/ocupados por otro). */
-    var lockersOcupados by mutableStateOf<Map<Int, String>?>(null); private set
     var perfilNutricional by mutableStateOf<PerfilNutricional?>(null); private set
     /** `null` = todavía no le asignaron ninguna membresía. */
     var membresia by mutableStateOf<MembresiaAsignada?>(null); private set
@@ -84,7 +81,7 @@ object DatosRemotos {
     fun limpiar() {
         marcas = null; platos = null; ejercicios = null; rangosSocios = null
         datosFisicosPropios = null; seriesEntrenamiento = null; misRutinas = null
-        ingresos = null; reservasClase = null; cuposClases = emptyMap(); capacidadesClases = emptyMap(); lockersOcupados = null
+        ingresos = null; reservasClase = null; cuposClases = emptyMap(); capacidadesClases = emptyMap()
         perfilNutricional = null; membresia = null; historialPagos = emptyList(); platosProbados = null
         registrosAgua = null; fotosProgreso = null; companeros = null
         diasEntrenadosConCompaneros = 0
@@ -106,7 +103,6 @@ object DatosRemotos {
             launch { misRutinas = cargarMisRutinas() }
             launch { ingresos = cargarIngresosDesdeFirebase() }
             launch { recargarReservasClase() }
-            launch { lockersOcupados = cargarLockersDesdeFirebase() }
             launch { perfilNutricional = cargarPerfilNutricionalDesdeFirebase() }
             launch { membresia = cargarMembresiaDesdeFirebase() }
             launch { historialPagos = cargarHistorialPagos() }
@@ -193,11 +189,6 @@ object DatosRemotos {
         reservasClase = estado.reservas
         cuposClases = estado.reservados
         capacidadesClases = estado.capacidades
-    }
-
-    /** Se llama al reservar/liberar un locker en Mis lockers. */
-    suspend fun recargarLockers() {
-        lockersOcupados = cargarLockersDesdeFirebase()
     }
 
     /** Se llama al guardar las preferencias nutricionales. */

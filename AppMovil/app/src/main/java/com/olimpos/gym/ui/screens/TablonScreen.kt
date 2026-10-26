@@ -58,7 +58,7 @@ fun TablonResumen(onVerTodo: () -> Unit) {
             if (publicaciones.size > MAX_EN_INICIO) {
                 Text(
                     "Ver todo el tablón (${publicaciones.size}) →",
-                    fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Gold,
+                    fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Gold,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(onClick = onVerTodo)
@@ -132,13 +132,13 @@ private fun TarjetaPublicacion(p: PublicacionTablon, compacta: Boolean, onClick:
             ChipOro("${p.categoria.emoji} ${p.categoria.etiqueta}")
             if (p.fijado) {
                 Spacer(Modifier.width(8.dp))
-                Text("📌 Fijado", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Muted)
+                Text("📌 Fijado", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Muted)
             }
             Spacer(Modifier.weight(1f))
             if (p.creadoMs > 0) Text(fechaLegible(p.creadoMs), fontSize = 10.sp, color = Olimpos.Muted)
         }
         Spacer(Modifier.height(9.dp))
-        Text(p.titulo, fontSize = 15.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+        Text(p.titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
         Spacer(Modifier.height(4.dp))
         Text(
             p.mensaje, fontSize = 12.5.sp, lineHeight = 17.sp, color = Olimpos.Muted,

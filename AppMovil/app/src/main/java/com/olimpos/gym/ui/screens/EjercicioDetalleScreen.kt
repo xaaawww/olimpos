@@ -80,7 +80,7 @@ private fun DatoRapido(valor: String, etiqueta: String, modifier: Modifier = Mod
             .padding(vertical = 12.dp),
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
-        Text(valor, fontSize = 17.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
-        Text(etiqueta.uppercase(), fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Muted)
+        Text(valor, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
+        Text(etiqueta.uppercase(), fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Muted)
     }
 }

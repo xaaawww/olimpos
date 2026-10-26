@@ -91,10 +91,7 @@ private fun ArenaGrid(
             Spacer(Modifier.height(12.dp))
         }
         Eyebrow("Arena")
-        Row {
-            Text("Competí y ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
-            Text("superate", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
-        }
+        Text("Competí y superate", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
         Text("Tu mapa muscular, tu rango y tus marcas personales", fontSize = 13.sp, color = Olimpos.Muted)
 
         Spacer(Modifier.height(18.dp))
@@ -118,10 +115,11 @@ private fun ArenaGrid(
 
 @Composable
 private fun TarjetaArena(icono: String, titulo: String, sub: String, modifier: Modifier, onClick: () -> Unit) {
-    TarjetaOro(modifier.clickable(onClick = onClick)) {
+    // Alto fijo y textos de una línea: las 6 tarjetas quedan exactamente iguales
+    TarjetaOro(modifier.height(118.dp).clickable(onClick = onClick)) {
         IconoCuadrado(icono)
-        Spacer(Modifier.height(10.dp))
-        Text(titulo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
-        Text(sub, fontSize = 11.sp, color = Olimpos.Muted)
+        Spacer(Modifier.weight(1f))
+        Text(titulo, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        Text(sub, fontSize = 11.sp, color = Olimpos.Muted, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
     }
 }

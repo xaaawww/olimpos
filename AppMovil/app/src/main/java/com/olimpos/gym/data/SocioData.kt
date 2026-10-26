@@ -25,25 +25,6 @@ val PLANES_MEMBRESIA = listOf(
  *  hace falta que OlimpOS la guarde. */
 data class PagoHistorial(val periodo: String, val monto: String, val estado: String)
 
-/* ── Lockers ── */
-enum class EstadoLocker { LIBRE, OCUPADO, RESERVADO_POR_MI }
-
-data class Locker(val numero: Int, val zona: String, var estado: EstadoLocker)
-
-// El número y la zona de cada locker es el layout físico real del
-// vestidor (fijo, no cambia) — el `estado` acá es solo un valor de
-// arranque sin usar: LockersScreen lo recalcula siempre a partir de las
-// reservas reales en Firestore (ver LockersRepository.kt), así que ningún
-// locker aparece "ocupado" sin que un socio real lo haya reservado.
-val LOCKERS_EJEMPLO = listOf(
-    Locker(12, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(1, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(2, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(3, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(4, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(5, "Vestidor Hombres", EstadoLocker.LIBRE),
-    Locker(6, "Vestidor Hombres", EstadoLocker.LIBRE)
-)
 
 /* ── Máquinas: ubicación y disponibilidad (vinculado al Plano) ── */
 data class Maquina(val nombre: String, val zona: String, val disponible: Boolean)

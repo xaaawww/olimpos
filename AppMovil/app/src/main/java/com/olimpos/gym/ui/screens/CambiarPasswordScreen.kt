@@ -90,7 +90,7 @@ fun CambiarPasswordScreen(onListo: () -> Unit) {
 
         Spacer(Modifier.height(18.dp))
         Text(
-            "Elegí tu contraseña", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+            "Elegí tu contraseña", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Text(
@@ -102,7 +102,7 @@ fun CambiarPasswordScreen(onListo: () -> Unit) {
         )
 
         TarjetaOro(Modifier.fillMaxWidth()) {
-            Text("Nueva contraseña", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Olimpos.Cream)
+            Text("Nueva contraseña", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Olimpos.Cream)
             Spacer(Modifier.height(14.dp))
             CampoOro(nueva, { nueva = it; error = null }, "Contraseña nueva", esPassword = true)
             Spacer(Modifier.height(12.dp))

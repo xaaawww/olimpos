@@ -127,7 +127,7 @@ private fun TarjetaPuntoMuscular(p: PuntoMuscular) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(p.zona.emoji, fontSize = 16.sp)
             Spacer(Modifier.width(8.dp))
-            Text(p.nombre, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
+            Text(p.nombre, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = CA.texto)
         }
         Spacer(Modifier.height(6.dp))
         Text(

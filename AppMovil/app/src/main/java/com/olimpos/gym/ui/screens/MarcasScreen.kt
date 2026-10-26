@@ -159,7 +159,7 @@ fun MarcasScreen(onVolver: () -> Unit) {
 @Composable
 private fun BotonRegistrar(onClick: () -> Unit) {
     Text(
-        "+ Registrar", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = CA.tinta,
+        "+ Registrar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = CA.tinta,
         modifier = Modifier
             .padding(top = 4.dp)
             .clip(RoundedCornerShape(12.dp))
@@ -186,7 +186,7 @@ private fun FilaMarca(ejercicio: String, vigente: MarcaPersonal?, cargando: Bool
             Column(Modifier.weight(1f)) {
                 Text(ejercicio, fontSize = 12.sp, color = CA.suave)
                 if (vigente != null) {
-                    Text(textoMarca(vigente), fontSize = 16.sp, fontWeight = FontWeight.Black, color = CA.texto)
+                    Text(textoMarca(vigente), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = CA.texto)
                     Text(
                         fechaDe(vigente) + if (vigente.verificado) " · Verificada ✓" else " · Pendiente",
                         fontSize = 10.5.sp, color = if (vigente.verificado) Olimpos.Green else CA.suave
@@ -218,7 +218,7 @@ private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit,
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         EncabezadoArena("Registrar marca", "Cargá tu levantamiento: lo verifica un entrenador.", onVolver)
         Column(Modifier.padding(horizontal = 20.dp).padding(top = 6.dp, bottom = 26.dp)) {
-            Text("Ejercicio", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto, modifier = Modifier.padding(bottom = 9.dp))
+            Text("Ejercicio", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = CA.texto, modifier = Modifier.padding(bottom = 9.dp))
             FilaChips {
                 EJERCICIOS_FUERZA.forEach { ej -> ChipArena(ej.nombre, ejercicio == ej.nombre) { ejercicio = ej.nombre } }
             }
@@ -227,7 +227,7 @@ private fun RegistrarMarcaScreen(ejercicioInicial: String, onVolver: () -> Unit,
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     ImagenEjercicio(imagenDeEjercicio(nombre = ejercicio), 56.dp)
                     Spacer(Modifier.width(12.dp))
-                    Text(ejercicio, fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
+                    Text(ejercicio, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = CA.texto)
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -280,7 +280,7 @@ private fun MarcasDeEjercicioScreen(
                 TarjetaLisa(Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(textoMarca(m), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = CA.texto)
+                            Text(textoMarca(m), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = CA.texto)
                             Text(
                                 "${fechaDe(m)} · 1RM est. ${"%.0f".format(calcular1RM(cargaEfectivaDeMarca(m, pesoCorporalKg), m.reps))} kg" +
                                     if (i == 0) " · vigente" else "",
@@ -317,7 +317,7 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("¿Eliminar esta marca?", fontSize = 16.sp, fontWeight = FontWeight.Black, color = CA.texto)
+            Text("¿Eliminar esta marca?", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = CA.texto)
             Spacer(Modifier.height(8.dp))
             Text(
                 "${marca.ejercicio} · ${textoMarca(marca)} (${fechaDe(marca)}). Si era tu única marca de este ejercicio, tu rango general puede bajar.",
@@ -334,7 +334,7 @@ private fun ConfirmarEliminarMarca(marca: MarcaPersonal, onCancelar: () -> Unit,
                         .clickable { onConfirmar() }
                         .padding(vertical = 13.dp),
                     contentAlignment = Alignment.Center
-                ) { Text("Eliminar", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.TintaClara) }
+                ) { Text("Eliminar", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Olimpos.TintaClara) }
             }
         }
     }

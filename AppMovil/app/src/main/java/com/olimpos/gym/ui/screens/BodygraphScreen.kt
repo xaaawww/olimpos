@@ -132,7 +132,7 @@ fun BodygraphScreen(onVolver: () -> Unit) {
             AnimatedVisibility(visible = grupoAbierto != null) {
                 grupoAbierto?.let { grupo ->
                     TarjetaLisa(Modifier.fillMaxWidth().padding(top = 14.dp)) {
-                        Text(grupo.etiqueta, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
+                        Text(grupo.etiqueta, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = CA.texto)
                         Spacer(Modifier.height(8.dp))
                         grupo.zonas.forEach { zona ->
                             FilaMusculo(zona, nivelesPorZona[zona], resumen.puntajes[zona])
@@ -184,13 +184,13 @@ private fun FilaGrupo(grupo: GrupoMuscular, porcentaje: Float, nivel: NivelMuscu
         IconoRedondo(grupo.emoji, tamano = 30.dp, pastel = pastelDeGrupo(grupo), apagado = nivel == null)
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            Text(nombreCorto(grupo), fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto, maxLines = 1)
+            Text(nombreCorto(grupo), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = CA.texto, maxLines = 1)
             Text(nivel?.etiquetaCompleta ?: "Sin marcas", fontSize = 10.sp, color = CA.suave, maxLines = 1)
         }
         val pastel = pastelDeGrupo(grupo)
         Text(
             "${(porcentaje * 100).toInt()}%",
-            fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, color = pastel.tono,
+            fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, color = pastel.tono,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(pastel.fondo)
@@ -240,10 +240,10 @@ private fun TarjetaPuntuacion(puntajeGeneral: Float?, faltan: Int, tieneMarcas: 
             Column(Modifier.weight(1.1f)) {
                 Text("Puntuación general", fontSize = 11.sp, color = CA.suave, maxLines = 1)
                 if (puntajeGeneral != null && nivel != null) {
-                    Text("${(porcentajeDePuntaje(puntajeGeneral) * 100).toInt()}%", fontSize = 28.sp, fontWeight = FontWeight.Black, color = CA.texto)
+                    Text("${(porcentajeDePuntaje(puntajeGeneral) * 100).toInt()}%", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = CA.texto)
                     ChipSuave(nivel.etiquetaCompleta, Pastel.AZUL)
                 } else {
-                    Text("Sin clasificar", fontSize = 18.sp, fontWeight = FontWeight.Black, color = CA.texto)
+                    Text("Sin clasificar", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = CA.texto)
                 }
             }
             Box(Modifier.width(1.dp).height(54.dp).background(CA.borde))

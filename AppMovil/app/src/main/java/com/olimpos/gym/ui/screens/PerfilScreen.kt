@@ -42,7 +42,7 @@ import com.olimpos.gym.data.visitasEnElMesActual
 import com.olimpos.gym.ui.theme.Olimpos
 import com.olimpos.gym.ui.theme.ThemeMode
 
-private enum class PerfilVista { HOME, MEMBRESIA, ACCESO, LOCKERS, PROGRESO, COMPANEROS, ARGOS, CONFIGURACION }
+private enum class PerfilVista { HOME, MEMBRESIA, ACCESO, TURNOS, PROGRESO, COMPANEROS, ARGOS, CONFIGURACION }
 
 @Composable
 fun PerfilScreen(
@@ -55,6 +55,9 @@ fun PerfilScreen(
      *  directo "Mi membresía"; [onMembresiaAbierta] apaga el pedido. */
     abrirMembresia: Boolean,
     onMembresiaAbierta: () -> Unit,
+    /** Igual que [abrirMembresia], pero para "Mis turnos y reservas" (lo pide Inicio). */
+    abrirTurnos: Boolean,
+    onTurnosAbierto: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
     var vista by remember { mutableStateOf(PerfilVista.HOME) }
@@ -64,13 +67,19 @@ fun PerfilScreen(
             onMembresiaAbierta()
         }
     }
+    LaunchedEffect(abrirTurnos) {
+        if (abrirTurnos) {
+            vista = PerfilVista.TURNOS
+            onTurnosAbierto()
+        }
+    }
 
     when (vista) {
         PerfilVista.HOME -> PerfilHome(
             onAbrirPlano = onAbrirPlano,
             onMembresia = { vista = PerfilVista.MEMBRESIA },
             onAcceso = { vista = PerfilVista.ACCESO },
-            onLockers = { vista = PerfilVista.LOCKERS },
+            onTurnos = { vista = PerfilVista.TURNOS },
             onProgreso = { vista = PerfilVista.PROGRESO },
             onCompaneros = { vista = PerfilVista.COMPANEROS },
             onArgos = { vista = PerfilVista.ARGOS },
@@ -79,7 +88,7 @@ fun PerfilScreen(
         )
         PerfilVista.MEMBRESIA -> MembresiaScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.ACCESO -> AccesoScreen(onVolver = { vista = PerfilVista.HOME })
-        PerfilVista.LOCKERS -> LockersScreen(onVolver = { vista = PerfilVista.HOME })
+        PerfilVista.TURNOS -> TurnosScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.PROGRESO -> ProgresoScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.COMPANEROS -> CompanerosScreen(onVolver = { vista = PerfilVista.HOME })
         PerfilVista.ARGOS -> ArgosScreen(
@@ -101,7 +110,7 @@ private fun PerfilHome(
     onAbrirPlano: () -> Unit,
     onMembresia: () -> Unit,
     onAcceso: () -> Unit,
-    onLockers: () -> Unit,
+    onTurnos: () -> Unit,
     onProgreso: () -> Unit,
     onCompaneros: () -> Unit,
     onArgos: () -> Unit,
@@ -121,15 +130,9 @@ private fun PerfilHome(
     ) {
         // ── Cabecera ──
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                Modifier
-                    .size(76.dp)
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark))),
-                contentAlignment = Alignment.Center
-            ) { Text(nombre.take(1).uppercase(), fontSize = 27.sp, fontWeight = FontWeight.Black, color = Olimpos.Dark) }
-            Spacer(Modifier.height(12.dp))
-            Text(nombre, fontSize = 20.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+            AvatarInicial(nombre.take(1).uppercase(), tamano = 64)
+            Spacer(Modifier.height(10.dp))
+            Text(nombre, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
             Spacer(Modifier.height(8.dp))
             ChipOro("Ω  Socio OlimpΩs")
         }
@@ -154,18 +157,16 @@ private fun PerfilHome(
         ItemMenu("🗺️", "Plano interactivo del club") { onAbrirPlano() }
         ItemMenu("💳", "Mi membresía y pagos") { onMembresia() }
         ItemMenu("🔐", "Accesos y seguridad") { onAcceso() }
-        ItemMenu("🔒", "Mis lockers") { onLockers() }
         ItemMenu("📈", "Mi progreso") { onProgreso() }
         ItemMenu("🤝", "Mis compañeros de entrenamiento") { onCompaneros() }
         ItemMenu(
             "🐕",
-            if (planIncluyeArgos(DatosRemotos.membresia?.plan)) "Argos, tu asistente de IA"
-            else "Argos, tu asistente de IA  🔒 Plan Oro"
+            if (planIncluyeArgos(DatosRemotos.membresia?.plan)) "Argos, asistente de IA"
+            else "Argos (Plan Oro)"
         ) { onArgos() }
-        ItemMenu("📅", "Mis turnos y reservas") { aviso = "Spinning hoy 19:30 · confirmado" }
+        ItemMenu("📅", "Mis turnos y reservas") { onTurnos() }
 
         SeccionLabel("Cuenta")
-        ItemMenu("🔔", "Notificaciones") { aviso = "Notificaciones activadas" }
         ItemMenu("⚙️", "Configuración") { onConfiguracion() }
         ItemMenu("ℹ️", "Acerca de OlimpΩs") { aviso = "OlimpΩs App · v1.0 · Proyecto Olimpos" }
         ItemMenu("🚪", "Cerrar sesión") { onCerrarSesion() }
@@ -196,12 +197,8 @@ private fun Estadistica(valor: String, etiqueta: String, modifier: Modifier = Mo
             .padding(vertical = 13.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(valor, fontSize = 19.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
-        Text(
-            etiqueta.uppercase(),
-            fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 1.sp, color = Olimpos.Muted
-        )
+        Text(valor, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
+        Text(etiqueta, fontSize = 11.sp, color = Olimpos.Muted)
     }
 }
 
@@ -210,17 +207,17 @@ private fun ItemMenu(emoji: String, texto: String, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(bottom = 9.dp)
-            .clip(RoundedCornerShape(17.dp))
+            .padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(Olimpos.Card)
-            .border(1.dp, Olimpos.Line, RoundedCornerShape(17.dp))
+            .border(1.dp, Olimpos.Line, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconoCuadrado(emoji)
         Spacer(Modifier.width(13.dp))
-        Text(texto, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream, modifier = Modifier.weight(1f))
-        Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black)
+        Text(texto, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Olimpos.Cream, modifier = Modifier.weight(1f))
+        FlechaFila()
     }
 }

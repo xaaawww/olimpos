@@ -62,8 +62,6 @@ fun construirContextoPersonalArgos(): String {
         if (nombres.isNotEmpty()) partes.add("Clases reservadas: " + nombres.joinToString(", ") + ".")
     }
 
-    val locker = DatosRemotos.lockersOcupados?.entries?.find { it.value == socioActualId() }?.key
-    if (locker != null) partes.add("Tiene reservado el locker Nº $locker.")
 
     return partes.joinToString(" ")
 }

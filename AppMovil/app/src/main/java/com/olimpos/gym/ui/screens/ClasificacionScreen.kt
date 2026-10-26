@@ -134,7 +134,7 @@ private fun ToggleVisibilidadPropia() {
             IconoCuadrado(if (oculto) "🙈" else "🏆")
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text("Mostrarme en la Escalera del Olimpo", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                Text("Mostrarme en la Escalera del Olimpo", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                 Text(
                     if (oculto) "Oculto: nadie más te ve en la búsqueda ni en las listas de miembros."
                     else "Otros socios pueden verte en la búsqueda y en la lista de tu rango.",
@@ -205,7 +205,7 @@ private fun BuscadorSocios(rangosSocios: List<SocioRango>, onSeleccionar: (Socio
                                 Text(s.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
                                 Text(s.nivel.etiquetaCompleta, fontSize = 11.sp, color = Olimpos.Gold)
                             }
-                            Text("→", color = Olimpos.Muted, fontWeight = FontWeight.Black)
+                            Text("→", color = Olimpos.Muted, fontWeight = FontWeight.Bold)
                         }
                         if (i < resultados.lastIndex) {
                             Box(Modifier.fillMaxWidth().height(1.dp).background(Olimpos.Line))
@@ -243,7 +243,7 @@ private fun EscaleraDelOlimpo(onVerMiembros: (NivelMuscular) -> Unit) {
     var expandido by remember { mutableStateOf<NivelMuscular?>(null) }
 
     Text(
-        "La Escalera del Olimpo", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+        "La Escalera del Olimpo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream,
         modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
     )
     Text(
@@ -447,13 +447,13 @@ private fun DetalleEscalon(nivel: NivelMuscular, esActual: Boolean, cantidadEnRa
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp)) {
         if (esActual) {
             Text(
-                "TU RANGO ACTUAL", fontSize = 9.sp, fontWeight = FontWeight.ExtraBold,
+                "TU RANGO ACTUAL", fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp, color = Olimpos.Gold
             )
             Spacer(Modifier.height(2.dp))
         }
         Text(
-            nivel.etiquetaCompleta.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Black,
+            nivel.etiquetaCompleta.uppercase(), fontSize = 16.sp, fontWeight = FontWeight.Bold,
             color = if (esActual) Olimpos.GoldLight else Olimpos.Cream
         )
         if (desc != null) {
@@ -586,7 +586,7 @@ private fun FilaMiembro(socio: SocioRango, esYo: Boolean, onClick: () -> Unit) {
     ) {
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(socio.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                Text(socio.nombre, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
                 if (esYo) {
                     Spacer(Modifier.width(6.dp))
                     ChipOro("Vos")
@@ -597,7 +597,7 @@ private fun FilaMiembro(socio: SocioRango, esYo: Boolean, onClick: () -> Unit) {
                 fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black)
+        Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -642,7 +642,7 @@ private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                socio.nombre, fontSize = 18.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+                socio.nombre, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(8.dp))
@@ -675,7 +675,7 @@ private fun DetallePerfilSocio(socio: SocioRango, onCerrar: () -> Unit) {
 
             Spacer(Modifier.height(16.dp))
             Text(
-                "BODYGRAPH", fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
+                "BODYGRAPH", fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.2.sp, color = Olimpos.Muted
             )
             Spacer(Modifier.height(8.dp))

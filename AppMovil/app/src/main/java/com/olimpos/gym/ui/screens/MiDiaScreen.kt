@@ -109,7 +109,7 @@ private fun TarjetaRachaDieta(racha: Int, objetivo: ObjetivoCompetencia, meta: M
             Column(Modifier.weight(1f)) {
                 Text(
                     "Racha de dieta: $racha ${if (racha == 1) "día" else "días"}",
-                    fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream
+                    fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Olimpos.Cream
                 )
                 Text(
                     when {
@@ -129,7 +129,7 @@ private fun TarjetaRachaDieta(racha: Int, objetivo: ObjetivoCompetencia, meta: M
 @Composable
 private fun TarjetaMacrosHoy(actual: Macros, meta: Macros?) {
     TarjetaOro(Modifier.fillMaxWidth()) {
-        Text("Hoy llevás", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+        Text("Hoy llevás", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
         Spacer(Modifier.height(10.dp))
         FilaMacro("Calorías", actual.kcal, meta?.kcal, " kcal", Olimpos.Gold)
         Spacer(Modifier.height(9.dp))
@@ -157,7 +157,7 @@ private fun FilaMacro(etiqueta: String, actual: Int, meta: Int?, unidad: String,
             Text(etiqueta, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted, modifier = Modifier.weight(1f))
             Text(
                 if (hayMeta) "$actual / $meta$unidad" else "$actual$unidad",
-                fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream
+                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream
             )
         }
         Spacer(Modifier.height(4.dp))
@@ -216,7 +216,7 @@ private fun TarjetaMomento(
             }
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
-                Text("${momento.emoji} ${momento.etiqueta}", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                Text("${momento.emoji} ${momento.etiqueta}", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
                 Text(
                     if (asignados.isEmpty()) "Sin plato asignado en este horario"
                     else "Asignado: " + asignados.joinToString(" + ") { it.nombre } +
@@ -380,8 +380,8 @@ fun RegistrarComidaScreen(
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                BotonSecundario("📷 Sacar foto", Modifier.weight(1f)) { sacarFoto() }
-                BotonSecundario("🖼️ De la galería", Modifier.weight(1f)) {
+                BotonSecundario("Sacar foto", Modifier.weight(1f)) { sacarFoto() }
+                BotonSecundario("De la galería", Modifier.weight(1f)) {
                     galeria.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 }
             }

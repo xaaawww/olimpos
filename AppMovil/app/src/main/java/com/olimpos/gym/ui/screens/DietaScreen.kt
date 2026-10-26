@@ -177,8 +177,8 @@ private fun CatalogoDietas(
                 Column(Modifier.weight(1f)) {
                     Eyebrow("Mi dieta")
                     Row {
-                        Text("Plato ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
-                        Text("saludable", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
+                        Text("Plato ", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
+                        Text("saludable", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Olimpos.Gold)
                     }
                 }
                 Box(
@@ -189,7 +189,7 @@ private fun CatalogoDietas(
                         .clickable { onNutricion() }
                         .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
-                    Text("🥗 Mi nutrición", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.GoldLight)
+                    Text("🥗 Mi nutrición", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight)
                 }
             }
             Spacer(Modifier.height(13.dp))
@@ -283,7 +283,7 @@ private fun TarjetaDieta(
         )
         Column(Modifier.padding(12.dp)) {
             Text(
-                plato.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold,
+                plato.nombre, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                 color = Olimpos.Cream, maxLines = 1
             )
             if (plato.tags.isNotEmpty()) {
@@ -310,11 +310,11 @@ private fun TarjetaDieta(
                 Modifier
                     .align(Alignment.End)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.GoldDark)))
+                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
                     .clickable(onClick = onVer)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Ver ▸", fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                Text("Ver ▸", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
             }
         }
     }
@@ -328,7 +328,7 @@ private fun EtiquetaMini(texto: String) {
             .background(Olimpos.GoldSoft)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(texto, fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.GoldLight, maxLines = 1)
+        Text(texto, fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight, maxLines = 1)
     }
 }
 
@@ -412,7 +412,7 @@ private fun DetalleDieta(plato: Plato, onVolver: () -> Unit) {
             ) {
                 Text(
                     if (yaProbado) "✓ Ya probaste este plato" else "🍽️ Marcar como probado",
-                    fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold,
+                    fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold,
                     color = if (yaProbado) Olimpos.Muted else Olimpos.GoldLight
                 )
             }
@@ -496,7 +496,7 @@ private fun DetalleDieta(plato: Plato, onVolver: () -> Unit) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "${i + 1}", fontSize = 12.sp, fontWeight = FontWeight.Black,
+                                "${i + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold,
                                 color = Olimpos.GoldDark
                             )
                         }
@@ -528,11 +528,11 @@ private fun DetalleDieta(plato: Plato, onVolver: () -> Unit) {
                         Box(
                             Modifier
                                 .clip(RoundedCornerShape(100.dp))
-                                .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.GoldDark)))
+                                .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
                                 .clickable { activar(0); reproduciendo = true }
                                 .padding(horizontal = 26.dp, vertical = 13.dp)
                         ) {
-                            Text("▶  Iniciar recorrido", fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text("▶  Iniciar recorrido", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                         }
                     }
                 }
@@ -660,10 +660,10 @@ private fun PanelIngrediente(
                 Column {
                     Text(
                         "INGREDIENTE ${indice + 1} DE $total",
-                        fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
+                        fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp, color = Olimpos.Muted
                     )
-                    Text(ing.nombre, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.Cream)
+                    Text(ing.nombre, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -676,7 +676,7 @@ private fun PanelIngrediente(
                     .padding(horizontal = 13.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
-                Text(ing.kcal, fontSize = 19.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldDark)
+                Text(ing.kcal, fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldDark)
                 Spacer(Modifier.width(6.dp))
                 Text("por porción", fontSize = 10.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 2.dp))
             }
@@ -688,7 +688,7 @@ private fun PanelIngrediente(
             }
             Spacer(Modifier.height(14.dp))
             Text(
-                "APORTE SALUDABLE", fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
+                "APORTE SALUDABLE", fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 9.dp)
             )
             ing.beneficios.forEach { b ->
@@ -728,11 +728,11 @@ private fun PanelIngrediente(
                     Modifier
                         .size(50.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.GoldDark)))
+                        .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
                         .clickable(onClick = onTogglePlay),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(if (reproduciendo) "❚❚" else "▶", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
+                    Text(if (reproduciendo) "❚❚" else "▶", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
                 ControlRedondo("›", onNext)
             }

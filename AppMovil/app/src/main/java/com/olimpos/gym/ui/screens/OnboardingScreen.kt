@@ -175,7 +175,7 @@ private fun PasoFisico(
     sexo: SexoBiologico?, onSexo: (SexoBiologico) -> Unit,
     condicion: String, onCondicion: (String) -> Unit
 ) {
-    Text("Contanos de tu cuerpo", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+    Text("Contanos de tu cuerpo", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
     Text(
         "Con estos datos calculamos tu rango en la Escalera del Olimpo (se compara contra tu propio peso, no un número fijo) y tu plan inicial.",
         fontSize = 13.sp, color = Olimpos.Muted,
@@ -208,7 +208,7 @@ private fun PasoFisico(
 
 @Composable
 private fun PasoObjetivo(seleccionado: ObjetivoCompetencia?, onSeleccion: (ObjetivoCompetencia) -> Unit) {
-    Text("¿Cuál es tu objetivo?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+    Text("¿Cuál es tu objetivo?", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
     Text(
         "Vamos a adaptar tu dieta, tu perfil de competencia y tus rankings. Lo podés cambiar después en Configuración.",
         fontSize = 13.sp, color = Olimpos.Muted,
@@ -223,7 +223,7 @@ private fun PasoObjetivo(seleccionado: ObjetivoCompetencia?, onSeleccion: (Objet
 
 @Composable
 private fun PasoExperiencia(seleccionado: String?, onSeleccion: (String) -> Unit) {
-    Text("¿Cuál es tu nivel?", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+    Text("¿Cuál es tu nivel?", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
     Text(
         "Así ajustamos la dificultad y el peso sugerido en tus ejercicios.",
         fontSize = 13.sp, color = Olimpos.Muted,
@@ -241,7 +241,7 @@ private fun PasoDisponibilidad(
     diasElegidos: Set<String>, onDias: (Set<String>) -> Unit,
     franja: String?, onFranja: (String) -> Unit
 ) {
-    Text("Tu disponibilidad", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+    Text("Tu disponibilidad", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
     Text(
         "Elegí los días y el horario en que solés entrenar.",
         fontSize = 13.sp, color = Olimpos.Muted,

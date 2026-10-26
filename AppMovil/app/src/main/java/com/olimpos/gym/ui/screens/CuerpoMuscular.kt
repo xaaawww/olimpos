@@ -159,7 +159,7 @@ fun iconoDeRango(nivel: NivelMuscular): Int = when (nivel.rango) {
 @Composable
 private fun EtiquetaVista(texto: String) {
     Text(
-        texto.uppercase(), fontSize = 9.5.sp, fontWeight = FontWeight.ExtraBold,
+        texto.uppercase(), fontSize = 9.5.sp, fontWeight = FontWeight.SemiBold,
         letterSpacing = 1.2.sp, color = Olimpos.Muted
     )
 }

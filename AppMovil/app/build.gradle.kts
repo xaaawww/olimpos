@@ -70,6 +70,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.material3:material3")
+    // Íconos de línea (los mismos "outlined" del sistema de empleados); R8 deja solo los usados
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.animation:animation")
     debugImplementation("androidx.compose.ui:ui-tooling")
     implementation("androidx.compose.ui:ui-tooling-preview")

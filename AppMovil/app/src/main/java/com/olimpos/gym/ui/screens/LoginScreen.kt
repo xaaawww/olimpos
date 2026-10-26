@@ -83,7 +83,7 @@ fun LoginScreen(onIngresar: () -> Unit) {
 
         Spacer(Modifier.height(14.dp))
         Text(
-            "OlimpΩs", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+            "OlimpΩs", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         Text(
@@ -95,7 +95,7 @@ fun LoginScreen(onIngresar: () -> Unit) {
         )
 
         TarjetaOro(Modifier.fillMaxWidth()) {
-            Text("Iniciá sesión", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Olimpos.Cream)
+            Text("Iniciá sesión", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Olimpos.Cream)
             Spacer(Modifier.height(14.dp))
             CampoOro(email, { email = it; error = null }, "Email", teclado = KeyboardType.Email)
             Spacer(Modifier.height(12.dp))

@@ -100,7 +100,7 @@ fun ProgresoScreen(onVolver: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("${s.fecha} · ${s.tipo}", fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                        Text("${s.fecha} · ${s.tipo}", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                         Text("${s.duracion} · ${s.volumenKg}kg movidos", fontSize = 11.5.sp, color = Olimpos.Muted)
                     }
                 }
@@ -217,7 +217,7 @@ private fun TarjetaAgregarFoto(subiendo: Boolean, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(if (subiendo) "…" else "+", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
+        Text(if (subiendo) "…" else "+", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Olimpos.Gold)
         Text(
             if (subiendo) "Subiendo" else "Agregar foto",
             fontSize = 10.sp, color = Olimpos.Muted, modifier = Modifier.padding(horizontal = 6.dp)

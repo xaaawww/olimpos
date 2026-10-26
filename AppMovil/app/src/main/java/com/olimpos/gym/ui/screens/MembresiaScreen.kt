@@ -83,7 +83,7 @@ fun MembresiaScreen(onVolver: () -> Unit) {
                         Column(Modifier.weight(1f)) {
                             Text(
                                 membresia?.let { "Plan ${it.plan}" } ?: "Sin plan asignado",
-                                fontWeight = FontWeight.Black, fontSize = 18.sp, color = Olimpos.Cream
+                                fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Olimpos.Cream
                             )
                             Text(
                                 membresia?.let { "Socio desde ${fechaLegible(it.fechaInicioMs)}" }
@@ -199,7 +199,7 @@ private fun TarjetaPlan(
     TarjetaOro(modifier.fillMaxWidth().padding(bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(plan.nombre, fontWeight = FontWeight.Black, fontSize = 15.sp, color = Olimpos.Cream)
+                Text(plan.nombre, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Olimpos.Cream)
                 Text(plan.precio, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
             }
             if (plan.destacado) ChipOro("Popular")
@@ -207,7 +207,7 @@ private fun TarjetaPlan(
         Spacer(Modifier.height(10.dp))
         plan.beneficios.forEach { b ->
             Row(Modifier.padding(bottom = 4.dp)) {
-                Text("✓ ", fontSize = 12.sp, color = Olimpos.Gold, fontWeight = FontWeight.Black)
+                Text("✓ ", fontSize = 12.sp, color = Olimpos.Gold, fontWeight = FontWeight.Bold)
                 Text(b, fontSize = 12.sp, color = Olimpos.Muted)
             }
         }

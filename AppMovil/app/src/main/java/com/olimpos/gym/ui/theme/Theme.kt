@@ -50,6 +50,8 @@ fun guardarThemeMode(context: Context, modo: ThemeMode) {
 object Olimpos {
     // Identidad de marca — igual en ambos modos
     var Gold by mutableStateOf(Color(0xFFC9A227)); private set
+    // En claro es el dorado oscuro: se usa casi siempre como TEXTO de acento,
+    // y el dorado claro no se lee sobre fondo blanco.
     var GoldLight by mutableStateOf(Color(0xFFF0D060)); private set
     var GoldDark by mutableStateOf(Color(0xFFA07820)); private set
     var GoldBg by mutableStateOf(Color(0xFFFFFDE8)); private set
@@ -74,6 +76,7 @@ object Olimpos {
     fun aplicar(oscuro: Boolean) {
         EsOscuro = oscuro
         if (oscuro) {
+            GoldLight = Color(0xFFF0D060)
             Cream = Color(0xFFFAFAF0)
             Muted = Color(0xFF888570)
             GrayLight = Color(0xFFE8E5D8)
@@ -85,16 +88,20 @@ object Olimpos {
             FondoB = Color(0xFF1A1500)
             FondoC = Color(0xFF252100)
         } else {
-            Cream = Color(0xFF221B02)
-            Muted = Color(0xFF8A7F60)
+            // Mismos colores que el sistema de empleados (theme.py): fondo
+            // crema liso, tarjetas blancas con borde gris suave, texto casi
+            // negro y dorado solo como acento.
+            GoldLight = Color(0xFFA07820)
+            Cream = Color(0xFF1F1D16)
+            Muted = Color(0xFF888570)
             GrayLight = Color(0xFFE8E5D8)
             Card = Color(0xFFFFFFFF)
-            Superficie2 = Color(0xFFF1EEE3)
-            Line = Color(0x33C9A227)
-            GoldSoft = Color(0xFFFCF3CE)
-            FondoA = Color(0xFFFFFDF6)
-            FondoB = Color(0xFFFAF6EC)
-            FondoC = Color(0xFFF2ECDB)
+            Superficie2 = Color(0xFFF3F1EA)
+            Line = Color(0xFFE8E5D8)
+            GoldSoft = Color(0xFFF7EDC4)
+            FondoA = Color(0xFFFAFAF0)
+            FondoB = Color(0xFFFAFAF0)
+            FondoC = Color(0xFFFAFAF0)
         }
     }
 }

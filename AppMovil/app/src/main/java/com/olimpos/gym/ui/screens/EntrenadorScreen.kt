@@ -72,7 +72,7 @@ fun EntrenadorScreen(onVolver: () -> Unit) {
                 TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(s.entrenador, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                            Text(s.entrenador, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
                             Text("${s.fecha} · ${s.hora}", fontSize = 12.sp, color = Olimpos.Muted)
                         }
                         ChipOro(s.estado)
@@ -119,7 +119,7 @@ private fun TarjetaEntrenador(e: Entrenador, onContactar: () -> Unit) {
             AvatarInicial(e.nombre.first().toString())
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(e.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = Olimpos.Cream)
+                Text(e.nombre, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = Olimpos.Cream)
                 Text(e.especialidad, fontSize = 11.5.sp, color = Olimpos.Muted)
                 Text(e.disponibilidad, fontSize = 10.5.sp, color = Olimpos.Muted)
             }

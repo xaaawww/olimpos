@@ -92,7 +92,7 @@ fun NutricionScreen(onVolver: () -> Unit) {
             TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
                 Text(
                     if (yaRegistroAgua) "Ya registraste tu consumo de agua de hoy ✓" else "¿Tomaste suficiente agua hoy?",
-                    fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream
+                    fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream
                 )
                 Spacer(Modifier.height(10.dp))
                 BotonSecundario(
@@ -114,7 +114,7 @@ fun NutricionScreen(onVolver: () -> Unit) {
                         Text(r.emoji, fontSize = 22.sp)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(r.titulo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                            Text(r.titulo, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                             Text(r.detalle, fontSize = 11.5.sp, color = Olimpos.Muted, lineHeight = 16.sp)
                         }
                     }
@@ -134,7 +134,7 @@ fun NutricionScreen(onVolver: () -> Unit) {
                         .background(Olimpos.Card)
                         .padding(horizontal = 15.dp, vertical = 12.dp)
                 ) {
-                    Text(h.fecha, fontSize = 12.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
+                    Text(h.fecha, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
                     Spacer(Modifier.width(10.dp))
                     Text(h.resumen, fontSize = 12.sp, color = Olimpos.Muted)
                 }

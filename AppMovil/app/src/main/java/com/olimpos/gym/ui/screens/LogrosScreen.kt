@@ -119,7 +119,7 @@ private fun ContadorLogros(ganados: Int, total: Int) {
         Text("🏆", fontSize = 18.sp)
         Spacer(Modifier.width(6.dp))
         Column {
-            Text("$ganados/$total", fontSize = 13.sp, fontWeight = FontWeight.Black, color = CA.texto)
+            Text("$ganados/$total", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = CA.texto)
             Text("logros", fontSize = 9.sp, color = CA.suave)
         }
     }
@@ -132,7 +132,7 @@ private fun FilaLogro(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
             IconoRedondo(logro.emoji, tamano = 48.dp, apagado = logro.progreso <= 0f)
             Spacer(Modifier.width(13.dp))
             Column(Modifier.weight(1f)) {
-                Text(logro.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto)
+                Text(logro.nombre, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = CA.texto)
                 Text(logro.descripcion, fontSize = 11.5.sp, color = CA.suave, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -161,7 +161,7 @@ private fun Medalla(logro: Logro, modifier: Modifier, onClick: () -> Unit) {
         IconoRedondo(logro.emoji, tamano = 52.dp, pastel = Pastel.NARANJA)
         Spacer(Modifier.height(8.dp))
         Text(
-            logro.nombre, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto,
+            logro.nombre, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = CA.texto,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 13.sp
         )
     }
@@ -195,7 +195,7 @@ private fun DetalleLogro(logro: Logro, onCerrar: () -> Unit) {
         ) {
             IconoRedondo(logro.emoji, tamano = 72.dp, apagado = !logro.desbloqueado)
             Spacer(Modifier.height(14.dp))
-            Text(logro.nombre, fontSize = 17.sp, fontWeight = FontWeight.Black, color = CA.texto)
+            Text(logro.nombre, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = CA.texto)
             Spacer(Modifier.height(6.dp))
             Text(
                 logro.descripcion, fontSize = 12.5.sp, color = CA.suave, textAlign = TextAlign.Center,

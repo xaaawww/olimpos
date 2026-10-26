@@ -572,7 +572,6 @@ val LOGROS = listOf(
     // ── Gimnasio físico ──
     Logro("⏰", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0f, false),
     Logro("🖐️", "Biométrico", "Ingresá al gimnasio con huella 10 veces", 0f, false),
-    Logro("🔒", "Casillero propio", "Reservá tu primer locker", 0f, false),
     Logro("📍", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
     Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0f, false),
     Logro("📸", "Antes y después", "Subí tu primera foto de progreso", 0f, false),
@@ -605,7 +604,6 @@ data class ContextoLogros(
     /** Distintos objetivos de la Arena que probó alguna vez (ver
      *  objetivosProbadosAlgunaVez en este mismo archivo). */
     val objetivosDistintosProbados: Int = 0,
-    val tieneLockerReservado: Boolean = false,
     val tienePerfilNutricional: Boolean = false,
     /** Fecha real de inicio de la membresía asignada por un empleado
      *  (ver MembresiaRepository.kt) — `null` si todavía no le asignaron
@@ -634,7 +632,6 @@ fun construirContextoLogros(contexto: Context): ContextoLogros {
     val ingresos = DatosRemotos.ingresos ?: emptyList()
     val rangosSocios = DatosRemotos.rangosSocios ?: emptyList()
     val datosFisicos = DatosRemotos.datosFisicosPropios
-    val lockersOcupados = DatosRemotos.lockersOcupados ?: emptyMap()
     val perfilNutricional = DatosRemotos.perfilNutricional
     val membresia = DatosRemotos.membresia
     val platosProbados = DatosRemotos.platosProbados ?: emptySet()
@@ -658,7 +655,6 @@ fun construirContextoLogros(contexto: Context): ContextoLogros {
         vistasBodygraph = datosFisicos?.vistasBodygraph ?: 0,
         seccionesArenaVisitadas = datosFisicos?.seccionesArenaVisitadas?.size ?: 0,
         objetivosDistintosProbados = objetivosProbadosAlgunaVez(contexto).size,
-        tieneLockerReservado = lockersOcupados.containsValue(socioId),
         tienePerfilNutricional = perfilNutricional != null && (perfilNutricional.preferencias.isNotEmpty() || perfilNutricional.excluidos.isNotEmpty()),
         membresiaFechaInicioMs = membresia?.fechaInicioMs,
         platosDistintosProbados = platosProbados.size,
@@ -864,7 +860,6 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Cambio de look"] = (if (ctx.objetivosDistintosProbados >= 2) 1f else 0f) to (ctx.objetivosDistintosProbados >= 2)
     resultados["Puntualidad"] = (ctx.ingresosQr / 20f).coerceIn(0f, 1f) to (ctx.ingresosQr >= 20)
     resultados["Biométrico"] = (ctx.ingresosBiometrico / 10f).coerceIn(0f, 1f) to (ctx.ingresosBiometrico >= 10)
-    resultados["Casillero propio"] = (if (ctx.tieneLockerReservado) 1f else 0f) to ctx.tieneLockerReservado
     resultados["Plato consciente"] = (if (ctx.tienePerfilNutricional) 1f else 0f) to ctx.tienePerfilNutricional
 
     // Meses aproximados (30 días) desde que un empleado asignó la

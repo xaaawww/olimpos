@@ -104,7 +104,7 @@ private fun FilaEjercicio(ej: EjercicioCatalogo, onClick: () -> Unit) {
             ImagenEjercicio(imagenDeEjercicio(ej.id, ej.nombre), 64.dp, ej.puntos.map { it.zona }.toSet())
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(ej.nombre, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(ej.nombre, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = CA.texto, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(6.dp))
                 // Músculos trabajados: el primero (el protagonista) resaltado.
                 val musculos = ej.puntos.distinctBy { it.nombre }

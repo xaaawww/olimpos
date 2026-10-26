@@ -52,7 +52,7 @@ fun ObjetivoScreen(objetivoActual: ObjetivoCompetencia?, onElegido: (ObjetivoCom
         Spacer(Modifier.height(14.dp))
         Text(
             "¿Cuál es tu\nobjetivo?",
-            fontSize = 27.sp, fontWeight = FontWeight.Black, color = Color(0xFFFAFAF0), lineHeight = 33.sp
+            fontSize = 27.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFAFAF0), lineHeight = 33.sp
         )
         Text(
             "Vamos a adaptar tus rankings, tu dieta, tu racha y tus metas de competencia. " +

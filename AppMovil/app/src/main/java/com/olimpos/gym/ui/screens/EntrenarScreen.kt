@@ -127,13 +127,13 @@ fun EntrenarScreen() {
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                rutina.nombre, fontSize = 24.sp, fontWeight = FontWeight.Black,
+                rutina.nombre, fontSize = 24.sp, fontWeight = FontWeight.Bold,
                 color = Olimpos.Cream, modifier = Modifier.weight(1f)
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("$totalHechas/$totalObjetivo", fontSize = 17.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
+                Text("$totalHechas/$totalObjetivo", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Olimpos.Gold)
                 Text(
-                    "SERIES", fontSize = 9.sp, fontWeight = FontWeight.ExtraBold,
+                    "SERIES", fontSize = 9.sp, fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp, color = Olimpos.Muted
                 )
             }
@@ -144,7 +144,7 @@ fun EntrenarScreen() {
                 modifier = Modifier.weight(1f)
             )
             Text(
-                "Cambiar rutina →", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.GoldLight,
+                "Cambiar rutina →", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight,
                 modifier = Modifier.clickable { mostrarMisRutinas = true }
             )
         }
@@ -201,10 +201,10 @@ fun EntrenarScreen() {
                 IconoCuadrado("🧑‍🏫")
                 Spacer(Modifier.width(13.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Contactar y reservar sesión", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                    Text("Contactar y reservar sesión", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
                     Text("Pedí una rutina nueva o una sesión 1 a 1", fontSize = 12.sp, color = Olimpos.Muted)
                 }
-                Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                FlechaFila()
             }
         }
     }
@@ -239,7 +239,7 @@ private fun SinRutinaAsignada(onActualizar: () -> Unit, onMisRutinas: () -> Unit
             Spacer(Modifier.height(14.dp))
             Text(
                 if (tieneAlgunaSinSeguir) "Todavía no elegiste qué rutina seguir" else "Todavía no tenés una rutina",
-                fontSize = 17.sp, fontWeight = FontWeight.Black,
+                fontSize = 17.sp, fontWeight = FontWeight.Bold,
                 color = Olimpos.Cream, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(8.dp))
@@ -252,9 +252,9 @@ private fun SinRutinaAsignada(onActualizar: () -> Unit, onMisRutinas: () -> Unit
             )
         }
         Spacer(Modifier.height(24.dp))
-        BotonPrincipal("📋 Mis rutinas") { onMisRutinas() }
+        BotonPrincipal("Mis rutinas") { onMisRutinas() }
         Spacer(Modifier.height(10.dp))
-        BotonSecundario("🔄 Ya me la asignaron, actualizar") { onActualizar() }
+        BotonSecundario("Ya me la asignaron, actualizar") { onActualizar() }
         Spacer(Modifier.height(20.dp))
         TarjetaOro(
             Modifier
@@ -265,10 +265,10 @@ private fun SinRutinaAsignada(onActualizar: () -> Unit, onMisRutinas: () -> Unit
                 IconoCuadrado("🧑‍🏫")
                 Spacer(Modifier.width(13.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Contactar y reservar sesión", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                    Text("Contactar y reservar sesión", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
                     Text("Pedí tu rutina o una sesión 1 a 1", fontSize = 12.sp, color = Olimpos.Muted)
                 }
-                Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                FlechaFila()
             }
         }
     }
@@ -316,7 +316,7 @@ private fun CronometroSesion() {
     }
     Text(
         "%02d:%02d:%02d".format(segundos / 3600, (segundos / 60) % 60, segundos % 60),
-        fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold, color = Olimpos.GoldLight
+        fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight
     )
 }
 
@@ -336,7 +336,7 @@ private fun TarjetaEjercicioRutina(
     val completo = seriesHechas.size >= ejercicio.seriesObjetivo
 
     TarjetaOro(modifier.fillMaxWidth()) {
-        Text(ejercicio.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream)
+        Text(ejercicio.nombre, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Olimpos.Cream)
         Text(
             "${ejercicio.seriesObjetivo} x ${detalle?.reps ?: "-"}" +
                 (detalle?.let { " · descanso ${Math.round(it.descansoSeg / 60f).coerceAtLeast(1)}min" } ?: ""),
@@ -382,7 +382,7 @@ private fun TarjetaEjercicioRutina(
                 ) {
                     Text(
                         if (hecha) "${formatoKg(seriesHechas[i].pesoKg)}×${seriesHechas[i].reps}" else "S${i + 1}",
-                        fontSize = 10.sp, fontWeight = FontWeight.ExtraBold,
+                        fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                         color = if (hecha) Olimpos.GoldLight else Olimpos.Muted
                     )
                 }
@@ -401,7 +401,7 @@ private fun TarjetaEjercicioRutina(
                         .padding(vertical = 13.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✓ Series completas", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.Green)
+                    Text("✓ Series completas", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Olimpos.Green)
                 }
             } else {
                 BotonPrincipal("Registrar serie ${seriesHechas.size + 1}", Modifier.weight(1f), onClick = onRegistrarSerie)
@@ -423,7 +423,7 @@ private fun BotonPasoPeso(simbolo: String, habilitado: Boolean, onClick: () -> U
         contentAlignment = Alignment.Center
     ) {
         Text(
-            simbolo, fontSize = 15.sp, fontWeight = FontWeight.Black,
+            simbolo, fontSize = 15.sp, fontWeight = FontWeight.Bold,
             color = if (habilitado) Olimpos.GoldLight else Olimpos.Muted
         )
     }
@@ -455,7 +455,7 @@ private fun CampoPesoCompacto(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (prefijoMas) {
-            Text("+", fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
+            Text("+", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
         }
         BasicTextField(
             value = texto,
@@ -471,13 +471,13 @@ private fun CampoPesoCompacto(
                 },
             singleLine = true,
             textStyle = TextStyle(
-                fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight,
+                fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight,
                 textAlign = TextAlign.Center
             ),
             cursorBrush = SolidColor(Olimpos.Gold),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
         )
-        Text(" kg", fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
+        Text(" kg", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
     }
 }
 
@@ -513,13 +513,13 @@ private fun CampoRepsCompacto(valor: Int, onValor: (Int) -> Unit, modifier: Modi
                 },
             singleLine = true,
             textStyle = TextStyle(
-                fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight,
+                fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight,
                 textAlign = TextAlign.Center
             ),
             cursorBrush = SolidColor(Olimpos.Gold),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
-        Text(" reps", fontSize = 12.5.sp, fontWeight = FontWeight.Black, color = Olimpos.GoldLight)
+        Text(" reps", fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
     }
 }
 
@@ -534,7 +534,7 @@ private fun TarjetaGhostMode(ejercicio: String, seriesHoy: List<SerieHecha>, his
     val comparacion = remember(seriesHoy.size, historial) { ghostModeDeEjercicio(ejercicio, seriesHoy, historial) }
     TarjetaOro(Modifier.fillMaxWidth()) {
         Text(
-            "GHOST MODE · ${ejercicio.uppercase()}", fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold,
+            "GHOST MODE · ${ejercicio.uppercase()}", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp, color = Olimpos.Muted
         )
         Spacer(Modifier.height(12.dp))

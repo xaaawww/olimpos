@@ -197,7 +197,7 @@ fun ArgosScreen(onVolver: () -> Unit, onVerPlanes: () -> Unit) {
                     .clickable(enabled = !enviando) { enviar() }
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
-                Text(if (enviando) "…" else "➤", fontWeight = FontWeight.Black, fontSize = 15.sp, color = Olimpos.Dark)
+                Text(if (enviando) "…" else "➤", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Olimpos.Dark)
             }
         }
     }
@@ -229,7 +229,7 @@ private fun BurbujaArgos(m: MensajeArgos, atenuado: Boolean = false) {
                     val contenido = if (esBullet) recortada.removePrefix("- ").removePrefix("* ") else linea
                     Row {
                         if (esBullet) {
-                            Text("•  ", fontSize = 13.sp, fontWeight = FontWeight.Black, color = color)
+                            Text("•  ", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color)
                         }
                         Text(
                             aTextoConNegrita(contenido, color), fontSize = 13.sp,
@@ -249,7 +249,7 @@ private fun aTextoConNegrita(texto: String, color: androidx.compose.ui.graphics.
     var ultimo = 0
     for (match in regex.findAll(texto)) {
         append(texto.substring(ultimo, match.range.first))
-        pushStyle(SpanStyle(fontWeight = FontWeight.Black, color = color))
+        pushStyle(SpanStyle(fontWeight = FontWeight.Bold, color = color))
         append(match.groupValues[1])
         pop()
         ultimo = match.range.last + 1
@@ -287,7 +287,7 @@ private fun ArgosBloqueado(
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Argos es parte del plan ${PLANES_CON_ARGOS.first()}",
-                    fontSize = 19.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream
+                    fontSize = 19.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream
                 )
                 Text(
                     "Incluido en los planes ${PLANES_CON_ARGOS.joinToString(" y ")}.",
@@ -299,7 +299,7 @@ private fun ArgosBloqueado(
                     "Consejos de entrenamiento y hábitos saludables, 24/7"
                 ).forEach { beneficio ->
                     Row(Modifier.padding(bottom = 6.dp)) {
-                        Text("✓ ", fontSize = 12.5.sp, color = Olimpos.Gold, fontWeight = FontWeight.Black)
+                        Text("✓ ", fontSize = 12.5.sp, color = Olimpos.Gold, fontWeight = FontWeight.Bold)
                         Text(beneficio, fontSize = 12.5.sp, color = Olimpos.Muted)
                     }
                 }
@@ -427,7 +427,7 @@ fun ArgosBurbujaFlotante(bloqueado: Boolean = false, modifier: Modifier = Modifi
             .size(TAMANO_BURBUJA)
             .shadow(8.dp, CircleShape)
             .clip(CircleShape)
-            .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark)))
+            .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
             .border(1.5.dp, Olimpos.Gold, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center

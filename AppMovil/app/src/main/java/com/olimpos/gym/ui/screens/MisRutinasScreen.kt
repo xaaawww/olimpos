@@ -109,7 +109,7 @@ private fun TarjetaRutina(
     TarjetaOro(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(rutina.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream)
+                Text(rutina.nombre, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Olimpos.Cream)
                 Text(
                     if (rutina.origen == "socio") "Hecha por vos" else "Armada por tu entrenador",
                     fontSize = 11.sp, color = Olimpos.Muted
@@ -178,7 +178,7 @@ private fun EditorRutinaScreen(rutinaExistente: RutinaCompleta?, onGuardado: () 
 
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BotonSecundario("📋 Del catálogo", Modifier.weight(1f)) { mostrarCatalogo = !mostrarCatalogo }
+                BotonSecundario("Del catálogo", Modifier.weight(1f)) { mostrarCatalogo = !mostrarCatalogo }
             }
             if (mostrarCatalogo) {
                 Spacer(Modifier.height(8.dp))
@@ -214,7 +214,7 @@ private fun EditorRutinaScreen(rutinaExistente: RutinaCompleta?, onGuardado: () 
                             }
                         },
                     contentAlignment = Alignment.Center
-                ) { Text("+", color = Olimpos.GoldLight, fontWeight = FontWeight.Black, fontSize = 20.sp) }
+                ) { Text("+", color = Olimpos.GoldLight, fontWeight = FontWeight.Bold, fontSize = 20.sp) }
             }
 
             aviso?.let {
@@ -222,7 +222,7 @@ private fun EditorRutinaScreen(rutinaExistente: RutinaCompleta?, onGuardado: () 
                 Text(it, fontSize = 12.sp, color = Olimpos.Gold, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(20.dp))
-            BotonPrincipal("💾 Guardar rutina") {
+            BotonPrincipal("Guardar rutina") {
                 if (nombre.isBlank() || filas.isEmpty()) {
                     aviso = "Poné un nombre y agregá al menos un ejercicio."
                     return@BotonPrincipal
@@ -250,19 +250,19 @@ private fun FilaEjercicioEditor(ejercicio: EjercicioRutina, onCambiar: (Ejercici
     TarjetaOro(Modifier.fillMaxWidth(), radio = 14) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(ejercicio.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+                Text(ejercicio.nombre, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                 if (ejercicio.ejercicioId == null) {
                     Text("Escrito a mano — sin ficha de técnica", fontSize = 10.5.sp, color = Olimpos.Muted)
                 }
             }
-            Text("✕", color = Olimpos.Muted, fontWeight = FontWeight.Black, modifier = Modifier.clickable { onQuitar() })
+            Text("✕", color = Olimpos.Muted, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { onQuitar() })
         }
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Series", fontSize = 10.sp, color = Olimpos.Muted, modifier = Modifier.weight(1f))
             PasoChico("－") { if (ejercicio.seriesObjetivo > 1) onCambiar(ejercicio.copy(seriesObjetivo = ejercicio.seriesObjetivo - 1)) }
             Text(
-                "${ejercicio.seriesObjetivo}", fontSize = 13.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream,
+                "${ejercicio.seriesObjetivo}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream,
                 modifier = Modifier.width(28.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             PasoChico("＋") { onCambiar(ejercicio.copy(seriesObjetivo = ejercicio.seriesObjetivo + 1)) }
@@ -272,7 +272,7 @@ private fun FilaEjercicioEditor(ejercicio: EjercicioRutina, onCambiar: (Ejercici
             Text("Peso de partida", fontSize = 10.sp, color = Olimpos.Muted, modifier = Modifier.weight(1f))
             PasoChico("－") { onCambiar(ejercicio.copy(pesoBaseKg = (ejercicio.pesoBaseKg - 2.5f).coerceAtLeast(0f))) }
             Text(
-                "%.1f".format(ejercicio.pesoBaseKg).replace('.', ',') + "kg", fontSize = 13.sp, fontWeight = FontWeight.Black,
+                "%.1f".format(ejercicio.pesoBaseKg).replace('.', ',') + "kg", fontSize = 13.sp, fontWeight = FontWeight.Bold,
                 color = Olimpos.Cream, modifier = Modifier.width(60.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
             PasoChico("＋") { onCambiar(ejercicio.copy(pesoBaseKg = ejercicio.pesoBaseKg + 2.5f)) }
@@ -290,5 +290,5 @@ private fun PasoChico(simbolo: String, onClick: () -> Unit) {
             .border(1.dp, Olimpos.Line, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Text(simbolo, color = Olimpos.GoldLight, fontWeight = FontWeight.Black, fontSize = 15.sp) }
+    ) { Text(simbolo, color = Olimpos.GoldLight, fontWeight = FontWeight.Bold, fontSize = 15.sp) }
 }

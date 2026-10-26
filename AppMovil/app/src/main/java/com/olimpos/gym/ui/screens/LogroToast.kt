@@ -192,10 +192,10 @@ private fun TarjetaToastLogro(logro: Logro) {
             Column(Modifier.weight(1f)) {
                 Text(
                     "¡Logro desbloqueado!",
-                    fontSize = 10.sp, fontWeight = FontWeight.ExtraBold,
+                    fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                     color = Olimpos.GoldDark, letterSpacing = 0.6.sp
                 )
-                Text(logro.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
+                Text(logro.nombre, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
                 Text(logro.descripcion, fontSize = 11.sp, color = Olimpos.Muted)
             }
         }

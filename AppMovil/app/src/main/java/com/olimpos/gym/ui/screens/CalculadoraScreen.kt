@@ -142,7 +142,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
                         val estimadas = repeticionesConPeso(oneRM, pesoPrueba)
                         Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text("$estimadas", fontSize = 40.sp, fontWeight = FontWeight.Black, color = CA.texto)
+                            Text("$estimadas", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = CA.texto)
                             Text(
                                 " repeticiones", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = CA.suave,
                                 modifier = Modifier.padding(bottom = 8.dp)
@@ -169,7 +169,7 @@ fun CalculadoraScreen(onVolver: () -> Unit) {
 @Composable
 private fun Etiqueta(texto: String) {
     Text(
-        texto, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = CA.texto,
+        texto, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = CA.texto,
         modifier = Modifier.padding(top = 18.dp, bottom = 9.dp)
     )
 }
@@ -196,7 +196,7 @@ private fun SelectorEjercicio(elegido: String, onElegir: (String) -> Unit) {
         DropdownMenu(expanded = abierto, onDismissRequest = { abierto = false }) {
             EJERCICIOS_FUERZA.forEach { ej ->
                 DropdownMenuItem(
-                    text = { Text(ej.nombre, fontSize = 14.sp, fontWeight = if (ej.nombre == elegido) FontWeight.ExtraBold else FontWeight.Normal) },
+                    text = { Text(ej.nombre, fontSize = 14.sp, fontWeight = if (ej.nombre == elegido) FontWeight.SemiBold else FontWeight.Normal) },
                     leadingIcon = { ImagenEjercicio(imagenDeEjercicio(nombre = ej.nombre), 32.dp, radio = 8.dp) },
                     onClick = { onElegir(ej.nombre); abierto = false }
                 )
@@ -212,8 +212,8 @@ private fun Deslizador(
 ) {
     Column {
         Row(Modifier.fillMaxWidth()) {
-            Text(etiqueta, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = CA.suave, modifier = Modifier.weight(1f))
-            Text(valorTexto, fontSize = 13.sp, fontWeight = FontWeight.Black, color = CA.texto)
+            Text(etiqueta, fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = CA.suave, modifier = Modifier.weight(1f))
+            Text(valorTexto, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = CA.texto)
         }
         Slider(
             value = valor.coerceIn(rango), onValueChange = onValor, valueRange = rango, steps = pasos,
@@ -240,7 +240,7 @@ private fun Resultado1RM(oneRM: Float, minimo: Float, maximo: Float, reps: Int, 
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text("1RM estimado", fontSize = 11.5.sp, color = CA.suave)
-            Text("${oneRM.roundToInt()} kg", fontSize = 30.sp, fontWeight = FontWeight.Black, color = CA.texto)
+            Text("${oneRM.roundToInt()} kg", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = CA.texto)
             Text(
                 if (reps == 1) "Es tu máximo de una repetición" else "Entre ${minimo.roundToInt()} y ${maximo.roundToInt()} kg según la fórmula",
                 fontSize = 10.5.sp, color = CA.suave
@@ -256,7 +256,7 @@ private fun Resultado1RM(oneRM: Float, minimo: Float, maximo: Float, reps: Int, 
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("Nivel", fontSize = 9.5.sp, color = CA.suave)
-                Text(nivel, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = CA.acento)
+                Text(nivel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = CA.acento)
             }
         }
     }
@@ -303,12 +303,12 @@ private fun FilaTabla(izq: String, der: String, encabezado: Boolean = false, col
         }
         Text(
             izq, fontSize = if (encabezado) 11.sp else 12.5.sp, modifier = Modifier.weight(1f),
-            fontWeight = if (resaltada) FontWeight.ExtraBold else FontWeight.Normal,
+            fontWeight = if (resaltada) FontWeight.SemiBold else FontWeight.Normal,
             color = if (encabezado) CA.suave else CA.texto
         )
         Text(
             der, fontSize = if (encabezado) 11.sp else 12.5.sp, modifier = Modifier.weight(0.8f),
-            fontWeight = if (resaltada) FontWeight.ExtraBold else FontWeight.Normal,
+            fontWeight = if (resaltada) FontWeight.SemiBold else FontWeight.Normal,
             color = if (encabezado) CA.suave else CA.texto
         )
     }

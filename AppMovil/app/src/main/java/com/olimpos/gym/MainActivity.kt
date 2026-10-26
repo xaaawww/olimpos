@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -103,13 +104,22 @@ class MainActivity : ComponentActivity() {
             val contexto = LocalContext.current
             var themeMode by remember { mutableStateOf(leerThemeMode(contexto)) }
             OlimposTheme(modo = themeMode) {
-                OlimposApp(
-                    themeMode = themeMode,
-                    onThemeMode = { nuevo ->
-                        themeMode = nuevo
-                        guardarThemeMode(contexto, nuevo)
-                    }
-                )
+                // Letra un 8% más chica en toda la app (respetando el tamaño
+                // que el socio eligió en su celular): más liviana, como el
+                // sistema de empleados.
+                val densidad = androidx.compose.ui.platform.LocalDensity.current
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalDensity provides
+                        androidx.compose.ui.unit.Density(densidad.density, densidad.fontScale * 0.92f)
+                ) {
+                    OlimposApp(
+                        themeMode = themeMode,
+                        onThemeMode = { nuevo ->
+                            themeMode = nuevo
+                            guardarThemeMode(contexto, nuevo)
+                        }
+                    )
+                }
             }
         }
     }
@@ -203,6 +213,8 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
     var objetivoArena by remember { mutableStateOf(leerObjetivoArena(contexto)) }
     // Lo pide el bloqueo de Argos para llevar directo a "Mi membresía".
     var abrirMembresia by remember { mutableStateOf(false) }
+    // Lo pide Inicio (tarjeta de clases) para llevar directo a "Mis turnos y reservas".
+    var abrirTurnos by remember { mutableStateOf(false) }
 
     // El objetivo se elige al iniciar la app y se cambia solo desde
     // Configuración — la Arena ya no lo cambia.
@@ -245,7 +257,8 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
                     Tab.INICIO -> HomeScreen(
                         onAbrirPlano = { mostrarPlano = true },
                         onIrEntrenar = { tab = Tab.ENTRENAR },
-                        onIrDieta = { tab = Tab.DIETA }
+                        onIrDieta = { tab = Tab.DIETA },
+                        onAbrirTurnos = { tab = Tab.PERFIL; abrirTurnos = true }
                     )
                     Tab.ENTRENAR -> EntrenarScreen()
                     Tab.ARENA -> ArenaScreen(objetivo = objetivoArena)
@@ -261,6 +274,8 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
                         onObjetivo = cambiarObjetivo,
                         abrirMembresia = abrirMembresia,
                         onMembresiaAbierta = { abrirMembresia = false },
+                        abrirTurnos = abrirTurnos,
+                        onTurnosAbierto = { abrirTurnos = false },
                         onCerrarSesion = onCerrarSesion
                     )
                 }
@@ -308,12 +323,14 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
     }
 }
 
+/** Barra de pestañas clara, como el menú lateral del sistema de empleados:
+ *  ícono de línea + nombre; la elegida en dorado sobre fondo suave. */
 @Composable
 private fun BarraInferior(actual: Tab, onTab: (Tab) -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(Olimpos.Dark.copy(alpha = 0.96f))
+            .background(if (Olimpos.EsOscuro) Olimpos.Dark else Olimpos.Card)
     ) {
         Box(
             Modifier
@@ -325,7 +342,7 @@ private fun BarraInferior(actual: Tab, onTab: (Tab) -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .height(66.dp)
+                .height(62.dp)
         ) {
             Tab.entries.forEach { t ->
                 val activo = t == actual
@@ -342,18 +359,25 @@ private fun BarraInferior(actual: Tab, onTab: (Tab) -> Unit) {
                 ) {
                     Box(
                         Modifier
-                            .width(22.dp)
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp))
-                            .background(if (activo) Olimpos.Gold else androidx.compose.ui.graphics.Color.Transparent)
-                    )
-                    Text(t.icon, fontSize = if (activo) 19.sp else 17.sp, modifier = Modifier.padding(top = 5.dp))
+                            .width(52.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(if (activo) Olimpos.GoldSoft else androidx.compose.ui.graphics.Color.Transparent),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        com.olimpos.gym.ui.theme.ICONO_DE_EMOJI[t.icon]?.let {
+                            androidx.compose.material3.Icon(
+                                it, contentDescription = t.label, modifier = Modifier.size(20.dp),
+                                tint = if (activo) Olimpos.GoldLight else Olimpos.Muted
+                            )
+                        }
+                    }
                     Text(
-                        t.label.uppercase(),
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.8.sp,
-                        color = if (activo) Olimpos.GoldLight else Olimpos.Muted
+                        t.label,
+                        fontSize = 10.5.sp,
+                        fontWeight = if (activo) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (activo) Olimpos.Cream else Olimpos.Muted,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
             }

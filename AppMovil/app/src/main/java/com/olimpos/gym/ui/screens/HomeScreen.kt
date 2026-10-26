@@ -78,7 +78,8 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     onAbrirPlano: () -> Unit,
     onIrEntrenar: () -> Unit,
-    onIrDieta: () -> Unit
+    onIrDieta: () -> Unit,
+    onAbrirTurnos: () -> Unit
 ) {
     val nombreSocio = socioActualNombre()
     val primerNombre = nombreSocio.substringBefore(" ")
@@ -107,7 +108,7 @@ fun HomeScreen(
             )
             Spacer(Modifier.width(7.dp))
             Text(
-                "OLIMPΩS", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
+                "OLIMPΩS", fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                 letterSpacing = 2.sp, color = Olimpos.Muted
             )
         }
@@ -117,21 +118,9 @@ fun HomeScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Eyebrow(fechaDeHoyLegible())
-                Row {
-                    Text("Hola, ", fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Cream)
-                    Text(primerNombre, fontSize = 26.sp, fontWeight = FontWeight.Black, color = Olimpos.Gold)
-                    Text(" 👋", fontSize = 24.sp)
-                }
+                Text("Hola, $primerNombre", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
             }
-            Box(
-                Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(Olimpos.GoldLight, Olimpos.GoldDark))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(primerNombre.take(1).uppercase(), fontWeight = FontWeight.Black, color = Olimpos.Dark, fontSize = 17.sp)
-            }
+            AvatarInicial(primerNombre.take(1).uppercase(), tamano = 42)
         }
 
         Spacer(Modifier.height(18.dp))
@@ -147,11 +136,25 @@ fun HomeScreen(
         SeccionLabel("Ahora en el club")
         OcupacionEnVivo()
 
-        // ── Clases de la semana (antes vivían en Entrenar) ──
+        // ── Clases: todo vive en Perfil → Mis turnos y reservas; acá el resumen ──
         SeccionLabel("Clases de la semana")
         val reservasClase = DatosRemotos.reservasClase ?: emptyList()
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            CLASES_SEMANA.forEach { clase -> TarjetaClase(clase, reservasClase, DatosRemotos.cuposClases, DatosRemotos.capacidadesClases) }
+        val reservadas = CLASES_SEMANA.filter { c -> reservasClase.any { it.claseId == c.id } }
+        TarjetaOro(Modifier.fillMaxWidth().clickable(onClick = onAbrirTurnos)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconoCuadrado("📅")
+                Spacer(Modifier.width(13.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Mis turnos y reservas", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
+                    Text(
+                        if (reservadas.isEmpty()) "${CLASES_SEMANA.size} clases esta semana · todavía sin reservas"
+                        else "${reservadas.size} reservada${if (reservadas.size == 1) "" else "s"}: " +
+                            reservadas.joinToString(" · ") { "${it.nombre} ${it.hora}" },
+                        fontSize = 12.sp, color = Olimpos.Muted, maxLines = 2
+                    )
+                }
+                FlechaFila()
+            }
         }
 
         // ── Equivalencia de carga movida ──
@@ -188,13 +191,13 @@ fun HomeScreen(
                 IconoCuadrado("🗺️")
                 Spacer(Modifier.width(13.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Plano del club", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream)
+                    Text("Plano del club", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
                     Text(
                         "Recorré los 2 pisos y encontrá cada sala",
                         fontSize = 12.sp, color = Olimpos.Muted
                     )
                 }
-                Text("→", color = Olimpos.Gold, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                FlechaFila()
             }
         }
     }
@@ -216,14 +219,14 @@ private fun CarnetMedalla() {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(Brush.linearGradient(listOf(Color(0xFF241D02), Color(0xFF171200), Color(0xFF0F0C00))))
-            .border(1.dp, Olimpos.Gold.copy(alpha = 0.35f), RoundedCornerShape(28.dp))
-            .padding(20.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, Olimpos.Line, RoundedCornerShape(18.dp))
+            .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Anillo giratorio + núcleo dorado
-            Box(Modifier.size(104.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.fillMaxSize().rotate(giro)) {
                     val r1 = size.minDimension / 2f - 2.dp.toPx()
                     drawCircle(
@@ -245,33 +248,21 @@ private fun CarnetMedalla() {
                 }
                 Box(
                     Modifier
-                        .size(74.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(Olimpos.GoldLight, Olimpos.Gold, Olimpos.GoldDark),
-                                center = Offset(0.35f, 0.3f).let { Offset(it.x * 200, it.y * 200) }
-                            )
-                        ),
+                        .background(Olimpos.GoldSoft),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Ω", fontSize = 36.sp, fontWeight = FontWeight.Black, color = Olimpos.Dark)
+                    Text("Ω", fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight)
                 }
             }
-            Spacer(Modifier.width(17.dp))
+            Spacer(Modifier.width(14.dp))
             Column {
-                Text(socioActualNombre(), fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = Olimpos.TintaClara)
-                // Sin número de socio ni vencimiento de ejemplo: todavía no
-                // existe una asignación real de plan/membresía por socio.
-                Text(
-                    "CARNET DIGITAL OLIMPΩS",
-                    fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.4.sp, color = Olimpos.GoldLight,
-                    modifier = Modifier.padding(top = 2.dp, bottom = 9.dp)
-                )
+                Text(socioActualNombre(), fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = Olimpos.Cream)
+                Text("Carnet digital OlimpΩs", fontSize = 12.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 2.dp))
             }
         }
-        Spacer(Modifier.height(15.dp))
+        Spacer(Modifier.height(14.dp))
         // Mostrar el carnet ES la entrada al club: se registra en "accesos"
         // (la API no duplica si ya entraste hace un rato) y de ahí sale la
         // ocupación en vivo de abajo. Tocar de nuevo solo lo oculta.
@@ -280,8 +271,8 @@ private fun CarnetMedalla() {
         Box(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.GoldDark)))
+                .clip(RoundedCornerShape(12.dp))
+                .background(if (estadoCarnet == EstadoCarnet.LISTO) Color(0xFFDCFCE7) else Olimpos.Gold)
                 .clickable(enabled = estadoCarnet != EstadoCarnet.REGISTRANDO) {
                     if (estadoCarnet == EstadoCarnet.LISTO) {
                         estadoCarnet = EstadoCarnet.OCULTO
@@ -294,18 +285,18 @@ private fun CarnetMedalla() {
                         }
                     }
                 }
-                .padding(vertical = 13.dp),
+                .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 when (estadoCarnet) {
-                    EstadoCarnet.OCULTO -> "MOSTRAR CARNET DE ACCESO"
-                    EstadoCarnet.REGISTRANDO -> "REGISTRANDO TU ENTRADA…"
-                    EstadoCarnet.LISTO -> "ENTRADA REGISTRADA — BIENVENIDO ✓"
-                    EstadoCarnet.ERROR -> "SIN CONEXIÓN — TOCÁ PARA REINTENTAR"
+                    EstadoCarnet.OCULTO -> "Mostrar carnet de acceso"
+                    EstadoCarnet.REGISTRANDO -> "Registrando tu entrada…"
+                    EstadoCarnet.LISTO -> "Entrada registrada · ¡Bienvenido! ✓"
+                    EstadoCarnet.ERROR -> "Sin conexión · tocá para reintentar"
                 },
-                fontSize = 12.sp, fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 1.sp, color = Olimpos.Dark
+                fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                color = if (estadoCarnet == EstadoCarnet.LISTO) Color(0xFF16A34A) else Olimpos.Dark
             )
         }
     }
@@ -336,10 +327,10 @@ private fun OcupacionEnVivo() {
 
     TarjetaOro(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Ocupación del gimnasio", fontWeight = FontWeight.ExtraBold, fontSize = 14.sp, color = Olimpos.Cream, modifier = Modifier.weight(1f))
+            Text("Ocupación del gimnasio", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream, modifier = Modifier.weight(1f))
             Box(Modifier.size(7.dp).clip(CircleShape).background(Olimpos.Green.copy(alpha = parpadeo)))
             Spacer(Modifier.width(6.dp))
-            Text("EN VIVO", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.Green)
+            Text("EN VIVO", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = Olimpos.Green)
         }
         Spacer(Modifier.height(11.dp))
         Box(
@@ -354,7 +345,7 @@ private fun OcupacionEnVivo() {
                     .fillMaxWidth(frac)
                     .height(10.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(Brush.linearGradient(listOf(Olimpos.GoldDark, Olimpos.Gold, Olimpos.GoldLight)))
+                    .background(Brush.linearGradient(listOf(Olimpos.Gold, Olimpos.Gold)))
             )
         }
         Spacer(Modifier.height(8.dp))
@@ -399,7 +390,7 @@ private fun EquivalenciaCarga() {
             Column {
                 Text(
                     if (cantidad > 1) "$cantidad × ${eq.texto}" else eq.texto,
-                    fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = Olimpos.Cream
+                    fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Olimpos.Cream
                 )
                 Text("$kgDelMes kg movidos este mes", fontSize = 11.5.sp, color = Olimpos.Muted)
             }
@@ -431,34 +422,35 @@ fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposCla
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(
                 Modifier
-                    .clip(RoundedCornerShape(14.dp))
+                    .width(58.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(Olimpos.GoldSoft)
-                    .border(1.dp, Olimpos.Gold.copy(alpha = 0.28f), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                    .padding(vertical = 9.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(clase.hora, fontWeight = FontWeight.Black, fontSize = 16.sp, color = Olimpos.GoldLight)
-                Text(clase.dia, fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, color = Olimpos.Muted)
+                Text(clase.hora, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Olimpos.GoldLight)
+                Text(clase.dia, fontSize = 9.5.sp, fontWeight = FontWeight.Medium, color = Olimpos.Muted)
             }
-            Spacer(Modifier.width(13.dp))
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(clase.nombre, fontWeight = FontWeight.ExtraBold, fontSize = 14.5.sp, color = Olimpos.Cream)
-                Text(clase.lugar, fontSize = 11.5.sp, color = Olimpos.Muted)
+                Text(clase.nombre, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
+                Text(clase.lugar, fontSize = 11.5.sp, color = Olimpos.Muted, maxLines = 1)
                 Text(
-                    "$ocupados/$cupo reservados",
-                    fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
-                    color = if (completa) Olimpos.Red else Olimpos.Muted
+                    if (reservado) "✓ Reservado · $ocupados/$cupo" else "$ocupados/$cupo reservados",
+                    fontSize = 11.sp, fontWeight = FontWeight.Medium,
+                    color = when {
+                        reservado -> Color(0xFF16A34A)
+                        completa -> Olimpos.Red
+                        else -> Olimpos.Muted
+                    }
                 )
             }
+            Spacer(Modifier.width(8.dp))
             Box(
                 Modifier
-                    .clip(RoundedCornerShape(100.dp))
-                    .background(if (reservado || completa) Color.Transparent else Olimpos.Gold)
-                    .border(
-                        1.dp,
-                        if (reservado) Olimpos.Green else if (completa) Olimpos.Muted else Color.Transparent,
-                        RoundedCornerShape(100.dp)
-                    )
+                    .width(88.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (reservado || completa) Olimpos.Superficie2 else Olimpos.Gold)
                     .clickable(
                         enabled = !procesando && !completa,
                         interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
@@ -480,16 +472,18 @@ fun TarjetaClase(clase: ClaseSemana, reservasClase: List<ReservaClase>, cuposCla
                             procesando = false
                         }
                     }
-                    .padding(horizontal = 13.dp, vertical = 9.dp)
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     when {
-                        reservado -> "Reservado ✓ · Cancelar"
+                        procesando -> "…"
+                        reservado -> "Cancelar"
                         completa -> "Completo"
                         else -> "Reservar"
                     },
-                    fontSize = 11.sp, fontWeight = FontWeight.Black,
-                    color = if (reservado) Olimpos.Green else if (completa) Olimpos.Muted else Olimpos.Dark
+                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (reservado || completa) Olimpos.Muted else Olimpos.Dark
                 )
             }
         }
@@ -515,19 +509,7 @@ private fun AccesoRapido(
     TarjetaOro(modifier.clickable(onClick = onClick)) {
         IconoCuadrado(icono)
         Spacer(Modifier.height(9.dp))
-        Text(titulo, fontWeight = FontWeight.ExtraBold, fontSize = 13.5.sp, color = Olimpos.Cream)
+        Text(titulo, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
         Text(sub, fontSize = 11.5.sp, color = Olimpos.Muted)
     }
-}
-
-@Composable
-fun IconoCuadrado(emoji: String) {
-    Box(
-        Modifier
-            .size(38.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Olimpos.GoldSoft)
-            .border(1.dp, Olimpos.Gold.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
-        contentAlignment = Alignment.Center
-    ) { Text(emoji, fontSize = 18.sp) }
 }

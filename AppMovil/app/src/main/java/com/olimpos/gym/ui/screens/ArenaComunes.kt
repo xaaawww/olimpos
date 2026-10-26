@@ -52,30 +52,30 @@ import com.olimpos.gym.ui.theme.Olimpos
    ═══════════════════════════════════════════════════════ */
 
 object CA {
-    val amarillo = Color(0xFFF6C744)
-    /** Texto sobre amarillo (pestaña elegida, botón). */
-    val tinta = Color(0xFF1F1F1F)
-    val amarilloSuave: Color @Composable get() = if (Olimpos.EsOscuro) Color(0x33F6C744) else Color(0xFFFDF3D3)
-    val fondo: Color @Composable get() = if (Olimpos.EsOscuro) Olimpos.FondoA else Color(0xFFFAF8F3)
-    val tarjeta: Color @Composable get() = if (Olimpos.EsOscuro) Olimpos.Superficie2 else Color.White
-    val borde: Color @Composable get() = if (Olimpos.EsOscuro) Olimpos.Line else Color(0xFFEFEBE2)
-    val texto: Color @Composable get() = if (Olimpos.EsOscuro) Olimpos.Cream else Color(0xFF1F1F1F)
-    val suave: Color @Composable get() = if (Olimpos.EsOscuro) Olimpos.Muted else Color(0xFF8E8E8E)
-    val gris: Color @Composable get() = if (Olimpos.EsOscuro) Color(0x14FFFFFF) else Color(0xFFF2F1EE)
-    /** Amarillo legible como texto sobre blanco. */
-    val acento: Color @Composable get() = if (Olimpos.EsOscuro) amarillo else Color(0xFF9A7200)
+    val amarillo: Color @Composable get() = Olimpos.Gold
+    /** Texto sobre dorado (pestaña elegida, botón). */
+    val tinta = Color(0xFF1F1D16)
+    val amarilloSuave: Color @Composable get() = Olimpos.GoldSoft
+    val fondo: Color @Composable get() = Olimpos.FondoA
+    val tarjeta: Color @Composable get() = Olimpos.Card
+    val borde: Color @Composable get() = Olimpos.Line
+    val texto: Color @Composable get() = Olimpos.Cream
+    val suave: Color @Composable get() = Olimpos.Muted
+    val gris: Color @Composable get() = Olimpos.Superficie2
+    /** Dorado legible como texto. */
+    val acento: Color @Composable get() = Olimpos.GoldLight
 }
 
-/** Color pastel de chip/ícono: fondo suave + texto del mismo tono. */
+/** Color pastel de chip/ícono: los mismos "badges" del sistema de empleados. */
 enum class Pastel(private val fondoClaro: Color, val tono: Color) {
-    AMARILLO(Color(0xFFFDF1CC), Color(0xFFA57A00)),
-    AZUL(Color(0xFFDDEBFA), Color(0xFF2F6FB5)),
-    NARANJA(Color(0xFFFDE7D3), Color(0xFFD2691E)),
-    VERDE(Color(0xFFDDF2E3), Color(0xFF2E8B57)),
-    TURQUESA(Color(0xFFD8F1EF), Color(0xFF1F8A80)),
-    VIOLETA(Color(0xFFECE4FA), Color(0xFF7650C2)),
-    ROSA(Color(0xFFFCE2E7), Color(0xFFC9405F)),
-    GRIS(Color(0xFFEFEFEF), Color(0xFF777777));
+    AMARILLO(Color(0xFFFEF9C3), Color(0xFFA07820)),
+    AZUL(Color(0xFFDBEAFE), Color(0xFF1D4ED8)),
+    NARANJA(Color(0xFFFFEDD5), Color(0xFFC2410C)),
+    VERDE(Color(0xFFDCFCE7), Color(0xFF16A34A)),
+    TURQUESA(Color(0xFFCCFBF1), Color(0xFF0F766E)),
+    VIOLETA(Color(0xFFEDE9FE), Color(0xFF6D28D9)),
+    ROSA(Color(0xFFFCE7F3), Color(0xFFBE185D)),
+    GRIS(Color(0xFFF3F1EA), Color(0xFF6B6656));
 
     val fondo: Color @Composable get() = if (Olimpos.EsOscuro) tono.copy(alpha = 0.22f) else fondoClaro
 }
@@ -120,13 +120,8 @@ fun EncabezadoArena(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(painterResource(R.drawable.logo_olimpos), contentDescription = "OlimpΩs", modifier = Modifier.size(26.dp))
             Spacer(Modifier.width(8.dp))
-            Text("OlimpΩs", fontSize = 17.sp, fontWeight = FontWeight.Black, color = CA.texto, modifier = Modifier.weight(1f))
-            Box(
-                Modifier.size(32.dp).clip(CircleShape).background(CA.amarillo),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(socioActualNombre().take(1).uppercase().ifEmpty { "?" }, fontWeight = FontWeight.Black, fontSize = 13.sp, color = CA.tinta)
-            }
+            Text("OlimpΩs", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = CA.texto, modifier = Modifier.weight(1f))
+            AvatarInicial(socioActualNombre().take(1).uppercase().ifEmpty { "?" }, tamano = 32)
         }
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.Top) {
@@ -141,10 +136,10 @@ fun EncabezadoArena(
                         onClick = onVolver
                     ),
                 contentAlignment = Alignment.CenterStart
-            ) { Text("←", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CA.texto) }
+            ) { IconoVolver(CA.texto) }
             Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text(titulo, fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.Black, color = CA.texto)
+                Text(titulo, fontSize = 20.sp, lineHeight = 24.sp, fontWeight = FontWeight.SemiBold, color = CA.texto)
                 Text(subtitulo, fontSize = 12.5.sp, color = CA.suave, lineHeight = 16.sp)
             }
             if (derecha != null) {
@@ -173,7 +168,7 @@ fun PestanasPildora(opciones: List<String>, elegida: Int, onElegir: (Int) -> Uni
             ) {
                 Text(
                     texto, fontSize = 12.5.sp, maxLines = 1, textAlign = TextAlign.Center,
-                    fontWeight = if (activa) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    fontWeight = if (activa) FontWeight.SemiBold else FontWeight.SemiBold,
                     color = if (activa) CA.tinta else CA.texto
                 )
             }
@@ -193,7 +188,7 @@ fun ChipArena(texto: String, elegido: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 15.dp, vertical = 9.dp)
     ) {
         Text(
-            texto, fontSize = 12.5.sp, fontWeight = if (elegido) FontWeight.ExtraBold else FontWeight.SemiBold,
+            texto, fontSize = 12.5.sp, fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.SemiBold,
             color = if (elegido) CA.tinta else CA.texto
         )
     }
@@ -266,7 +261,14 @@ fun IconoRedondo(emoji: String, tamano: Dp = 40.dp, pastel: Pastel = Pastel.AMAR
             .clip(CircleShape)
             .background(if (apagado) CA.gris else pastel.fondo),
         contentAlignment = Alignment.Center
-    ) { Text(emoji, fontSize = (tamano.value * 0.45f).sp) }
+    ) {
+        val icono = com.olimpos.gym.ui.theme.ICONO_DE_EMOJI[emoji]
+        if (icono != null) {
+            androidx.compose.material3.Icon(icono, contentDescription = null, tint = if (apagado) CA.suave else pastel.tono, modifier = Modifier.size(tamano * 0.5f))
+        } else {
+            Text(emoji, fontSize = (tamano.value * 0.42f).sp)
+        }
+    }
 }
 
 @Composable
