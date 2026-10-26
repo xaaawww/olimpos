@@ -160,7 +160,7 @@ def _error_unico(ex: Exception) -> ValueError:
     texto = str(ex)
     for campo, aviso in (("dni", "Ya hay un empleado con ese DNI."), ("email", "Ya hay un empleado con ese email."),
                          ("usuario", "Ese usuario ya existe: elegí otro.")):
-        if f"empleados_{campo}_key" in texto:
+        if f"empleados_{campo}_key" in texto or f"uq_empleados_{campo}_lower" in texto:
             return ValueError(aviso)
     return ValueError(f"No se pudo guardar: {texto.splitlines()[0]}")
 
