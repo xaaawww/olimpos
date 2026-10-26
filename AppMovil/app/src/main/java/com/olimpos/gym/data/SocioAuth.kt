@@ -39,6 +39,21 @@ object SocioAuth {
         Firebase.auth.signOut()
     }
 
+    /** False si la sesión guardada en el celular es de una cuenta que el
+     *  gimnasio ya borró o deshabilitó (Firebase la sigue recordando hasta
+     *  que vence el token). Sin conexión se da por buena. */
+    suspend fun cuentaSigueActiva(): Boolean {
+        val user = Firebase.auth.currentUser ?: return false
+        return try {
+            user.reload().await()
+            true
+        } catch (e: FirebaseAuthInvalidUserException) {
+            false
+        } catch (e: Exception) {
+            true
+        }
+    }
+
     /** Firebase le manda al socio un email (en español) con un link para
      *  elegir una contraseña nueva. Por seguridad no se dice si el email
      *  existe o no: el mensaje de éxito es el mismo. */

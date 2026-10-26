@@ -145,6 +145,11 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
     LaunchedEffect(verificacion) {
         etapa = when {
             Firebase.auth.currentUser == null -> Etapa.LOGIN
+            !SocioAuth.cuentaSigueActiva() -> {
+                SocioAuth.cerrarSesion()
+                DatosRemotos.limpiar()
+                Etapa.LOGIN
+            }
             // Contraseña temporal generada por el empleado, todavía no
             // reemplazada por el propio socio (ver auth_repo.py).
             SocioAuth.debeCambiarPassword() -> Etapa.CAMBIAR_PASSWORD
