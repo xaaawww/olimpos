@@ -67,7 +67,6 @@ import com.olimpos.gym.data.kgMovidosEsteMes
 import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.metaDelDia
 import com.olimpos.gym.data.rachaDietaActual
-import com.olimpos.gym.data.registrarIngresoEnFirebase
 import com.olimpos.gym.data.socioActualNombre
 import com.olimpos.gym.data.yaReservadaEstaSemana
 import com.olimpos.gym.ui.theme.Olimpos
@@ -263,52 +262,16 @@ private fun CarnetMedalla() {
             }
         }
         Spacer(Modifier.height(14.dp))
-        // Mostrar el carnet ES la entrada al club: se registra en "accesos"
-        // (la API no duplica si ya entraste hace un rato) y de ahí sale la
-        // ocupación en vivo de abajo. Tocar de nuevo solo lo oculta.
-        var estadoCarnet by remember { mutableStateOf(EstadoCarnet.OCULTO) }
-        val scope = rememberCoroutineScope()
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (estadoCarnet == EstadoCarnet.LISTO) Color(0xFFDCFCE7) else Olimpos.Gold)
-                .clickable(enabled = estadoCarnet != EstadoCarnet.REGISTRANDO) {
-                    if (estadoCarnet == EstadoCarnet.LISTO) {
-                        estadoCarnet = EstadoCarnet.OCULTO
-                    } else {
-                        estadoCarnet = EstadoCarnet.REGISTRANDO
-                        scope.launch {
-                            val ok = registrarIngresoEnFirebase("qr")
-                            estadoCarnet = if (ok) EstadoCarnet.LISTO else EstadoCarnet.ERROR
-                            if (ok) DatosRemotos.recargarIngresos()
-                        }
-                    }
-                }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                when (estadoCarnet) {
-                    EstadoCarnet.OCULTO -> "Mostrar carnet de acceso"
-                    EstadoCarnet.REGISTRANDO -> "Registrando tu entrada…"
-                    EstadoCarnet.LISTO -> "Entrada registrada · ¡Bienvenido! ✓"
-                    EstadoCarnet.ERROR -> "Sin conexión · tocá para reintentar"
-                },
-                fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                color = if (estadoCarnet == EstadoCarnet.LISTO) Color(0xFF16A34A) else Olimpos.Dark
-            )
-        }
+        // La entrada se registra escaneando el QR de la recepción (ver EscanerIngreso.kt).
+        IngresoConQr()
     }
 }
 
-private enum class EstadoCarnet { OCULTO, REGISTRANDO, LISTO, ERROR }
-
 /* ───────────────────── Ocupación en vivo ───────────────────── */
-/** Número real: socios que mostraron el carnet en el último rato (ver
+/** Número real: socios que escanearon el QR de entrada en el último rato (ver
  *  OcupacionRepository.kt). Se vuelve a pedir cada 30 segundos mientras la
- *  pantalla está abierta, y al instante cuando el propio socio muestra el
- *  carnet (cambia DatosRemotos.ingresos y se reinicia el ciclo). */
+ *  pantalla está abierta, y al instante cuando el propio socio escanea el
+ *  QR (cambia DatosRemotos.ingresos y se reinicia el ciclo). */
 @Composable
 private fun OcupacionEnVivo() {
     var ocupacion by remember { mutableStateOf<Ocupacion?>(null) }

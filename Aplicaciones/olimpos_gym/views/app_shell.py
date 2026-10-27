@@ -25,6 +25,7 @@ from views.asignar_dietas import build_asignar_dietas
 from views.tablon import build_tablon
 from views.verificacion_marcas import build_verificacion_marcas
 from views.argos import build_argos
+from views.qr_ingreso import build_qr_ingreso
 
 
 class AppShell:
@@ -210,6 +211,7 @@ class AppShell:
             "camaras":        lambda: build_camaras(self.page, self.role),
             "configuracion":  lambda: build_configuracion(self.page, self.role, self),
             "argos":          lambda: build_argos(self.page, self.role),
+            "qr-ingreso":     lambda: build_qr_ingreso(self.page, self.role),
         }
         builder = builders.get(section_id, lambda: ft.Text(f"Sección: {section_id}"))
         return builder()

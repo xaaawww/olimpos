@@ -160,17 +160,28 @@ const semanaActual = (await api("GET", "/v1/clases", MATIAS)).j.semana;
 check("cupo nunca se supera", (await q("SELECT count(*)::int n FROM reservasclase WHERE estado='confirmada' AND semana=$1 AND id_clase=(SELECT id_clase FROM clases WHERE codigo='boxeo-mar')", [semanaActual]))[0].n === 15);
 check("el historial conserva lo cancelado", (await q("SELECT count(*)::int n FROM reservasclase WHERE estado='cancelada'"))[0].n >= 1);
 
-// ───── ingresos (mostrar el carnet) y ocupación en vivo ─────
+// ───── ingresos (escanear el QR de la recepción) y ocupación en vivo ─────
+// El QR lo arma el sistema de empleados (qr_ingreso_repo.py); acá se hace la misma cuenta.
+const { createHmac } = await import("node:crypto");
+await q(`INSERT INTO configuracionsistema (clave, valor) VALUES ('qr_ingreso', '{"secreto": "${"ab".repeat(32)}"}'::jsonb)
+         ON CONFLICT (clave) DO NOTHING`);
+const secretoQr = (await q("SELECT valor->>'secreto' AS s FROM configuracionsistema WHERE clave = 'qr_ingreso'"))[0].s as string;
+const qrDe = (ventana: number) =>
+  `OLIMPOS-INGRESO:${ventana}:${createHmac("sha256", Buffer.from(secretoQr, "hex")).update(String(ventana)).digest("hex").slice(0, 16)}`;
+const ventanaHoy = () => Math.floor(Date.now() / 30_000);
 await q("DELETE FROM accesos WHERE id_socio = (SELECT id_socio FROM socios WHERE firebase_uid = $1)", [JANO]);
 const ocupacionAntes = (await api("GET", "/v1/ocupacion", MATIAS)).j.personas;
-check("primera entrada se registra", (await api("POST", "/v1/ingresos", JANO, { metodo: "qr" })).j.nuevo === true);
-check("mostrar el carnet otra vez no duplica", (await api("POST", "/v1/ingresos", JANO, { metodo: "cualquiera" })).j.nuevo === false);
+check("sin QR no se registra", (await api("POST", "/v1/ingresos", JANO, { metodo: "qr" })).s === 400);
+check("QR inventado no sirve", (await api("POST", "/v1/ingresos", JANO, { qr: "OLIMPOS-INGRESO:1:0123456789abcdef" })).s === 400);
+check("QR viejo (10 minutos) no sirve", (await api("POST", "/v1/ingresos", JANO, { qr: qrDe(ventanaHoy() - 20) })).s === 400);
+check("primera entrada se registra", (await api("POST", "/v1/ingresos", JANO, { qr: qrDe(ventanaHoy()) })).j.nuevo === true);
+check("escanear otra vez no duplica", (await api("POST", "/v1/ingresos", JANO, { qr: qrDe(ventanaHoy() - 1) })).j.nuevo === false);
 r = await api("GET", "/v1/ingresos", JANO);
 check("ingresos", r.j.ingresos.length === 1 && r.j.ingresos[0].metodo === "qr");
 check("la ocupación suma al que entró", (await api("GET", "/v1/ocupacion", MATIAS)).j.personas === ocupacionAntes + 1);
 await q("UPDATE accesos SET fecha = now() - interval '3 hours' WHERE id_socio = (SELECT id_socio FROM socios WHERE firebase_uid = $1)", [JANO]);
 check("pasado el tiempo ya no cuenta como adentro", (await api("GET", "/v1/ocupacion", MATIAS)).j.personas === ocupacionAntes);
-check("y puede volver a entrar", (await api("POST", "/v1/ingresos", JANO, { metodo: "manual" })).j.nuevo === true);
+check("y puede volver a entrar", (await api("POST", "/v1/ingresos", JANO, { qr: qrDe(ventanaHoy()) })).j.nuevo === true);
 
 // ───── lockers ─────
 await q("DELETE FROM reservaslocker");

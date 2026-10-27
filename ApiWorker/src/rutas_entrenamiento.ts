@@ -219,21 +219,54 @@ const listarIngresos: Ruta = {
   },
 };
 
-// Lo llama la app al tocar "Mostrar carnet de acceso" (y "Marcar mi ingreso
-// de hoy"). Si el socio ya había entrado hace menos de MINUTOS_EN_EL_CLUB no
-// se agrega otra fila: mostrar el carnet dos veces seguidas es una sola
-// entrada (y no infla la ocupación ni los logros por cantidad de ingresos).
+// ── QR de entrada ──
+// Recepción muestra en la PC del mostrador un QR que cambia cada 30 segundos
+// (Aplicaciones/olimpos_gym/qr_ingreso_repo.py): "OLIMPOS-INGRESO:<ventana>:<código>",
+// con código = primeros 16 hex de HMAC-SHA256(clave, ventana). La clave está
+// en configuracionsistema ("qr_ingreso"); acá se rehace la misma cuenta. Se
+// aceptan unas pocas ventanas de diferencia por si el reloj de la PC y el de
+// Cloudflare no coinciden exacto.
+const VENTANA_QR_SEGUNDOS = 30;
+const VENTANAS_TOLERADAS = 4;   // ±2 minutos
+
+async function hmacHex(claveHex: string, mensaje: string): Promise<string> {
+  const bytes = new Uint8Array(claveHex.match(/../g)!.map((h) => parseInt(h, 16)));
+  const clave = await crypto.subtle.importKey("raw", bytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const firma = new Uint8Array(await crypto.subtle.sign("HMAC", clave, new TextEncoder().encode(mensaje)));
+  return Array.from(firma, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function qrValido(db: Db, contenido: unknown, ahora: Date): Promise<boolean> {
+  const m = /^OLIMPOS-INGRESO:([0-9]{1,12}):([0-9a-f]{16})$/.exec(typeof contenido === "string" ? contenido.trim() : "");
+  if (!m) return false;
+  const ventana = Number(m[1]);
+  if (Math.abs(ventana - Math.floor(ahora.getTime() / 1000 / VENTANA_QR_SEGUNDOS)) > VENTANAS_TOLERADAS) return false;
+  const r = await db.query("SELECT valor->>'secreto' AS secreto FROM configuracionsistema WHERE clave = 'qr_ingreso'");
+  const secreto = r.rows[0]?.secreto;
+  if (!secreto || !/^[0-9a-f]{64}$/.test(secreto)) return false;
+  return (await hmacHex(secreto, String(ventana))).slice(0, 16) === m[2];
+}
+
+// Lo llama la app después de escanear el QR de la recepción: así el ingreso
+// lo confirma el club, no el propio socio. Si ya había entrado hace menos de
+// MINUTOS_EN_EL_CLUB no se agrega otra fila (escanear dos veces es una sola
+// entrada y no infla la ocupación ni los logros).
 const registrarIngreso: Ruta = {
   metodo: "POST", patron: /^\/v1\/ingresos$/,
   async manejador(c) {
-    const metodo = ["qr", "biometrico", "manual"].includes(c.body.metodo) ? c.body.metodo : "manual";
+    if (!c.body.qr) throw new ErrorApi(400, "Escaneá el QR de la recepción para registrar tu entrada.");
+    if (!(await qrValido(c.db, c.body.qr, c.ahora))) {
+      throw new ErrorApi(400, "Ese QR no es válido o ya venció. Escaneá el que está en la pantalla de la recepción.");
+    }
     const r = await c.db.query(
       `INSERT INTO accesos (id_socio, metodo, resultado)
-       SELECT $1::int, $2::text, 'permitido'
+       SELECT $1::int, 'qr', 'permitido'
        WHERE NOT EXISTS (SELECT 1 FROM accesos WHERE id_socio = $1::int AND resultado = 'permitido'
-                         AND fecha > now() - make_interval(mins => $3::int))
-       RETURNING id_acceso`, [c.idSocio, metodo, MINUTOS_EN_EL_CLUB]);
-    return { ok: true, nuevo: r.rows.length > 0 };
+                         AND fecha > now() - make_interval(mins => $2::int))
+       RETURNING id_acceso`, [c.idSocio, MINUTOS_EN_EL_CLUB]);
+    const desde = await c.db.query(
+      `SELECT ${MS("max(fecha)")} AS ts FROM accesos WHERE id_socio = $1 AND resultado = 'permitido'`, [c.idSocio]);
+    return { ok: true, nuevo: r.rows.length > 0, desde: desde.rows[0]?.ts ?? null };
   },
 };
 
@@ -365,3 +398,4 @@ export const rutasEntrenamiento: Ruta[] = [
 ];
 
 export type { Contexto };
+export { qrValido };

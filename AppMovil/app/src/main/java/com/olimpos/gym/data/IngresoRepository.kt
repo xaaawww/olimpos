@@ -3,24 +3,38 @@ package com.olimpos.gym.data
 import org.json.JSONObject
 
 /**
- * Ingresos al gimnasio (tabla "accesos"). No hay torniquete ni lector físico:
- * la entrada la registra el propio socio al tocar "Mostrar carnet de acceso"
- * en Inicio (o "Marcar mi ingreso de hoy" en Accesos). La API no duplica la
- * entrada si el socio ya entró hace menos de 90 minutos. De acá salen la
- * ocupación en vivo, la racha de días y las visitas del mes en Perfil, y
- * varios Logros — ninguno inventado.
+ * Ingresos al gimnasio (tabla "accesos"). La recepción muestra en su
+ * computadora un QR que cambia cada 30 segundos (sistema de empleados →
+ * "QR de entrada"); el socio lo escanea con la app y la API comprueba que el
+ * código sea el de ese momento antes de registrar la entrada. Así el ingreso
+ * lo confirma el club, no el propio socio. La API no duplica la entrada si
+ * el socio ya entró hace menos de [MINUTOS_EN_EL_CLUB] minutos. De acá salen
+ * la ocupación en vivo, la racha de días, las visitas del mes y varios Logros.
  */
 data class IngresoRegistro(val timestamp: Long, val metodo: String)
 
-/** Cada ingreso es una fila de la tabla "accesos" del club. */
-suspend fun registrarIngresoEnFirebase(metodo: String): Boolean {
+/** Mismo valor que la API (ApiWorker/src/util.ts): ese rato después de
+ *  escanear cuenta como "adentro". */
+const val MINUTOS_EN_EL_CLUB = 90
+
+/** Resultado de escanear: [error] es un mensaje listo para mostrar. */
+data class ResultadoIngreso(val ok: Boolean, val nuevo: Boolean = false, val error: String? = null)
+
+suspend fun registrarIngresoConQr(contenidoQr: String): ResultadoIngreso {
     return try {
-        Api.post("/v1/ingresos", JSONObject().put("metodo", metodo))
-        true
+        val r = Api.post("/v1/ingresos", JSONObject().put("qr", contenidoQr.trim()))
+        ResultadoIngreso(ok = true, nuevo = r.optBoolean("nuevo"))
+    } catch (e: Api.ErrorApi) {
+        ResultadoIngreso(ok = false, error = e.message)
     } catch (e: Exception) {
-        false
+        ResultadoIngreso(ok = false, error = "Sin conexión. Revisá internet y volvé a escanear.")
     }
 }
+
+/** Desde cuándo está adentro (el último ingreso, si fue hace menos de
+ *  [MINUTOS_EN_EL_CLUB] minutos), o null si no está en el gimnasio. */
+fun adentroDesde(ingresos: List<IngresoRegistro>?, ahora: Long = System.currentTimeMillis()): Long? =
+    ingresos?.maxOfOrNull { it.timestamp }?.takeIf { ahora - it < MINUTOS_EN_EL_CLUB * 60_000L }
 
 suspend fun cargarIngresosDesdeFirebase(): List<IngresoRegistro>? {
     return try {

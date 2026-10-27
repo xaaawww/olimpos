@@ -45,6 +45,11 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun LoginScreen(onIngresar: () -> Unit) {
+    var verPolitica by remember { mutableStateOf(false) }
+    if (verPolitica) {
+        PoliticaPrivacidadScreen(onVolver = { verPolitica = false })
+        return
+    }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var cargando by remember { mutableStateOf(false) }
@@ -173,9 +178,13 @@ fun LoginScreen(onIngresar: () -> Unit) {
 
         Spacer(Modifier.height(24.dp))
         Text(
-            "Al continuar aceptás los Términos y la Política de Privacidad de OlimpΩs.",
-            fontSize = 10.5.sp, color = Olimpos.Muted,
-            modifier = Modifier.padding(bottom = 30.dp)
+            "Al continuar aceptás la Política de privacidad de OlimpΩs.",
+            fontSize = 10.5.sp, color = Olimpos.Muted
+        )
+        Text(
+            "Leer la política de privacidad",
+            fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldDark,
+            modifier = Modifier.clickable { verPolitica = true }.padding(top = 4.dp, bottom = 30.dp)
         )
     }
 }

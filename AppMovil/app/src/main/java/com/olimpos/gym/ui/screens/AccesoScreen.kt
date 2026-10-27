@@ -1,8 +1,6 @@
 package com.olimpos.gym.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +18,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,22 +29,13 @@ import com.olimpos.gym.data.DatosRemotos
 import com.olimpos.gym.data.Ocupacion
 import com.olimpos.gym.data.cargarOcupacionDesdeFirebase
 import com.olimpos.gym.data.fechaLegible
-import com.olimpos.gym.data.registrarIngresoEnFirebase
-import com.olimpos.gym.data.yaIngresoHoy
 import com.olimpos.gym.ui.theme.Olimpos
-import kotlinx.coroutines.launch
 
 @Composable
 fun AccesoScreen(onVolver: () -> Unit) {
-    var qrActivo by remember { mutableStateOf(true) }
-    var biometricoActivo by remember { mutableStateOf(false) }
-    var relojVinculado by remember { mutableStateOf(false) }
-    var aviso by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
     val ingresos = DatosRemotos.ingresos ?: emptyList()
-    val yaMarcado = yaIngresoHoy(ingresos)
     // Mismo dato que la tarjeta "Ocupación del gimnasio" de Inicio; se vuelve
-    // a pedir cuando cambian los ingresos (al marcar el de hoy acá abajo).
+    // a pedir cuando cambian los ingresos (al escanear el QR acá abajo).
     var ocupacion by remember { mutableStateOf<Ocupacion?>(null) }
     LaunchedEffect(DatosRemotos.ingresos) {
         cargarOcupacionDesdeFirebase()?.let { ocupacion = it }
@@ -58,7 +46,7 @@ fun AccesoScreen(onVolver: () -> Unit) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        EncabezadoVolver("Accesos y seguridad", "QR, biométrico y dispositivos", onVolver)
+        EncabezadoVolver("Accesos y seguridad", "Entrada con QR e historial", onVolver)
 
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 26.dp)) {
             TarjetaOro(Modifier.fillMaxWidth()) {
@@ -73,58 +61,17 @@ fun AccesoScreen(onVolver: () -> Unit) {
                 )
             }
 
-            SeccionLabel("Marcar ingreso")
+            SeccionLabel("Entrada al gimnasio")
             TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                Text(
-                    if (yaMarcado) "Ya marcaste tu ingreso de hoy ✓" else "¿Llegaste al club? Marcalo acá.",
-                    fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream
-                )
+                Text("Escaneá el QR de la recepción", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Mostrar el carnet de acceso en Inicio ya registra tu entrada. Si no lo mostraste, marcala acá: es la base de tu racha y tus visitas del mes.",
+                    "Está en la pantalla del mostrador y cambia cada 30 segundos. Al escanearlo queda registrado que estás adentro: " +
+                        "es la base de tu racha, tus visitas del mes y la ocupación del club.",
                     fontSize = 11.sp, color = Olimpos.Muted
                 )
                 Spacer(Modifier.height(12.dp))
-                BotonPrincipal(
-                    if (yaMarcado) "Ingreso de hoy ya registrado" else "✅ Marcar mi ingreso de hoy",
-                    habilitado = !yaMarcado
-                ) {
-                    // El "método" es el que tenías activado al tocar el botón —
-                    // no lo lee ningún lector real, pero sirve para diferenciar
-                    // ingresos con QR de los de huella (ver Logros).
-                    val metodo = if (qrActivo) "qr" else if (biometricoActivo) "biometrico" else "manual"
-                    scope.launch {
-                        registrarIngresoEnFirebase(metodo)
-                        DatosRemotos.recargarIngresos()
-                    }
-                }
-            }
-
-            SeccionLabel("Métodos de acceso")
-            OpcionAcceso("🔳", "Código QR", "Mostrá el QR en el lector de entrada", qrActivo) {
-                qrActivo = it
-            }
-            OpcionAcceso("🖐️", "Acceso biométrico", "Huella o reconocimiento facial", biometricoActivo) {
-                biometricoActivo = it
-                aviso = if (it) "Datos biométricos registrados ✓" else null
-            }
-            OpcionAcceso("⌚", "Reloj deportivo", "Vinculá tu reloj para ingresar sin el celular", relojVinculado) {
-                relojVinculado = it
-                aviso = if (it) "Reloj vinculado correctamente ✓" else null
-            }
-
-            aviso?.let {
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Olimpos.GoldSoft)
-                        .border(1.dp, Olimpos.Gold.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-                        .padding(13.dp)
-                ) {
-                    Text(it, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = Olimpos.GoldLight)
-                }
+                IngresoConQr()
             }
 
             SeccionLabel("Historial de ingresos")
@@ -154,33 +101,10 @@ fun AccesoScreen(onVolver: () -> Unit) {
             }
 
             SeccionLabel("¿Problemas para ingresar?")
-            BotonSecundario("Reportar problema de acceso") {
-                aviso = "Reporte enviado. El equipo de seguridad lo va a revisar."
-            }
-        }
-    }
-}
-
-@Composable
-private fun OpcionAcceso(emoji: String, titulo: String, sub: String, activo: Boolean, onCambio: (Boolean) -> Unit) {
-    TarjetaOro(Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconoCuadrado(emoji)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(titulo, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = Olimpos.Cream)
-                Text(sub, fontSize = 11.sp, color = Olimpos.Muted)
-            }
-            androidx.compose.material3.Switch(
-                checked = activo,
-                onCheckedChange = onCambio,
-                colors = androidx.compose.material3.SwitchDefaults.colors(
-                    checkedThumbColor = Olimpos.Dark,
-                    checkedTrackColor = Olimpos.Gold,
-                    uncheckedThumbColor = Olimpos.Muted,
-                    uncheckedTrackColor = Olimpos.Card,
-                    uncheckedBorderColor = Olimpos.Line
-                )
+            Text(
+                "Si el QR no se lee o te dice que venció, esperá a que cambie en la pantalla y volvé a escanear. " +
+                    "Si sigue sin funcionar, avisale a recepción.",
+                fontSize = 11.5.sp, color = Olimpos.Muted
             )
         }
     }

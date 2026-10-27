@@ -91,4 +91,7 @@ dependencies {
     // ByteArray, decodificadas de Base64) — Coil admite ByteArray como
     // fuente de forma nativa.
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Escáner del QR de entrada (cámara + ZXing, funciona sin Google Play Services)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 }

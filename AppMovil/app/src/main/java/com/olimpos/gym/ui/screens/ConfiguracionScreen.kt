@@ -64,6 +64,11 @@ fun ConfiguracionScreen(
     val scope = rememberCoroutineScope()
     var notificacionesLogros by remember { mutableStateOf(LogrosToastState.notificacionesActivas) }
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }   // texto, es error
+    var verPolitica by remember { mutableStateOf(false) }
+    if (verPolitica) {
+        PoliticaPrivacidadScreen(onVolver = { verPolitica = false })
+        return
+    }
 
     Column(Modifier.fillMaxSize().background(Olimpos.FondoA).verticalScroll(rememberScrollState())) {
         EncabezadoArena("Configuración", "Tu cuenta, tus datos y cómo se ve la app.", onVolver)
@@ -169,6 +174,8 @@ fun ConfiguracionScreen(
                         aviso = "✓ Datos actualizados." to false
                     }
                 }
+                Divisor()
+                FilaAccion("Política de privacidad", "Qué datos guardamos, para qué y tus derechos.") { verPolitica = true }
                 Divisor()
                 val version = remember {
                     try {
