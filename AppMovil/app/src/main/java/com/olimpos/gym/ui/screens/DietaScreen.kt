@@ -79,7 +79,11 @@ private const val ANGULO_OBJETIVO_GRADOS = 200f
 private enum class PantallaDieta { CATALOGO, DETALLE }
 
 @Composable
-fun DietaScreen(objetivo: ObjetivoCompetencia? = null, onOcultarBurbujaArgos: (Boolean) -> Unit = {}) {
+fun DietaScreen(
+    objetivo: ObjetivoCompetencia? = null,
+    onOcultarBurbujaArgos: (Boolean) -> Unit = {},
+    onVolver: (() -> Unit)? = null      // vuelve al menú de Nutrición (Dieta / Tienda)
+) {
     var mostrarNutricion by remember { mutableStateOf(false) }
     if (mostrarNutricion) {
         NutricionScreen(onVolver = { mostrarNutricion = false })
@@ -125,7 +129,8 @@ fun DietaScreen(objetivo: ObjetivoCompetencia? = null, onOcultarBurbujaArgos: (B
             onToggleExpandir = { id -> if (id in expandidos) expandidos.remove(id) else expandidos.add(id) },
             onNutricion = { mostrarNutricion = true },
             onRegistrar = { registrando = it },
-            onVer = { idx -> platoActivo = idx; pantalla = PantallaDieta.DETALLE }
+            onVer = { idx -> platoActivo = idx; pantalla = PantallaDieta.DETALLE },
+            onVolver = onVolver
         )
         PantallaDieta.DETALLE -> DetalleDieta(
             plato = platos[platoActivo.coerceIn(platos.indices)],
@@ -146,8 +151,10 @@ private fun CatalogoDietas(
     onToggleExpandir: (String) -> Unit,
     onNutricion: () -> Unit,
     onRegistrar: (MomentoComida) -> Unit,
-    onVer: (Int) -> Unit
+    onVer: (Int) -> Unit,
+    onVolver: (() -> Unit)?
 ) {
+    if (onVolver != null) androidx.activity.compose.BackHandler(onBack = onVolver)
     val query = busqueda.trim().lowercase()
     fun coincide(p: Plato) = query.isEmpty() ||
         p.nombre.lowercase().contains(query) ||
@@ -174,6 +181,13 @@ private fun CatalogoDietas(
                 Spacer(Modifier.height(10.dp))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onVolver != null) {
+                    Box(
+                        Modifier.size(32.dp).clip(CircleShape).clickable(onClick = onVolver),
+                        contentAlignment = Alignment.CenterStart
+                    ) { IconoVolver(Olimpos.Cream) }
+                    Spacer(Modifier.width(6.dp))
+                }
                 Column(Modifier.weight(1f)) {
                     Eyebrow("Mi dieta")
                     Row {

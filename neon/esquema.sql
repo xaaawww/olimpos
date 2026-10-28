@@ -1404,6 +1404,49 @@ CREATE TABLE consumoimagenesia (
     cantidad  INTEGER NOT NULL DEFAULT 0 CHECK (cantidad >= 0)
 );
 
+-- Tienda del club (ver neon/tienda.sql)
+CREATE TABLE productos (
+    id_producto          SERIAL PRIMARY KEY,
+    nombre               VARCHAR(80)  NOT NULL,
+    descripcion          VARCHAR(1000),
+    precio               NUMERIC(12,2) NOT NULL CHECK (precio > 0 AND precio <= 10000000),
+    stock                INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0 AND stock <= 100000),
+    imagen               TEXT,                         -- JPEG en Base64 (como platos.imagen)
+    publicado            BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_actualizacion  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX uq_productos_nombre_lower ON productos (lower(nombre));
+
+CREATE TABLE productoetiquetas (
+    id_producto  INTEGER NOT NULL REFERENCES productos (id_producto) ON DELETE CASCADE,
+    etiqueta     VARCHAR(30) NOT NULL,
+    orden        SMALLINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (id_producto, etiqueta)
+);
+
+CREATE TABLE pedidostienda (
+    id_pedido            SERIAL PRIMARY KEY,
+    id_socio             INTEGER NOT NULL REFERENCES socios (id_socio) ON DELETE CASCADE,
+    estado               VARCHAR(20) NOT NULL DEFAULT 'pendiente'
+                         CHECK (estado IN ('pendiente', 'entregado', 'cancelado')),
+    total                NUMERIC(12,2) NOT NULL CHECK (total > 0),
+    fecha                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fecha_cierre         TIMESTAMPTZ,                  -- cuando se entregó o se canceló
+    id_empleado_cierre   INTEGER REFERENCES empleados (id_empleado)
+);
+CREATE INDEX ix_pedidostienda_socio ON pedidostienda (id_socio, fecha DESC);
+
+-- Nombre y precio se copian al hacer el pedido: si después cambia el precio,
+-- el pedido sigue diciendo lo que se cobró.
+CREATE TABLE pedidotiendaitems (
+    id_pedido        INTEGER NOT NULL REFERENCES pedidostienda (id_pedido) ON DELETE CASCADE,
+    id_producto      INTEGER NOT NULL REFERENCES productos (id_producto) ON DELETE RESTRICT,
+    nombre           VARCHAR(80) NOT NULL,
+    precio_unitario  NUMERIC(12,2) NOT NULL CHECK (precio_unitario > 0),
+    cantidad         SMALLINT NOT NULL CHECK (cantidad BETWEEN 1 AND 20),
+    PRIMARY KEY (id_pedido, id_producto)
+);
+
 -- =====================================================================
 --  PARTE 4: DATOS INICIALES (catalogos que la app necesita para andar)
 -- =====================================================================

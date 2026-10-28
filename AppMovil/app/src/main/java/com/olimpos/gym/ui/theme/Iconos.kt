@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.RestaurantMenu
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Settings
@@ -38,6 +39,7 @@ val ICONO_DE_EMOJI: Map<String, ImageVector> = mapOf(
     "🏋️" to Icons.Outlined.FitnessCenter,
     "⚔️" to Icons.Outlined.EmojiEvents,
     "🥗" to Icons.Outlined.Restaurant,
+    "🛍️" to Icons.Outlined.ShoppingBag,
     "👤" to Icons.Outlined.Person,
     "🗺️" to Icons.Outlined.Map,
     "💳" to Icons.Outlined.CreditCard,

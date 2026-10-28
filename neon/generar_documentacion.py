@@ -46,6 +46,7 @@ GRUPOS = [
                                   "datosbiometricos", "relojesdeportivos", "aforo", "incidenciasacceso"]),
     ("Comunicación y web", ["consultas", "notificaciones", "solicitudescontacto", "tablonpublicaciones", "contactosweb"]),
     ("Argos (asistente de IA)", ["argosbaseconocimiento", "argosconversaciones", "argosmensajes", "argoscupodiario", "consumoimagenesia"]),
+    ("Tienda", ["productos", "productoetiquetas", "pedidostienda", "pedidotiendaitems"]),
 ]
 
 

@@ -26,6 +26,7 @@ from views.tablon import build_tablon
 from views.verificacion_marcas import build_verificacion_marcas
 from views.argos import build_argos
 from views.qr_ingreso import build_qr_ingreso
+from views.tienda import build_tienda
 
 
 class AppShell:
@@ -212,7 +213,11 @@ class AppShell:
             "configuracion":  lambda: build_configuracion(self.page, self.role, self),
             "argos":          lambda: build_argos(self.page, self.role),
             "qr-ingreso":     lambda: build_qr_ingreso(self.page, self.role),
+            "tienda":         lambda: build_tienda(self.page),
         }
+        # Cada rol entra solo a las secciones de su menú (la Tienda, por ejemplo, es solo del dueño).
+        if section_id not in self.secciones:
+            return ft.Text("No tenés acceso a esta sección.", size=14, color=TEXT_MUTED)
         builder = builders.get(section_id, lambda: ft.Text(f"Sección: {section_id}"))
         return builder()
 

@@ -60,10 +60,11 @@ import com.olimpos.gym.data.leerObjetivoArena
 import com.olimpos.gym.data.planIncluyeArgos
 import com.olimpos.gym.data.resolverObjetivo
 import com.olimpos.gym.ui.screens.ArenaScreen
+import com.olimpos.gym.ui.screens.NutricionTab
+import com.olimpos.gym.ui.screens.NutricionVista
 import com.olimpos.gym.ui.screens.ArgosBurbujaMovil
 import com.olimpos.gym.ui.screens.ArgosScreen
 import com.olimpos.gym.ui.screens.CambiarPasswordScreen
-import com.olimpos.gym.ui.screens.DietaScreen
 import com.olimpos.gym.ui.screens.EntrenarScreen
 import com.olimpos.gym.ui.screens.HomeScreen
 import com.olimpos.gym.ui.screens.LoginScreen
@@ -84,7 +85,7 @@ enum class Tab(val label: String, val icon: String) {
     INICIO("Inicio", "🏛️"),
     ENTRENAR("Entrenar", "🏋️"),
     ARENA("Arena", "⚔️"),
-    DIETA("Dieta", "🥗"),
+    DIETA("Nutrición", "🥗"),   // Mi dieta + Tienda (ver NutricionTab)
     PERFIL("Perfil", "👤")
 }
 
@@ -208,6 +209,7 @@ fun OlimposApp(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit) {
 @Composable
 private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -> Unit, onCerrarSesion: () -> Unit) {
     var tab by remember { mutableStateOf(Tab.INICIO) }
+    var vistaNutricion by remember { mutableStateOf(NutricionVista.MENU) }
     // El plano vive fuera de la navegación principal: sector aparte
     var mostrarPlano by remember { mutableStateOf(false) }
     // Argos también: burbuja flotante sobre cualquier pestaña, en vez de
@@ -250,7 +252,8 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             contentWindowInsets = WindowInsets(0),
-            bottomBar = { BarraInferior(tab) { tab = it } }
+            // Tocar "Nutrición" en la barra siempre lleva a su menú (Mi dieta / Tienda)
+            bottomBar = { BarraInferior(tab) { if (it == Tab.DIETA) vistaNutricion = NutricionVista.MENU; tab = it } }
         ) { pad ->
             AnimatedContent(
                 targetState = tab,
@@ -265,12 +268,15 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
                     Tab.INICIO -> HomeScreen(
                         onAbrirPlano = { mostrarPlano = true },
                         onIrEntrenar = { tab = Tab.ENTRENAR },
-                        onIrDieta = { tab = Tab.DIETA },
+                        onIrDieta = { vistaNutricion = NutricionVista.DIETA; tab = Tab.DIETA },
+                        onIrTienda = { vistaNutricion = NutricionVista.TIENDA; tab = Tab.DIETA },
                         onAbrirTurnos = { tab = Tab.PERFIL; abrirTurnos = true }
                     )
                     Tab.ENTRENAR -> EntrenarScreen()
                     Tab.ARENA -> ArenaScreen(objetivo = objetivoArena)
-                    Tab.DIETA -> DietaScreen(
+                    Tab.DIETA -> NutricionTab(
+                        vista = vistaNutricion,
+                        onVista = { vistaNutricion = it },
                         objetivo = objetivoArena,
                         onOcultarBurbujaArgos = { ocultarBurbujaArgos = it }
                     )

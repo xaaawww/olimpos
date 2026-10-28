@@ -78,6 +78,7 @@ fun HomeScreen(
     onAbrirPlano: () -> Unit,
     onIrEntrenar: () -> Unit,
     onIrDieta: () -> Unit,
+    onIrTienda: () -> Unit,
     onAbrirTurnos: () -> Unit
 ) {
     val nombreSocio = socioActualNombre()
@@ -178,6 +179,18 @@ fun HomeScreen(
                 if (rachaDieta > 0) "🔥 Racha: $rachaDieta ${if (rachaDieta == 1) "día" else "días"}" else "Registrá tus comidas",
                 Modifier.weight(1f), onIrDieta
             )
+        }
+        Spacer(Modifier.height(12.dp))
+        TarjetaOro(Modifier.fillMaxWidth().clickable(onClick = onIrTienda)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconoCuadrado("🛍️")
+                Spacer(Modifier.width(13.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Tienda del club", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = Olimpos.Cream)
+                    Text("Suplementos y más: pedí y retirá en la recepción", fontSize = 12.sp, color = Olimpos.Muted)
+                }
+                FlechaFila()
+            }
         }
         Spacer(Modifier.height(12.dp))
         // El plano NO es sección principal: acceso secundario desde aquí

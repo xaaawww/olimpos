@@ -15,6 +15,7 @@ import { rutasSocio } from "./rutas_socio.js";
 import { rutasEntrenamiento } from "./rutas_entrenamiento.js";
 import { rutasNutricion } from "./rutas_nutricion.js";
 import { rutasClub } from "./rutas_club.js";
+import { rutasTienda } from "./rutas_tienda.js";
 
 export interface Env {
   DATABASE_URL: string;
@@ -36,7 +37,7 @@ const CORS: Record<string, string> = {
   "Access-Control-Max-Age": "86400",
 };
 
-const RUTAS: Ruta[] = [...rutasSocio, ...rutasEntrenamiento, ...rutasNutricion, ...rutasClub];
+const RUTAS: Ruta[] = [...rutasSocio, ...rutasEntrenamiento, ...rutasNutricion, ...rutasClub, ...rutasTienda];
 
 function responder(data: unknown, estado = 200): Response {
   return new Response(JSON.stringify(data), {
