@@ -177,7 +177,7 @@ class TiendaView:
         self._render()
 
     # ── tarjetas de resumen ──
-    def _resumen(self) -> ft.Row:
+    def _resumen(self) -> ft.Control:
         r = repo.resumen(self.productos)
 
         def tarjeta(icono, color_icono, titulo, valor, pie, color_pie, accion=None):
@@ -187,18 +187,19 @@ class TiendaView:
                                  bgcolor=ft.Colors.with_opacity(0.12, color_icono), border_radius=10,
                                  alignment=ft.Alignment.CENTER),
                     ft.Column([
-                        ft.Text(titulo, size=12, color=TEXT_MUTED),
-                        ft.Text(valor, size=22, weight=ft.FontWeight.W_600, color=DARK, font_family="Poppins"),
-                        ft.Text(pie, size=11.5, color=color_pie),
+                        ft.Text(titulo, size=12, color=TEXT_MUTED, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
+                        ft.Text(valor, size=22, weight=ft.FontWeight.W_600, color=DARK, font_family="Poppins",
+                                max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
+                        ft.Text(pie, size=11.5, color=color_pie, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
                     ], spacing=0, expand=True),
                 ], spacing=12, vertical_alignment=ft.CrossAxisAlignment.START),
                 bgcolor=WHITE, border=ft.border.all(1, GRAY_LIGHT), border_radius=14, padding=16, expand=True,
                 on_click=accion, ink=accion is not None,
             )
         publicados = sum(1 for p in self.productos if p["publicado"])
-        return ft.Row([
+        tarjetas = [
             tarjeta(ft.Icons.INVENTORY_2_OUTLINED, "#4B6584", "Total de productos", str(r["total"]),
-                    f"{publicados} publicados en la app", GREEN),
+                    f"{publicados} publicados", GREEN),
             tarjeta(ft.Icons.SELL_OUTLINED, "#4B6584", "Categorías", str(r["categorias"]), "Ver todas", TEXT_MUTED,
                     lambda e: self._filtrar_categoria(None)),
             tarjeta(ft.Icons.WARNING_AMBER_ROUNDED, "#D97706", "Stock bajo", str(r["stock_bajo"]),
@@ -206,22 +207,28 @@ class TiendaView:
                     lambda e: self._filtrar_estado("Stock bajo")),
             tarjeta(ft.Icons.PAYMENTS_OUTLINED, "#4B6584", "Valor en stock", _plata(r["valor_stock"]),
                     "a precio de venta", TEXT_MUTED),
-        ], spacing=12)
+        ]
+        # Con el panel abierto la columna se angosta: 2 × 2 para que no se aprieten los textos
+        if self.sel:
+            return ft.Column([ft.Row(tarjetas[:2], spacing=12), ft.Row(tarjetas[2:], spacing=12)], spacing=12)
+        return ft.Row(tarjetas, spacing=12)
 
     # ── filtros ──
-    def _filtros(self) -> ft.Row:
+    def _filtros(self) -> ft.Control:
         categorias = ft.Dropdown(
-            value=self.categoria or "__todas__", width=210, dense=True, text_size=13, border_radius=10,
+            value=self.categoria or "__todas__", width=None if self.sel else 210, expand=bool(self.sel), dense=True, text_size=13, border_radius=10,
             border_color=GRAY_LIGHT, bgcolor=WHITE,
             options=[ft.DropdownOption(key="__todas__", text="Todas las categorías")] +
                     [ft.DropdownOption(key=e, text=e) for e in repo.todas_las_etiquetas(self.productos)],
             on_select=lambda e: self._filtrar_categoria(None if e.control.value == "__todas__" else e.control.value),
         )
         estados = ft.Dropdown(
-            value=self.estado, width=190, dense=True, text_size=13, border_radius=10, border_color=GRAY_LIGHT,
+            value=self.estado, width=None if self.sel else 190, expand=bool(self.sel), dense=True, text_size=13, border_radius=10, border_color=GRAY_LIGHT,
             bgcolor=WHITE, options=[ft.DropdownOption(key=e, text=e) for e in FILTROS_ESTADO],
             on_select=lambda e: self._filtrar_estado(e.control.value),
         )
+        if self.sel:   # con el panel abierto: buscador arriba y los dos filtros abajo
+            return ft.Column([ft.Row([self.buscador]), ft.Row([categorias, estados], spacing=10)], spacing=10)
         return ft.Row([self.buscador, categorias, estados], spacing=10)
 
     def _filtrar_categoria(self, categoria: str | None):
