@@ -32,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.olimpos.gym.data.DatosRemotos
-import com.olimpos.gym.data.PLANES_MEMBRESIA
+import com.olimpos.gym.data.cargarPlanes
 import com.olimpos.gym.data.PlanMembresia
 import com.olimpos.gym.data.crearPreferenciaDePago
 import com.olimpos.gym.data.fechaLegible
@@ -69,6 +69,16 @@ fun MembresiaScreen(onVolver: () -> Unit) {
         }
     }
 
+    // Precios actuales de la base: se piden cada vez que se abre la pantalla
+    // (y al tocar "Actualizar"), así un cambio del dueño se ve enseguida.
+    var planes by remember { mutableStateOf<List<PlanMembresia>?>(null) }
+    var sinConexionPlanes by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val p = cargarPlanes()
+        sinConexionPlanes = p == null
+        if (p != null) planes = p
+    }
+
     // LazyColumn en vez de Column+verticalScroll: planes e historial se van
     // sumando, y así solo se arma lo que está en pantalla.
     LazyColumn(Modifier.fillMaxSize()) {
@@ -98,6 +108,7 @@ fun MembresiaScreen(onVolver: () -> Unit) {
                     scope.launch {
                         DatosRemotos.recargarMembresia()
                         DatosRemotos.recargarHistorialPagos()
+                        cargarPlanes()?.let { planes = it; sinConexionPlanes = false }
                         aviso = null
                     }
                 }
@@ -106,10 +117,16 @@ fun MembresiaScreen(onVolver: () -> Unit) {
                     "Elegí uno para pagarlo con Mercado Pago (modo prueba) — se activa solo apenas se confirma el pago.",
                     fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(bottom = 4.dp)
                 )
+                when {
+                    planes == null && sinConexionPlanes ->
+                        Text("Sin conexión: no se pudieron cargar los planes.", fontSize = 12.sp, color = Olimpos.Muted)
+                    planes == null -> Text("Cargando planes…", fontSize = 12.sp, color = Olimpos.Muted)
+                    planes!!.isEmpty() -> Text("Por ahora no hay planes disponibles.", fontSize = 12.sp, color = Olimpos.Muted)
+                }
             }
         }
 
-        items(PLANES_MEMBRESIA, key = { it.nombre }) { p ->
+        items(planes.orEmpty(), key = { it.nombre }) { p ->
             TarjetaPlan(
                 plan = p,
                 activo = p.nombre == membresia?.plan,

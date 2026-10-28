@@ -45,6 +45,25 @@ const membresia: Ruta = {
   },
 };
 
+// Los planes que se pueden contratar, con el precio que carga el dueño en el
+// sistema de empleados (Pagos → planes): la app los lee de acá cada vez, así
+// un cambio de precio se ve al instante (y es el mismo que cobra Mercado Pago).
+const planes: Ruta = {
+  metodo: "GET", patron: /^\/v1\/planes$/,
+  async manejador(c) {
+    const r = await c.db.query(
+      `SELECT nombre, descripcion, precio, duracion_dias, beneficios, incluye_argos, destacado
+       FROM membresias WHERE estado = 'activa' ORDER BY precio`);
+    return {
+      planes: r.rows.map((f) => ({
+        nombre: f.nombre, descripcion: f.descripcion ?? "", precio: Number(f.precio), duracion_dias: f.duracion_dias,
+        beneficios: String(f.beneficios ?? "").split("|").map((b: string) => b.trim()).filter(Boolean),
+        incluye_argos: f.incluye_argos, destacado: f.destacado,
+      })),
+    };
+  },
+};
+
 const pagos: Ruta = {
   metodo: "GET", patron: /^\/v1\/pagos$/,
   async manejador(c) {
@@ -110,4 +129,4 @@ const contactoWeb: Ruta = {
   },
 };
 
-export const rutasClub: Ruta[] = [tablon, ocupacion, membresia, pagos, baseArgos, consumirArgos, contactoWeb];
+export const rutasClub: Ruta[] = [tablon, ocupacion, membresia, planes, pagos, baseArgos, consumirArgos, contactoWeb];

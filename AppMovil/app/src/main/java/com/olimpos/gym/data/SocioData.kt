@@ -6,18 +6,30 @@ package com.olimpos.gym.data
    ═══════════════════════════════════════════════════════ */
 
 /* ── Membresías y pagos ── */
+/** Un plan contratable, tal como lo cargó el dueño en el sistema de empleados
+ *  (tabla "membresias"). Ya no hay precios fijos en la app: ver [cargarPlanes]. */
 data class PlanMembresia(
     val nombre: String,
-    val precio: String,
+    val precio: String,          // "$ 18.000/mes", listo para mostrar
     val beneficios: List<String>,
     val destacado: Boolean = false
 )
 
-val PLANES_MEMBRESIA = listOf(
-    PlanMembresia("Bronce", "$18.000/mes", listOf("Acceso a sala de pesas", "Clases grupales limitadas", "1 evaluación física/año")),
-    PlanMembresia("Oro", "$28.000/mes", listOf("Acceso total al club", "Clases grupales ilimitadas", "Spa 2x/mes", "Rutina personalizada", "Argos: tu asistente de IA"), destacado = true),
-    PlanMembresia("Platino", "$42.000/mes", listOf("Todo lo de Oro", "Spa ilimitado", "1 sesión c/ entrenador personal/sem.", "Plan nutricional incluido"))
-)
+/** Los planes con su precio actual, o null si no hay conexión. */
+suspend fun cargarPlanes(): List<PlanMembresia>? = try {
+    Api.get("/v1/planes").optJSONArray("planes")?.objetos()?.map { j ->
+        val dias = j.optInt("duracion_dias", 30)
+        val periodo = when (dias) { 30, 31 -> "/mes"; 7 -> "/semana"; 365 -> "/año"; else -> " cada $dias días" }
+        PlanMembresia(
+            nombre = j.optString("nombre"),
+            precio = plata(j.optDouble("precio")) + periodo,
+            beneficios = j.optJSONArray("beneficios")?.let { a -> (0 until a.length()).map { a.optString(it) } } ?: emptyList(),
+            destacado = j.optBoolean("destacado")
+        )
+    } ?: emptyList()
+} catch (e: Exception) {
+    null
+}
 
 /** Un pago real (Mercado Pago, modo prueba) — ver PagosRepository.kt y
  *  DatosRemotos.historialPagos. Ya no hay una lista de "métodos de pago

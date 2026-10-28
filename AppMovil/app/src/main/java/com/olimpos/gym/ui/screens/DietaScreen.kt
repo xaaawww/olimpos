@@ -189,7 +189,7 @@ private fun CatalogoDietas(
                     Spacer(Modifier.width(6.dp))
                 }
                 Column(Modifier.weight(1f)) {
-                    Eyebrow("Mi dieta")
+                    Eyebrow("Nutri")
                     Row {
                         Text("Plato ", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
                         Text("saludable", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Olimpos.Gold)

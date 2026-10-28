@@ -35,7 +35,7 @@ import com.olimpos.gym.ui.theme.Olimpos
 enum class NutricionVista { MENU, DIETA, TIENDA }
 
 /**
- * Pestaña Nutrición: dos tarjetas como en la Arena, "Mi dieta" (el plan del
+ * Pestaña NutriStore: dos tarjetas como en la Arena, "Nutri" (el plan del
  * nutricionista y el registro de comidas) y "Tienda" (suplementos y demás).
  * [vista] la maneja MainActivity para que los accesos rápidos de Inicio
  * puedan abrir directo una de las dos.
@@ -72,16 +72,16 @@ private fun MenuNutricion(objetivo: ObjetivoCompetencia?, onVista: (NutricionVis
             BadgeObjetivo(objetivo)
             Spacer(Modifier.height(12.dp))
         }
-        Eyebrow("Nutrición")
+        Eyebrow("NutriStore")
         Text("Comé bien y recargá", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
-        Text("Tu plan de comidas y la NutriStore", fontSize = 13.sp, color = Olimpos.Muted)
+        Text("Tu plan de comidas y la tienda del club", fontSize = 13.sp, color = Olimpos.Muted)
 
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TarjetaNutricion("🥗", "Mi dieta",
+            TarjetaNutricion("🥗", "Nutri",
                 if (platosDieta > 0) "Tu plan y tus comidas" else "Registrá tus comidas",
                 Modifier.weight(1f)) { onVista(NutricionVista.DIETA) }
-            TarjetaNutricion("🛍️", "NutriStore", "Suplementos y más", Modifier.weight(1f)) { onVista(NutricionVista.TIENDA) }
+            TarjetaNutricion("🛍️", "Store", "Suplementos y más", Modifier.weight(1f)) { onVista(NutricionVista.TIENDA) }
         }
 
         if (pendientes.isNotEmpty()) {

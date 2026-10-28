@@ -85,7 +85,7 @@ enum class Tab(val label: String, val icon: String) {
     INICIO("Inicio", "🏛️"),
     ENTRENAR("Entrenar", "🏋️"),
     ARENA("Arena", "⚔️"),
-    DIETA("Nutrición", "🥗"),   // Mi dieta + Tienda (ver NutricionTab)
+    DIETA("NutriStore", "🥗"),   // Nutri (dieta) + Store (tienda), ver NutricionTab
     PERFIL("Perfil", "👤")
 }
 
@@ -252,7 +252,7 @@ private fun OlimposAppPrincipal(themeMode: ThemeMode, onThemeMode: (ThemeMode) -
         Scaffold(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             contentWindowInsets = WindowInsets(0),
-            // Tocar "Nutrición" en la barra siempre lleva a su menú (Mi dieta / Tienda)
+            // Tocar "NutriStore" en la barra siempre lleva a su menú (Nutri / Store)
             bottomBar = { BarraInferior(tab) { if (it == Tab.DIETA) vistaNutricion = NutricionVista.MENU; tab = it } }
         ) { pad ->
             AnimatedContent(

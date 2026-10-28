@@ -108,7 +108,7 @@ private fun iconoCategoria(nombre: String): ImageVector = when (clave(nombre)) {
 }
 
 /**
- * NutriStore, la tienda del club: inicio (buscador, banner y categorías),
+ * Store (dentro de la pestaña NutriStore), la tienda del club: inicio (buscador, banner y categorías),
  * productos por categoría, detalle, carrito y los pedidos del socio. El pedido
  * se paga y retira en la recepción; mientras no se retira, se puede cancelar.
  */
@@ -217,13 +217,13 @@ private fun InicioTienda(
 ) {
     val lista = productos.orEmpty()
     Column(Modifier.fillMaxSize().background(CA.fondo).verticalScroll(rememberScrollState())) {
-        EncabezadoArena("NutriStore", "Pedí acá, pagá y retirá en la recepción.", onVolver, derecha = carritoIcono)
+        EncabezadoArena("Store", "Pedí acá, pagá y retirá en la recepción.", onVolver, derecha = carritoIcono)
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
             CampoBusqueda(busqueda, onBusqueda, "Buscar productos…")
             Spacer(Modifier.height(14.dp))
             aviso?.let { (texto, error) -> Aviso(texto, error) }
             if (sinConexion && productos == null) {
-                Text("Sin conexión. Revisá internet para ver la NutriStore.", fontSize = 13.sp, color = CA.suave)
+                Text("Sin conexión. Revisá internet para ver la Store.", fontSize = 13.sp, color = CA.suave)
             }
 
             val q = clave(busqueda)
@@ -264,7 +264,7 @@ private fun InicioTienda(
                 }
                 GrillaProductos(lista.filter { it.stock > 0 }.take(4), carrito, onProducto)
             } else if (productos != null) {
-                Text("Todavía no hay productos en la NutriStore.", fontSize = 13.sp, color = CA.suave)
+                Text("Todavía no hay productos en la Store.", fontSize = 13.sp, color = CA.suave)
             }
 
             val historial = pedidos.filter { it.estado != "pendiente" }.take(5)
@@ -541,7 +541,7 @@ private fun Carrito(
         EncabezadoArena("Carrito ($unidades)", "Revisalo antes de confirmar", onVolver)
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 30.dp)) {
             if (carrito.isEmpty()) {
-                Text("Tu carrito está vacío. Agregá productos desde la NutriStore.", fontSize = 13.sp, color = CA.suave)
+                Text("Tu carrito está vacío. Agregá productos desde la Store.", fontSize = 13.sp, color = CA.suave)
                 return@Column
             }
             carrito.entries.toList().forEach { (id, n) ->
@@ -578,7 +578,7 @@ private fun Carrito(
             Spacer(Modifier.height(10.dp))
             Text(
                 "Al confirmar, los productos quedan reservados para vos. Los pagás y los retirás en la recepción; " +
-                    "si cambiás de idea, podés cancelar el pedido desde la NutriStore.",
+                    "si cambiás de idea, podés cancelar el pedido desde la Store.",
                 fontSize = 11.5.sp, color = CA.suave, lineHeight = 17.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
             )
         }
