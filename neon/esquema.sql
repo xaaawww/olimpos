@@ -1412,10 +1412,13 @@ CREATE TABLE productos (
     precio               NUMERIC(12,2) NOT NULL CHECK (precio > 0 AND precio <= 10000000),
     stock                INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0 AND stock <= 100000),
     imagen               TEXT,                         -- JPEG en Base64 (como platos.imagen)
+    sku                  VARCHAR(30),
+    costo                NUMERIC(12,2) CHECK (costo IS NULL OR (costo >= 0 AND costo <= 10000000)),
     publicado            BOOLEAN NOT NULL DEFAULT FALSE,
     fecha_actualizacion  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX uq_productos_nombre_lower ON productos (lower(nombre));
+CREATE UNIQUE INDEX uq_productos_sku_upper ON productos (upper(sku)) WHERE sku IS NOT NULL;
 
 CREATE TABLE productoetiquetas (
     id_producto  INTEGER NOT NULL REFERENCES productos (id_producto) ON DELETE CASCADE,

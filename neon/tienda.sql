@@ -52,4 +52,9 @@ CREATE TABLE IF NOT EXISTS pedidotiendaitems (
     PRIMARY KEY (id_pedido, id_producto)
 );
 
+-- SKU (código interno) y costo de compra (para el valor del stock y el margen).
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS sku VARCHAR(30);
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS costo NUMERIC(12,2) CHECK (costo IS NULL OR (costo >= 0 AND costo <= 10000000));
+CREATE UNIQUE INDEX IF NOT EXISTS uq_productos_sku_upper ON productos (upper(sku)) WHERE sku IS NOT NULL;
+
 COMMIT;

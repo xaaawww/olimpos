@@ -27,7 +27,7 @@ Leyenda: **PK** clave primaria · **FK** clave foránea (con su regla de borrado
 | disponibilidad_horaria | character varying |  |
 | firebase_uid | character varying |  |
 
-Reglas adicionales: `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{7,8}$'::text)))`; `CHECK (((nivel_experiencia IS NULL) OR ((nivel_experiencia)::text = ANY ((ARRAY['Principiante'::character varying, 'Intermedio'::character varying, 'Avanzado'::character varying])::text[]))))`; `CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))`; `CHECK (((sexo IS NULL) OR ((sexo)::text = ANY ((ARRAY['MASCULINO'::character varying, 'FEMENINO'::character varying, 'PREFIERO_NO_DECIRLO'::character varying])::text[]))))`; índice: `public.socios USING btree (email)`; índice: `public.socios USING btree (dni)`; índice: `public.socios USING btree (lower((email)::text))`; índice: `public.socios USING btree (firebase_uid)`
+Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))`; `CHECK (((nivel_experiencia IS NULL) OR ((nivel_experiencia)::text = ANY ((ARRAY['Principiante'::character varying, 'Intermedio'::character varying, 'Avanzado'::character varying])::text[]))))`; `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{7,8}$'::text)))`; `CHECK (((sexo IS NULL) OR ((sexo)::text = ANY ((ARRAY['MASCULINO'::character varying, 'FEMENINO'::character varying, 'PREFIERO_NO_DECIRLO'::character varying])::text[]))))`; índice: `public.socios USING btree (email)`; índice: `public.socios USING btree (lower((email)::text))`; índice: `public.socios USING btree (dni)`; índice: `public.socios USING btree (firebase_uid)`
 
 ### empleados
 
@@ -51,7 +51,7 @@ Reglas adicionales: `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{7,8}$'::tex
 | fecha_baja | date |  |
 | motivo_baja | character varying |  |
 
-Reglas adicionales: `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{7,8}$'::text)))`; `CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))`; `CHECK (((sueldo IS NULL) OR (sueldo >= (0)::numeric)))`; índice: `public.empleados USING btree (lower((usuario)::text))`; índice: `public.empleados USING btree (lower((email)::text))`; índice: `public.empleados USING btree (usuario)`; índice: `public.empleados USING btree (email)`; índice: `public.empleados USING btree (dni)`
+Reglas adicionales: `CHECK (((dni IS NULL) OR ((dni)::text ~ '^[0-9]{7,8}$'::text)))`; `CHECK (((estado)::text = ANY ((ARRAY['activo'::character varying, 'inactivo'::character varying])::text[])))`; `CHECK (((sueldo IS NULL) OR (sueldo >= (0)::numeric)))`; índice: `public.empleados USING btree (usuario)`; índice: `public.empleados USING btree (dni)`; índice: `public.empleados USING btree (email)`; índice: `public.empleados USING btree (lower((email)::text))`; índice: `public.empleados USING btree (lower((usuario)::text))`
 
 ### entrenadores
 
@@ -389,7 +389,7 @@ Reglas adicionales: `CHECK ((capacidad > 0))`; índice: `public.clases USING btr
 | estado | character varying | NN · por defecto `'confirmada'::character varying` |
 | semana | character varying | NN |
 
-Reglas adicionales: `CHECK (((semana)::text ~ '^[0-9]{4}-W[0-9]{1,2}$'::text))`; `CHECK (((estado)::text = ANY ((ARRAY['confirmada'::character varying, 'cancelada'::character varying])::text[])))`; índice: `public.reservasclase USING btree (id_socio, id_clase, semana) WHERE ((estado)::text = 'con`; índice: `public.reservasclase USING btree (id_clase, semana) WHERE ((estado)::text = 'confirmada'::`
+Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['confirmada'::character varying, 'cancelada'::character varying])::text[])))`; `CHECK (((semana)::text ~ '^[0-9]{4}-W[0-9]{1,2}$'::text))`; índice: `public.reservasclase USING btree (id_socio, id_clase, semana) WHERE ((estado)::text = 'con`; índice: `public.reservasclase USING btree (id_clase, semana) WHERE ((estado)::text = 'confirmada'::`
 
 ### instalaciones
 
@@ -681,7 +681,7 @@ Reglas adicionales: índice: `public.ejerciciosmarca USING btree (id_ejercicio)`
 | fecha_verificacion | timestamptz |  |
 | verificado_por | character varying |  |
 
-Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'verificada'::character varying, 'rechazada'::character varying])::text[])))`; `CHECK (((peso >= (0)::numeric) AND (repeticiones > 0)))`; índice: `public.marcaspersonales USING btree (id_socio, fecha DESC)`
+Reglas adicionales: `CHECK (((peso >= (0)::numeric) AND (repeticiones > 0)))`; `CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'verificada'::character varying, 'rechazada'::character varying])::text[])))`; índice: `public.marcaspersonales USING btree (id_socio, fecha DESC)`
 
 ### rangossocio
 
@@ -826,7 +826,7 @@ Reglas adicionales: `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character
 | crop_y | real |  |
 | fecha_actualizacion | timestamptz | NN · por defecto `now()` |
 
-Reglas adicionales: `CHECK ((proteinas >= 0))`; `CHECK ((carbs >= 0))`; `CHECK ((kcal >= 0))`; `CHECK (((estado)::text = ANY ((ARRAY['publicado'::character varying, 'borrador'::character varying])::text[])))`; `CHECK ((grasas >= 0))`
+Reglas adicionales: `CHECK ((carbs >= 0))`; `CHECK ((proteinas >= 0))`; `CHECK ((kcal >= 0))`; `CHECK (((estado)::text = ANY ((ARRAY['publicado'::character varying, 'borrador'::character varying])::text[])))`; `CHECK ((grasas >= 0))`
 
 ### platoingredientes
 
@@ -891,7 +891,7 @@ Reglas adicionales: `CHECK (((categoria)::text = ANY ((ARRAY['Proteína'::charac
 | meta_grasas | int |  |
 | fecha_actualizacion | timestamptz | NN · por defecto `now()` |
 
-Reglas adicionales: `CHECK ((meta_kcal >= 0))`; `CHECK (((objetivo)::text = ANY ((ARRAY['FUERZA'::character varying, 'HIPERTROFIA'::character varying, 'SALUD'::character varying])::text[])))`; `CHECK ((meta_grasas >= 0))`; `CHECK ((meta_carbs >= 0))`; `CHECK ((meta_proteinas >= 0))`
+Reglas adicionales: `CHECK (((objetivo)::text = ANY ((ARRAY['FUERZA'::character varying, 'HIPERTROFIA'::character varying, 'SALUD'::character varying])::text[])))`; `CHECK ((meta_grasas >= 0))`; `CHECK ((meta_carbs >= 0))`; `CHECK ((meta_proteinas >= 0))`; `CHECK ((meta_kcal >= 0))`
 
 ### comidasregistradas
 
@@ -907,7 +907,7 @@ Reglas adicionales: `CHECK ((meta_kcal >= 0))`; `CHECK (((objetivo)::text = ANY 
 | grasas | int | NN · por defecto `0` |
 | nota | character varying | NN · por defecto `''::character varying` |
 
-Reglas adicionales: `CHECK ((proteinas >= 0))`; `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character varying, 'almuerzo'::character varying, 'cena'::character varying])::text[])))`; `CHECK ((kcal >= 0))`; `CHECK ((grasas >= 0))`; `CHECK ((carbs >= 0))`
+Reglas adicionales: `CHECK ((carbs >= 0))`; `CHECK ((proteinas >= 0))`; `CHECK ((kcal >= 0))`; `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character varying, 'almuerzo'::character varying, 'cena'::character varying])::text[])))`; `CHECK ((grasas >= 0))`
 
 ### comidaregistradaplatos
 
@@ -1261,7 +1261,7 @@ Reglas adicionales: `CHECK (((categoria)::text = ANY ((ARRAY['Aviso'::character 
 | fecha | timestamptz | NN · por defecto `now()` |
 | estado | character varying | NN · por defecto `'nuevo'::character varying` |
 
-Reglas adicionales: `CHECK (((email IS NOT NULL) OR (telefono IS NOT NULL)))`; `CHECK (((char_length((nombre)::text) <= 100) AND (char_length(mensaje) < 1000)))`
+Reglas adicionales: `CHECK (((char_length((nombre)::text) <= 100) AND (char_length(mensaje) < 1000)))`; `CHECK (((email IS NOT NULL) OR (telefono IS NOT NULL)))`
 
 ## Argos (asistente de IA)
 
@@ -1334,8 +1334,10 @@ Reglas adicionales: `CHECK ((cantidad >= 0))`
 | imagen | text |  |
 | publicado | bool | NN · por defecto `false` |
 | fecha_actualizacion | timestamptz | NN · por defecto `now()` |
+| sku | character varying |  |
+| costo | numeric |  |
 
-Reglas adicionales: `CHECK (((precio > (0)::numeric) AND (precio <= (10000000)::numeric)))`; `CHECK (((stock >= 0) AND (stock <= 100000)))`; índice: `public.productos USING btree (lower((nombre)::text))`
+Reglas adicionales: `CHECK (((precio > (0)::numeric) AND (precio <= (10000000)::numeric)))`; `CHECK (((costo IS NULL) OR ((costo >= (0)::numeric) AND (costo <= (10000000)::numeric))))`; `CHECK (((stock >= 0) AND (stock <= 100000)))`; índice: `public.productos USING btree (upper((sku)::text)) WHERE (sku IS NOT NULL)`; índice: `public.productos USING btree (lower((nombre)::text))`
 
 ### productoetiquetas
 
@@ -1357,7 +1359,7 @@ Reglas adicionales: `CHECK (((precio > (0)::numeric) AND (precio <= (10000000)::
 | fecha_cierre | timestamptz |  |
 | id_empleado_cierre | int | **FK** → empleados.id_empleado (borrado: NO ACTION) |
 
-Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'entregado'::character varying, 'cancelado'::character varying])::text[])))`; `CHECK ((total > (0)::numeric))`; índice: `public.pedidostienda USING btree (id_socio, fecha DESC)`
+Reglas adicionales: `CHECK ((total > (0)::numeric))`; `CHECK (((estado)::text = ANY ((ARRAY['pendiente'::character varying, 'entregado'::character varying, 'cancelado'::character varying])::text[])))`; índice: `public.pedidostienda USING btree (id_socio, fecha DESC)`
 
 ### pedidotiendaitems
 
@@ -1417,4 +1419,4 @@ Reglas adicionales: `CHECK (((momento)::text = ANY ((ARRAY['desayuno'::character
 | registrado_por | character varying |  |
 | estado | character varying | NN · por defecto `'pagado'::character varying` |
 
-Reglas adicionales: `CHECK (((estado)::text = ANY ((ARRAY['pagado'::character varying, 'anulado'::character varying])::text[])))`; `CHECK (((concepto)::text = ANY ((ARRAY['Sueldo'::character varying, 'Adelanto'::character varying, 'Bono'::character varying])::text[])))`; `CHECK ((monto > (0)::numeric))`; índice: `public.liquidacionessueldo USING btree (id_empleado, periodo) WHERE (((concepto)::text = '`
+Reglas adicionales: `CHECK ((monto > (0)::numeric))`; `CHECK (((concepto)::text = ANY ((ARRAY['Sueldo'::character varying, 'Adelanto'::character varying, 'Bono'::character varying])::text[])))`; `CHECK (((estado)::text = ANY ((ARRAY['pagado'::character varying, 'anulado'::character varying])::text[])))`; índice: `public.liquidacionessueldo USING btree (id_empleado, periodo) WHERE (((concepto)::text = '`

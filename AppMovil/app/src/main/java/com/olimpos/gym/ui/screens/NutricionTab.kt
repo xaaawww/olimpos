@@ -74,14 +74,14 @@ private fun MenuNutricion(objetivo: ObjetivoCompetencia?, onVista: (NutricionVis
         }
         Eyebrow("Nutrición")
         Text("Comé bien y recargá", fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Cream)
-        Text("Tu plan de comidas y la tienda del club", fontSize = 13.sp, color = Olimpos.Muted)
+        Text("Tu plan de comidas y la NutriStore", fontSize = 13.sp, color = Olimpos.Muted)
 
         Spacer(Modifier.height(18.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TarjetaNutricion("🥗", "Mi dieta",
                 if (platosDieta > 0) "Tu plan y tus comidas" else "Registrá tus comidas",
                 Modifier.weight(1f)) { onVista(NutricionVista.DIETA) }
-            TarjetaNutricion("🛍️", "Tienda", "Suplementos y más", Modifier.weight(1f)) { onVista(NutricionVista.TIENDA) }
+            TarjetaNutricion("🛍️", "NutriStore", "Suplementos y más", Modifier.weight(1f)) { onVista(NutricionVista.TIENDA) }
         }
 
         if (pendientes.isNotEmpty()) {

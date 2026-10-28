@@ -1,4 +1,4 @@
-# OLIMPOS GYM — Tienda del club (suplementos, accesorios, ropa…)
+# OLIMPOS GYM — NutriStore, la tienda del club (suplementos, accesorios, ropa…)
 #
 # Tablas: productos, productoetiquetas, pedidostienda, pedidotiendaitems
 # (ver neon/tienda.sql). La gestiona solo el dueño desde la sección Tienda.
@@ -8,14 +8,17 @@
 # el dueño lo marca como entregado. Si se cancela, el stock vuelve.
 #
 # Un producto (dict):
-#   {"id": "12" | None, "nombre": str, "descripcion": str, "precio": float,
-#    "stock": int, "etiquetas": [str], "imagen": "<Base64 JPEG>" | None,
+#   {"id": "12" | None, "nombre": str, "sku": "PRT-001", "descripcion": str,
+#    "precio": float, "costo": float | None, "stock": int, "etiquetas": [str], "imagen": "<Base64 JPEG>" | None,
 #    "publicado": bool, "actualizado": "2026-10-27T18:00:00"}
+
+import re
 
 import neon_db
 import validaciones
 
 MAX_ETIQUETAS = 4
+STOCK_BAJO = 5            # con esto o menos unidades se marca "Stock bajo"
 MAX_DESCRIPCION = 1000
 # Para arrancar rápido en el editor; se puede escribir cualquier otra.
 ETIQUETAS_SUGERIDAS = ["Proteínas", "Creatina", "Pre-entreno", "Vitaminas", "Snacks", "Bebidas",
@@ -25,7 +28,8 @@ _cache: list[dict] | None = None
 
 
 def nuevo_producto() -> dict:
-    return {"id": None, "nombre": "", "descripcion": "", "precio": None, "stock": 0, "etiquetas": [],
+    return {"id": None, "nombre": "", "sku": "", "descripcion": "", "precio": None, "costo": None, "stock": 0,
+            "etiquetas": [],
             "imagen": None, "publicado": False, "actualizado": ""}
 
 
@@ -33,13 +37,15 @@ def cargar_productos(forzar: bool = False) -> list[dict]:
     global _cache
     if _cache is None or forzar:
         filas = neon_db.consulta(
-            "SELECT p.id_producto, p.nombre, p.descripcion, p.precio, p.stock, p.imagen, p.publicado,"
+            "SELECT p.id_producto, p.nombre, p.sku, p.descripcion, p.precio, p.costo, p.stock, p.imagen, p.publicado,"
             " to_char(p.fecha_actualizacion, 'YYYY-MM-DD\"T\"HH24:MI:SS') AS actualizado,"
             " COALESCE((SELECT array_agg(e.etiqueta ORDER BY e.orden) FROM productoetiquetas e"
             "           WHERE e.id_producto = p.id_producto), '{}') AS etiquetas"
             " FROM productos p ORDER BY lower(p.nombre)")
-        _cache = [{"id": str(f["id_producto"]), "nombre": f["nombre"], "descripcion": f["descripcion"] or "",
-                   "precio": float(f["precio"]), "stock": int(f["stock"]), "imagen": f["imagen"],
+        _cache = [{"id": str(f["id_producto"]), "nombre": f["nombre"], "sku": f["sku"] or "",
+                   "descripcion": f["descripcion"] or "", "precio": float(f["precio"]),
+                   "costo": float(f["costo"]) if f["costo"] is not None else None,
+                   "stock": int(f["stock"]), "imagen": f["imagen"],
                    "publicado": bool(f["publicado"]), "actualizado": f["actualizado"],
                    "etiquetas": list(f["etiquetas"] or [])} for f in filas]
     return _cache
@@ -54,15 +60,35 @@ def todas_las_etiquetas(productos: list[dict]) -> list[str]:
     return sorted(vistas.values(), key=validaciones.normalizar)
 
 
+def estado_stock(p: dict) -> str:
+    """"Sin stock", "Stock bajo" o "En stock"."""
+    return "Sin stock" if p["stock"] == 0 else "Stock bajo" if p["stock"] <= STOCK_BAJO else "En stock"
+
+
+def resumen(productos: list[dict]) -> dict:
+    """Las cuatro tarjetas de arriba de la NutriStore."""
+    return {"total": len(productos), "categorias": len(todas_las_etiquetas(productos)),
+            "stock_bajo": sum(1 for p in productos if p["stock"] <= STOCK_BAJO),
+            "valor_stock": sum(p["precio"] * p["stock"] for p in productos)}
+
+
 def validar(p: dict) -> None:
     """Revisa y limpia el producto antes de guardarlo (ValueError con el primer problema)."""
     p["nombre"] = validaciones.texto(p.get("nombre"), "el nombre del producto", maximo=80, minimo=3)
     excluir = ("id_producto", int(p["id"])) if p.get("id") else None
     if validaciones.ya_existe("productos", "nombre", p["nombre"], excluir, sin_mayusculas=True):
         raise ValueError(f"Ya hay un producto llamado \"{p['nombre']}\".")
+    sku = "".join(str(p.get("sku") or "").split()).upper()
+    if sku and not re.fullmatch(r"[A-Z0-9][A-Z0-9\-]{1,29}", sku):
+        raise ValueError("El SKU puede tener letras, números y guiones (ej.: PRT-001).")
+    p["sku"] = sku
+    if sku and neon_db.una_fila("SELECT 1 AS x FROM productos WHERE upper(sku) = %s AND id_producto <> %s",
+                                (sku, int(p["id"]) if p.get("id") else 0)):
+        raise ValueError(f"El SKU {sku} ya lo usa otro producto.")
     p["descripcion"] = validaciones.texto(p.get("descripcion"), "la descripción", maximo=MAX_DESCRIPCION,
                                           obligatorio=False, multilinea=True) or ""
     p["precio"] = validaciones.monto(p.get("precio"), "el precio", maximo=10_000_000)
+    p["costo"] = validaciones.decimal(p.get("costo"), "el costo", minimo=0, maximo=10_000_000, obligatorio=False)
     p["stock"] = validaciones.entero(p.get("stock"), "el stock", minimo=0, maximo=100_000)
     p["etiquetas"] = validaciones.etiquetas(p.get("etiquetas"), maximo_items=MAX_ETIQUETAS, maximo_largo=30)
     if p.get("publicado") and not p["etiquetas"]:
@@ -75,18 +101,18 @@ def guardar(p: dict) -> dict:
     with neon_db.transaccion() as cur:
         if p.get("id"):
             cur.execute(
-                "UPDATE productos SET nombre = %s, descripcion = %s, precio = %s, stock = %s, imagen = %s,"
-                " publicado = %s, fecha_actualizacion = now() WHERE id_producto = %s",
-                (p["nombre"], p["descripcion"] or None, p["precio"], p["stock"], p.get("imagen"),
-                 bool(p.get("publicado")), int(p["id"])))
+                "UPDATE productos SET nombre = %s, sku = %s, descripcion = %s, precio = %s, costo = %s, stock = %s,"
+                " imagen = %s, publicado = %s, fecha_actualizacion = now() WHERE id_producto = %s",
+                (p["nombre"], p["sku"] or None, p["descripcion"] or None, p["precio"], p["costo"], p["stock"],
+                 p.get("imagen"), bool(p.get("publicado")), int(p["id"])))
             cur.execute("DELETE FROM productoetiquetas WHERE id_producto = %s", (int(p["id"]),))
             id_producto = int(p["id"])
         else:
             cur.execute(
-                "INSERT INTO productos (nombre, descripcion, precio, stock, imagen, publicado)"
-                " VALUES (%s, %s, %s, %s, %s, %s) RETURNING id_producto",
-                (p["nombre"], p["descripcion"] or None, p["precio"], p["stock"], p.get("imagen"),
-                 bool(p.get("publicado"))))
+                "INSERT INTO productos (nombre, sku, descripcion, precio, costo, stock, imagen, publicado)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id_producto",
+                (p["nombre"], p["sku"] or None, p["descripcion"] or None, p["precio"], p["costo"], p["stock"],
+                 p.get("imagen"), bool(p.get("publicado"))))
             id_producto = cur.fetchone()["id_producto"]
         for i, etiqueta in enumerate(p["etiquetas"]):
             cur.execute("INSERT INTO productoetiquetas (id_producto, etiqueta, orden) VALUES (%s, %s, %s)",
