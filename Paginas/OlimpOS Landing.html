@@ -3,373 +3,217 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>OlimpΩs — Gimnasio Olímpico</title>
+<title>OlimpΩs — Gimnasio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
+  /* Mismos colores que el sistema de empleados (Aplicaciones/olimpos_gym/theme.py) */
   :root {
-    --bg: oklch(0.90 0.02 80);
-    --panel-dark: oklch(0.20 0.012 70);
-    --panel-warm: oklch(0.26 0.025 68);
-    --ink: oklch(0.18 0.01 70);
-    --cream: oklch(0.95 0.012 85);
-    --cream-soft: oklch(0.86 0.015 80);
-    --gold: oklch(0.78 0.11 88);
-    --gold-deep: oklch(0.68 0.12 80);
-    --yellow: oklch(0.86 0.16 95);
-    --yellow-ink: oklch(0.26 0.05 80);
-    --line: oklch(1 0 0 / 0.14);
-    --radius: 26px;
-    --wrap: 1160px;
+    --gold: #C9A227;
+    --gold-dark: #A07820;
+    --gold-bg: #FFFDE8;
+    --gold-chip: #FEF9C3;
+    --nav-activo: #F7EDC4;
+    --dark: #0d0b00;
+    --cream: #FAFAF0;
+    --side: #FBFAF6;
+    --white: #FFFFFF;
+    --line: #E8E5D8;
+    --gray: #C0BAA0;
+    --muted: #888570;
+    --texto: #3F3B30;
+    --green: #16A34A;
+    --red: #DC2626;
+    --radius: 16px;
+    --wrap: 1120px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
   body {
-    font-family: "Manrope", system-ui, sans-serif;
-    background: var(--panel-dark);
-    color: var(--cream);
+    font-family: "Poppins", system-ui, sans-serif;
+    background: var(--cream);
+    color: var(--dark);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
   img { max-width: 100%; display: block; }
-  .serif { font-family: "Bodoni Moda", Georgia, serif; }
-  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 clamp(20px, 4vw, 44px); }
+  a { color: inherit; }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
 
-  /* ===== Site header (sticky) ===== */
+  /* ===== Encabezado ===== */
   .site-header {
     position: sticky; top: 0; z-index: 100;
-    background: oklch(0.16 0.012 70 / 0.88);
-    backdrop-filter: blur(14px);
+    background: rgba(251, 250, 246, 0.92);
+    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--line);
   }
   .site-header .wrap {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 16px; padding-top: 14px; padding-bottom: 14px;
+    gap: 16px; padding-top: 12px; padding-bottom: 12px;
   }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex: none; }
-  .brand img { height: 34px; width: auto; filter: drop-shadow(0 2px 6px oklch(0.2 0.02 70 / 0.5)); }
-  .brand .word {
-    font-family: "Bodoni Moda", serif; font-weight: 600;
-    font-size: clamp(19px, 3vw, 24px); letter-spacing: 0.05em;
-    color: var(--cream); line-height: 1; white-space: nowrap;
-  }
+  .brand img { height: 32px; width: auto; }
+  .brand .word { font-weight: 700; font-size: 20px; letter-spacing: 0.04em; white-space: nowrap; }
   .brand .word .om { color: var(--gold); }
 
-  .site-nav { display: flex; align-items: center; gap: clamp(16px, 2.4vw, 30px); }
+  .site-nav { display: flex; align-items: center; gap: 6px; }
   .nav-link {
-    font-family: "Manrope", sans-serif; font-weight: 600; font-size: 14px;
-    color: var(--cream-soft); text-decoration: none; padding: 6px 0;
-    position: relative; letter-spacing: 0.01em; white-space: nowrap;
-    transition: color 0.2s;
+    font-weight: 500; font-size: 14px; color: var(--texto); text-decoration: none;
+    padding: 8px 14px; border-radius: 10px; white-space: nowrap; transition: background 0.2s, color 0.2s;
   }
-  .nav-link::after {
-    content: ""; position: absolute; left: 0; right: 100%; bottom: -2px; height: 2px;
-    background: var(--yellow); transition: right 0.28s ease;
-  }
-  .nav-link:hover { color: var(--cream); }
-  .nav-link.active { color: var(--yellow); }
-  .nav-link.active::after { right: 0; }
-
-  .header-right { display: flex; align-items: center; gap: 14px; flex: none; }
-  .join-btn {
-    appearance: none; border: 0; cursor: pointer; text-decoration: none;
-    background: var(--yellow); color: var(--yellow-ink);
-    font-family: "Manrope", sans-serif; font-weight: 800; font-size: 12.5px;
-    letter-spacing: 0.05em; text-transform: uppercase;
-    padding: 11px 18px; border-radius: 999px;
-    box-shadow: 0 4px 0 var(--gold-deep);
-    transition: transform 0.15s, box-shadow 0.15s;
-    display: inline-flex; align-items: center; white-space: nowrap;
-  }
-  .join-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--gold-deep); }
-  .join-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--gold-deep); }
+  .nav-link:hover { background: var(--white); }
+  .nav-link.active { background: var(--nav-activo); color: var(--dark); font-weight: 600; }
 
   .hamburger {
     display: none; flex-direction: column; justify-content: center; gap: 5px;
-    width: 38px; height: 38px; border: 1.5px solid var(--line); border-radius: 10px;
-    background: none; cursor: pointer; flex: none; padding: 0 8px;
+    width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--white); cursor: pointer; flex: none; padding: 0 10px;
   }
-  .hamburger span { display: block; width: 100%; height: 2px; background: var(--cream); border-radius: 2px; }
+  .hamburger span { display: block; width: 100%; height: 2px; background: var(--dark); border-radius: 2px; }
 
-  @media (max-width: 860px) {
+  @media (max-width: 820px) {
     .site-nav {
       position: absolute; top: 100%; left: 0; right: 0;
-      background: oklch(0.15 0.012 70 / 0.98); backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--line);
-      flex-direction: column; align-items: flex-start; gap: 4px;
-      padding: 10px clamp(20px, 4vw, 44px) 18px;
-      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+      background: var(--side); border-bottom: 1px solid var(--line);
+      flex-direction: column; align-items: stretch; gap: 2px;
+      padding: 0 clamp(16px, 4vw, 40px);
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease;
     }
-    .site-nav.open { max-height: 320px; }
-    .nav-link { padding: 10px 0; width: 100%; }
+    .site-nav.open { max-height: 340px; padding-top: 8px; padding-bottom: 14px; }
     .hamburger { display: flex; }
   }
 
-  @media (max-width: 400px) {
-    .header-right { gap: 8px; }
-    .join-btn { padding: 9px 12px; font-size: 11px; }
-  }
-
-  /* ===== Sections ===== */
-  .sect { padding: clamp(56px, 9vh, 100px) 0; position: relative; overflow: hidden; scroll-margin-top: 76px; }
-  .sect.alt { background: var(--panel-warm); }
-  .stack-head { max-width: 640px; margin-bottom: clamp(28px, 5vh, 48px); }
-  .stack-head.center { margin-left: auto; margin-right: auto; text-align: center; }
-
+  /* ===== Secciones ===== */
+  .sect { padding: clamp(56px, 9vh, 96px) 0; scroll-margin-top: 66px; }
+  .sect.alt { background: var(--white); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .head { max-width: 620px; margin-bottom: clamp(28px, 5vh, 44px); }
+  .head.center { margin-left: auto; margin-right: auto; text-align: center; }
   .eyebrow {
-    font-family: "Manrope", sans-serif; font-weight: 700; font-size: 12px;
-    letter-spacing: 0.26em; text-transform: uppercase; color: var(--gold);
-    display: flex; align-items: center; gap: 10px; margin-bottom: 18px;
+    display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--gold-dark); background: var(--gold-chip); padding: 5px 12px; border-radius: 999px; margin-bottom: 16px;
   }
-  .stack-head.center .eyebrow { justify-content: center; }
-  .eyebrow::before { content: ""; width: 28px; height: 1px; background: var(--gold); }
-  .stack-head.center .eyebrow::before { display: none; }
+  h1, h2 { font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; }
+  h1 { font-size: clamp(34px, 5.4vw, 56px); }
+  h2 { font-size: clamp(28px, 4vw, 40px); }
+  h1 .acento, h2 .acento { color: var(--gold); }
+  .lede { font-size: 16px; line-height: 1.65; color: var(--muted); max-width: 48ch; margin-top: 16px; text-wrap: pretty; }
+  .head.center .lede { margin-left: auto; margin-right: auto; }
 
-  h1.display, h2.display {
-    font-family: "Bodoni Moda", serif; font-weight: 600;
-    font-size: clamp(32px, 5.4vw, 60px); line-height: 1.02;
-    letter-spacing: -0.01em; color: var(--cream);
-    text-wrap: balance;
+  .cta-row { display: flex; align-items: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+  .head.center .cta-row { justify-content: center; }
+  .btn {
+    appearance: none; border: 1px solid transparent; cursor: pointer; text-decoration: none;
+    font-family: inherit; font-weight: 600; font-size: 14px;
+    padding: 13px 22px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
   }
-  h1.display em, h2.display em { font-style: italic; color: var(--gold); }
-  h1.display .hl, h2.display .hl { color: var(--yellow); font-style: italic; }
+  .btn-primary { background: var(--gold); color: var(--dark); }
+  .btn-primary:hover { background: var(--gold-dark); color: var(--white); }
+  .btn-ghost { background: var(--white); border-color: var(--line); color: var(--dark); }
+  .btn-ghost:hover { border-color: var(--gold); }
+  .btn:disabled { opacity: 0.55; cursor: default; }
 
-  .lede {
-    font-size: 16px; line-height: 1.6;
-    color: var(--cream-soft); max-width: 46ch; margin-top: 20px;
-    text-wrap: pretty;
-  }
-  .stack-head.center .lede { margin-left: auto; margin-right: auto; }
+  .meta { display: flex; align-items: center; gap: 8px; margin-top: 22px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .meta b { color: var(--dark); font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
 
-  .cta-row { display: flex; align-items: center; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
-  .stack-head.center .cta-row { justify-content: center; }
-  .btn-primary {
-    appearance: none; border: 0; cursor: pointer; text-decoration: none;
-    background: var(--yellow); color: var(--yellow-ink);
-    font-family: "Manrope", sans-serif; font-weight: 800; font-size: 15px;
-    letter-spacing: 0.04em; text-transform: uppercase;
-    padding: 16px 30px; border-radius: 14px;
-    box-shadow: 0 5px 0 var(--gold-deep);
-    transition: transform 0.15s, box-shadow 0.15s;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 0 var(--gold-deep); }
-  .btn-primary:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--gold-deep); }
-  .btn-ghost {
-    appearance: none; cursor: pointer; background: none; text-decoration: none;
-    border: 1.5px solid var(--line); color: var(--cream);
-    font-family: "Manrope", sans-serif; font-weight: 700; font-size: 14px;
-    letter-spacing: 0.04em; text-transform: uppercase;
-    padding: 15px 24px; border-radius: 14px;
-    display: inline-flex; align-items: center; gap: 9px;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+  .split2 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(28px, 5vw, 64px); align-items: center; }
+  @media (max-width: 820px) { .split2 { grid-template-columns: 1fr; } }
 
-  .foot-meta { display: flex; align-items: center; gap: 12px; margin-top: 28px; font-size: 13px; color: var(--cream-soft); }
-  .stack-head.center .foot-meta { justify-content: center; }
-  .foot-meta .pin { color: var(--gold); display: grid; place-items: center; }
-  .foot-meta b { color: var(--cream); font-weight: 700; }
+  /* Tarjetas, como las del sistema */
+  .card { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); }
 
-  /* ===== two-column layout used by every section ===== */
-  .split2 { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(30px, 5vw, 70px); align-items: center; }
-  @media (max-width: 860px) {
-    .split2 { grid-template-columns: 1fr; }
-  }
+  /* ===== Inicio ===== */
+  .hero-panel { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+  .hero-panel .top { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .hero-panel .top img { height: 46px; }
+  .hero-panel .top .t { font-weight: 600; font-size: 16px; }
+  .hero-panel .top .s { font-size: 12px; color: var(--muted); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat { padding: 16px; background: var(--cream); border: 1px solid var(--line); border-radius: 12px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 28px; font-weight: 600; margin-top: 4px; line-height: 1; }
+  .stat .v small { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .stat.gold { background: var(--gold-bg); border-color: var(--nav-activo); }
+  .stat.gold .v { color: var(--gold-dark); }
 
-  /* ===== Hero (Inicio) ===== */
-  .hero-media { position: relative; }
-  .hero-photo-wrap {
-    position: relative; border-radius: 24px; overflow: hidden;
-    aspect-ratio: 3 / 4; max-width: 420px; margin: 0 auto;
-    box-shadow: 0 30px 70px oklch(0.12 0.02 70 / 0.5);
-  }
-  .hero-photo-wrap img { width: 100%; height: 100%; object-fit: cover; }
-  .badge-float {
-    position: absolute; right: -14px; bottom: 28px; z-index: 2;
-    width: 104px; height: 104px;
-    border-radius: 50%; background: var(--yellow); color: var(--yellow-ink);
-    display: grid; place-items: center; text-align: center;
-    font-weight: 800; font-size: 12px; line-height: 1.25;
-    padding: 14px; box-shadow: 0 10px 30px oklch(0.2 0.02 70 / 0.4);
-    transform: rotate(-6deg);
-  }
-  @media (max-width: 480px) {
-    .badge-float { width: 84px; height: 84px; font-size: 10.5px; right: 4px; }
+  /* ===== Clases ===== */
+  .class-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .class-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .class-grid { grid-template-columns: 1fr; } }
+  .class-card { padding: 20px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s; }
+  .class-card:hover { border-color: var(--gold); }
+  .class-card .ct { font-weight: 600; font-size: 17px; }
+  .class-card .cd { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .tag {
+    margin-top: auto; align-self: flex-start; font-size: 11px; font-weight: 600;
+    color: var(--gold-dark); background: var(--gold-chip); padding: 4px 10px; border-radius: 999px;
   }
 
-  .promo-note { font-size: 13px; color: var(--cream-soft); margin-bottom: 14px; text-align: center; }
-  .promo-note b { color: var(--yellow); }
-  .carousel { width: min(100%, 360px); margin: 0 auto; }
-  .carousel-top { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-  .cbtn {
-    width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
-    border: 1.5px solid var(--line); background: none; color: var(--cream);
-    display: grid; place-items: center; transition: 0.2s; flex: none;
+  /* ===== Planes ===== */
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: stretch; }
+  @media (max-width: 820px) { .plans { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; } }
+  .plan { padding: 26px 22px; display: flex; flex-direction: column; gap: 10px; position: relative; }
+  .plan.feature { border: 2px solid var(--gold); background: var(--gold-bg); }
+  .plan .pname { font-weight: 600; font-size: 18px; }
+  .plan .price { font-weight: 600; font-size: 40px; line-height: 1; }
+  .plan .price small { font-size: 14px; color: var(--muted); font-weight: 500; }
+  .plan ul { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .plan li { font-size: 13.5px; color: var(--texto); display: flex; gap: 10px; align-items: baseline; }
+  .plan li::before { content: "✓"; color: var(--gold); font-weight: 700; }
+  .ribbon {
+    position: absolute; top: -12px; left: 22px; background: var(--gold); color: var(--dark);
+    font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 999px;
   }
-  .cbtn.fill { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); }
-  .cbtn:hover { border-color: var(--gold); }
-  .cnum { margin-left: auto; font-family: "Bodoni Moda", serif; font-size: 34px; color: var(--cream); }
-  .cnum small { font-size: 16px; color: var(--cream-soft); }
-  .ccard {
-    background: oklch(1 0 0 / 0.06); border: 1px solid var(--line);
-    border-radius: 16px; overflow: hidden;
-  }
-  .ccard img { width: 100%; height: 190px; object-fit: cover; transition: opacity 0.32s ease; }
-  .ccard .cmeta { padding: 14px 16px; }
-  .ccard .cmeta .t { font-weight: 700; font-size: 15px; }
-  .ccard .cmeta .s { font-size: 13px; color: var(--gold); margin-top: 3px; }
 
-  .socials { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
-  .socials a {
-    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
-    background: oklch(1 0 0 / 0.08); color: var(--cream); text-decoration: none; font-size: 13px;
-    transition: 0.2s;
+  /* ===== App ===== */
+  .app-features { display: flex; flex-direction: column; gap: 12px; }
+  .feat { display: flex; gap: 14px; align-items: flex-start; padding: 16px; }
+  .feat .fic {
+    flex: none; width: 40px; height: 40px; border-radius: 10px; background: var(--gold-chip); color: var(--gold-dark);
+    display: grid; place-items: center; font-size: 18px; font-weight: 700;
   }
-  .socials a:hover { background: var(--yellow); color: var(--yellow-ink); }
+  .feat .ft { font-weight: 600; font-size: 15px; }
+  .feat .fd { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+  .apk-note { font-size: 12px; color: var(--muted); margin-top: 12px; max-width: 48ch; line-height: 1.55; }
 
-  /* ===== classes grid ===== */
-  .class-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 560px) { .class-grid { grid-template-columns: 1fr; } }
-  .class-card {
-    border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
-    background: oklch(1 0 0 / 0.05); transition: 0.2s;
-    display: flex; flex-direction: column; gap: 6px;
+  /* ===== Contacto ===== */
+  .contact-grid { display: flex; flex-direction: column; gap: 12px; }
+  .crow { display: flex; gap: 14px; align-items: center; padding: 14px 16px; }
+  .crow .ic {
+    flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--gold-chip); color: var(--gold-dark);
+    display: grid; place-items: center; font-size: 16px;
   }
-  .class-card:hover { background: oklch(1 0 0 / 0.1); border-color: var(--gold); transform: translateY(-3px); }
-  .class-card .ct { font-family: "Bodoni Moda", serif; font-size: 21px; color: var(--cream); }
-  .class-card .cd { font-size: 12.5px; color: var(--cream-soft); line-height: 1.4; }
-  .class-card .tag { margin-top: auto; align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--yellow-ink); background: var(--yellow); padding: 4px 10px; border-radius: 999px; }
-
-  /* ===== plans ===== */
-  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  @media (max-width: 760px) { .plans { grid-template-columns: 1fr; max-width: 380px; margin: 0 auto; } }
-  .plan {
-    border: 1px solid var(--line); border-radius: 18px; padding: 26px 20px;
-    background: oklch(1 0 0 / 0.05); display: flex; flex-direction: column; gap: 8px;
-    transition: 0.2s; position: relative;
-  }
-  .plan.feature { background: var(--yellow); color: var(--yellow-ink); border-color: var(--yellow); }
-  .plan.feature .pname, .plan.feature .price, .plan.feature li { color: var(--yellow-ink); }
-  .plan .pname { font-family: "Bodoni Moda", serif; font-size: 24px; color: var(--cream); }
-  .plan .price { font-family: "Bodoni Moda", serif; font-size: 42px; color: var(--gold); line-height: 1; }
-  .plan.feature .price { color: var(--yellow-ink); }
-  .plan .price small { font-size: 14px; font-family: "Manrope"; color: var(--cream-soft); font-weight: 600; }
-  .plan.feature .price small { color: var(--yellow-ink); }
-  .plan ul { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
-  .plan li { font-size: 12.5px; color: var(--cream-soft); display: flex; gap: 8px; align-items: center; }
-  .plan li::before { content: "✓"; color: var(--gold); font-weight: 800; }
-  .plan.feature li::before { color: var(--yellow-ink); }
-  .plan .ribbon { position: absolute; top: -11px; right: 16px; background: var(--panel-dark); color: var(--yellow); font-size: 10px; font-weight: 800; letter-spacing: 0.1em; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }
-
-  /* ===== APP CTA (recurring small promo box) ===== */
-  .appcta {
-    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
-    background: linear-gradient(120deg, oklch(0.24 0.03 80), oklch(0.3 0.04 75));
-    border: 1px solid var(--line); border-radius: 20px;
-    padding: 22px clamp(18px, 3vw, 32px); margin-top: 30px;
-  }
-  .phone {
-    flex: none; width: 84px; height: 150px;
-    border-radius: 18px; border: 3px solid oklch(1 0 0 / 0.18);
-    background: var(--panel-dark); position: relative; overflow: hidden;
-    box-shadow: 0 12px 30px oklch(0.15 0.02 70 / 0.5);
-  }
-  .phone::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 30%; height: 5px; border-radius: 999px; background: oklch(1 0 0 / 0.2); z-index: 2; }
-  .phone .scr { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 14px; }
-  .phone .scr img { width: 56%; }
-  .phone .scr .qr { width: 54%; aspect-ratio: 1; border-radius: 8px; background:
-    conic-gradient(from 0deg, var(--cream) 0 25%, transparent 0 50%, var(--cream) 0 75%, transparent 0) ,
-    var(--panel-warm);
-    background-size: 33% 33%, 100% 100%;
-    border: 4px solid var(--cream);
-  }
-  .appcta .body { flex: 1; min-width: 220px; }
-  .appcta .kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--yellow); margin-bottom: 6px; }
-  .appcta h3 { font-family: "Bodoni Moda", serif; font-weight: 600; font-size: 22px; color: var(--cream); line-height: 1.1; }
-  .appcta p { font-size: 13px; color: var(--cream-soft); margin-top: 7px; line-height: 1.5; max-width: 46ch; }
-  .store-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-  .store {
-    display: inline-flex; align-items: center; gap: 9px; cursor: pointer; text-decoration: none;
-    background: var(--cream); color: var(--ink); border: 0; border-radius: 11px;
-    padding: 8px 14px; font-family: "Manrope"; transition: 0.15s;
-  }
-  .store:hover { transform: translateY(-2px); }
-  .store .ic { font-size: 18px; }
-  .store .tx { text-align: left; line-height: 1.1; }
-  .store .tx small { display: block; font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
-  .store .tx b { font-size: 14px; font-weight: 800; }
-  .store.sub { background: var(--yellow); color: var(--yellow-ink); }
-
-  /* ===== APP section big layout ===== */
-  .app-features { display: flex; flex-direction: column; gap: 16px; }
-  .feat { display: flex; gap: 14px; align-items: flex-start; }
-  .feat .fic { flex: none; width: 44px; height: 44px; border-radius: 12px; background: oklch(1 0 0 / 0.07); color: var(--gold); display: grid; place-items: center; font-size: 20px; border: 1px solid var(--line); }
-  .feat .ft { font-weight: 700; font-size: 15px; color: var(--cream); }
-  .feat .fd { font-size: 13px; color: var(--cream-soft); margin-top: 2px; line-height: 1.45; }
-
-  .bigphone-wrap { display: flex; justify-content: center; }
-  .bigphone {
-    width: 240px; height: 480px;
-    border-radius: 34px; border: 6px solid oklch(0.16 0.01 70); background: var(--panel-dark);
-    position: relative; overflow: hidden; box-shadow: 0 30px 70px oklch(0.12 0.02 70 / 0.6);
-  }
-  .bigphone::before { content: ""; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 36%; height: 7px; border-radius: 999px; background: oklch(1 0 0 / 0.2); z-index: 3; }
-  .bigphone .ui { position: absolute; inset: 0; padding: 34px 18px 20px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(180deg, var(--panel-warm), var(--panel-dark)); }
-  .bigphone .ui .logo { display: flex; align-items: center; gap: 8px; }
-  .bigphone .ui .logo img { height: 30px; }
-  .bigphone .ui .logo span { font-family: "Bodoni Moda"; font-size: 17px; }
-  .bigphone .ui .logo span .om { color: var(--gold); }
-  .bigphone .qrbox { background: var(--cream); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--ink); }
-  .bigphone .qrbox .qr { width: 70%; aspect-ratio: 1; background:
-    repeating-conic-gradient(var(--ink) 0 25%, transparent 0 50%) 0 0 / 18px 18px; border: 6px solid var(--ink); border-radius: 8px; }
-  .bigphone .qrbox .lab { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
-  .bigphone .rowmini { display: flex; gap: 8px; }
-  .bigphone .mini { flex: 1; background: oklch(1 0 0 / 0.08); border-radius: 12px; padding: 10px; }
-  .bigphone .mini .v { font-family: "Bodoni Moda"; font-size: 20px; color: var(--yellow); }
-  .bigphone .mini .k { font-size: 9.5px; color: var(--cream-soft); letter-spacing: 0.04em; }
-  .bigphone .next { background: var(--yellow); color: var(--yellow-ink); border-radius: 12px; padding: 11px 13px; }
-  .bigphone .next .k { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
-  .bigphone .next .v { font-weight: 800; font-size: 14px; margin-top: 2px; }
-
-  .apk-note { font-size: 11.5px; color: var(--cream-soft); margin-top: 14px; max-width: 46ch; line-height: 1.5; }
-
-  /* ===== contact ===== */
-  .contact-grid { display: flex; flex-direction: column; gap: 14px; }
-  .crow { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
-  .crow .ic { color: var(--gold); font-size: 18px; width: 26px; text-align: center; }
-  .crow .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream-soft); }
-  .crow .v { font-weight: 700; font-size: 15px; color: var(--cream); margin-top: 2px; }
-  .crow .v a { color: inherit; text-decoration: none; }
-  .crow .v a:hover { color: var(--gold); }
+  .crow .k { font-size: 12px; color: var(--muted); }
+  .crow .v { font-weight: 600; font-size: 15px; margin-top: 1px; }
+  .crow .v a { text-decoration: none; }
+  .crow .v a:hover { color: var(--gold-dark); }
 
   /* formulario de contacto real (guarda en la base de datos vía la API, ver <script> al pie) */
-  .contact-form { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: oklch(1 0 0 / 0.04); }
-  .cf-eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .contact-form { display: flex; flex-direction: column; gap: 10px; padding: 20px; }
+  .cf-title { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
   .cf-input {
-    width: 100%; appearance: none; border: 1.5px solid var(--line); border-radius: 10px;
-    background: oklch(1 0 0 / 0.06); color: var(--cream); font-family: "Manrope", sans-serif;
-    font-size: 13.5px; padding: 11px 13px; transition: border-color 0.2s;
+    width: 100%; appearance: none; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--cream); color: var(--dark); font-family: inherit;
+    font-size: 14px; padding: 11px 13px; transition: border-color 0.2s;
   }
-  .cf-input::placeholder { color: var(--cream-soft); }
-  .cf-input:focus { outline: none; border-color: var(--gold); }
-  .cf-textarea { resize: vertical; min-height: 60px; font-family: inherit; }
-  .cf-submit { align-self: flex-start; margin-top: 2px; }
-  .cf-submit:disabled { opacity: 0.55; cursor: default; transform: none !important; }
-  .cf-status { font-size: 12.5px; min-height: 16px; }
-  .cf-status.ok { color: oklch(0.75 0.16 145); }
-  .cf-status.err { color: oklch(0.68 0.19 25); }
+  .cf-input::placeholder { color: var(--muted); }
+  .cf-input:focus { outline: none; border-color: var(--gold); background: var(--white); }
+  .cf-textarea { resize: vertical; min-height: 70px; }
+  .cf-submit { align-self: flex-start; margin-top: 4px; }
+  .cf-status { font-size: 13px; min-height: 18px; }
+  .cf-status.ok { color: var(--green); }
+  .cf-status.err { color: var(--red); }
 
-  /* ===== footer ===== */
-  .site-footer { padding: 28px 0; border-top: 1px solid var(--line); }
-  .site-footer .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .site-footer .brand .word { font-size: 17px; }
-  .site-footer .fine-print { font-size: 12px; color: var(--cream-soft); }
-
-  @media (max-width: 480px) {
-    .cta-row, .foot-meta { justify-content: flex-start; }
-  }
+  /* ===== Pie ===== */
+  .site-footer { padding: 26px 0; border-top: 1px solid var(--line); background: var(--side); }
+  .site-footer .wrap { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+  .site-footer .brand img { height: 26px; }
+  .site-footer .brand .word { font-size: 16px; }
+  .fine-print { font-size: 12.5px; color: var(--muted); }
+  .fine-print a:hover { color: var(--gold-dark); }
 </style>
 </head>
 <body>
@@ -383,13 +227,12 @@
         <a class="nav-link" href="#inicio">Inicio</a>
         <a class="nav-link" href="#clases">Clases</a>
         <a class="nav-link" href="#planes">Planes</a>
+        <a class="nav-link" href="#app">App</a>
         <a class="nav-link" href="#contacto">Contacto</a>
       </nav>
-      <div class="header-right">
-        <button class="hamburger" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
+      <button class="hamburger" id="menuToggle" aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </header>
 
@@ -397,44 +240,33 @@
   <section class="sect" id="inicio">
     <div class="wrap">
       <div class="split2">
-        <div class="col text">
+        <div>
           <div class="eyebrow">Gimnasio Olímpico · desde 2014</div>
-          <h1 class="display">Forja la <em>leyenda</em><br />que llevas <span class="hl">dentro</span></h1>
-          <p class="lede">Entrena con la fuerza de los dioses del Olimpo. Más de 60 clases semanales, entrenadores de élite y una comunidad que no se rinde — todo gestionado desde la app OlimpΩs.</p>
+          <h1>Forja la <span class="acento">leyenda</span> que llevás dentro</h1>
+          <p class="lede">Más de 60 clases semanales, entrenadores de élite y una comunidad que no se rinde. Todo se gestiona desde la app OlimpΩs.</p>
           <div class="cta-row">
-            <a class="btn-primary" href="#planes">Únete ahora</a>
-            <a class="btn-ghost" href="#app">Instala la app →</a>
+            <a class="btn btn-primary" href="#planes">Ver planes</a>
+            <a class="btn btn-ghost" href="#app">Instalar la app</a>
           </div>
-          <div class="foot-meta">
-            <span class="pin">◉</span>
+          <div class="meta">
+            <span class="dot"></span>
             <span>Av. del Olimpo 1200 · <b>Abierto 24/7</b></span>
           </div>
         </div>
 
-        <div class="col media hero-media">
-          <div class="hero-photo-wrap">
-            <img src="assets/atleta2.png" alt="Foto de atleta" />
-            <div class="badge-float">Acceso<br />24/7</div>
-          </div>
-          <div class="promo-note" style="margin-top:22px;">Primer mes <b>-50%</b> registrándote desde la app</div>
-          <div class="carousel">
-            <div class="carousel-top">
-              <button class="cbtn" aria-label="anterior">←</button>
-              <button class="cbtn fill" aria-label="siguiente">→</button>
-              <div class="cnum">01<small>/03</small></div>
-            </div>
-            <div class="ccard">
-              <img src="assets/Clase1.jpg" alt="Foto de clase" />
-              <div class="cmeta">
-                <div class="t">CrossOlympus · alta intensidad</div>
-                <div class="s">Reserva tu cupo en la app</div>
-              </div>
+        <div class="card hero-panel">
+          <div class="top">
+            <img src="assets/olimpos-logo.png" alt="" />
+            <div>
+              <div class="t">OlimpΩs</div>
+              <div class="s">Gimnasio, app y sistema conectados</div>
             </div>
           </div>
-          <div class="socials">
-            <a href="#" title="Instagram">◎</a>
-            <a href="#" title="Facebook">f</a>
-            <a href="#" title="WhatsApp">✆</a>
+          <div class="stats">
+            <div class="stat gold"><div class="k">Clases por semana</div><div class="v">60<small>+</small></div></div>
+            <div class="stat"><div class="k">Acceso</div><div class="v">24/7</div></div>
+            <div class="stat"><div class="k">Disciplinas</div><div class="v">6</div></div>
+            <div class="stat"><div class="k">Entrada</div><div class="v">QR</div></div>
           </div>
         </div>
       </div>
@@ -444,33 +276,18 @@
   <!-- ===== CLASES ===== -->
   <section class="sect alt" id="clases">
     <div class="wrap">
-      <div class="split2">
-        <div class="col text">
-          <div class="eyebrow">Entrenamiento</div>
-          <h2 class="display">Disciplinas<br />de <em>campeones</em></h2>
-          <p class="lede">Elige tu batalla. Cada clase está dirigida por entrenadores certificados y se reserva con un toque desde la app — sin filas, sin esperas.</p>
-          <div class="appcta">
-            <div class="phone"><div class="scr"><div class="qr"></div></div></div>
-            <div class="body">
-              <div class="kicker">Reserva en segundos</div>
-              <h3>Tu cupo, en la app</h3>
-              <p>Suscríbete y asegura tu lugar en cualquier clase antes de que se llene.</p>
-              <div class="store-row">
-                <a class="store sub" href="#app"><span class="ic">⤓</span><span class="tx"><small>Instalar</small><b>App OlimpΩs</b></span></a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col media">
-          <div class="class-grid">
-            <div class="class-card"><div class="ct">CrossOlympus</div><div class="cd">Fuerza y resistencia funcional en circuito.</div><div class="tag">Alta intensidad</div></div>
-            <div class="class-card"><div class="ct">Boxeo Espartano</div><div class="cd">Técnica, potencia y cardio de combate.</div><div class="tag">Combate</div></div>
-            <div class="class-card"><div class="ct">Spinning Zeus</div><div class="cd">Ciclismo indoor con ritmo y música épica.</div><div class="tag">Cardio</div></div>
-            <div class="class-card"><div class="ct">Hipertrofia</div><div class="cd">Volumen y fuerza con peso libre guiado.</div><div class="tag">Fuerza</div></div>
-            <div class="class-card"><div class="ct">Funcional</div><div class="cd">Movilidad y potencia para el día a día.</div><div class="tag">Todos</div></div>
-            <div class="class-card"><div class="ct">Yoga Atenea</div><div class="cd">Equilibrio, flexibilidad y mente clara.</div><div class="tag">Recuperación</div></div>
-          </div>
-        </div>
+      <div class="head">
+        <div class="eyebrow">Entrenamiento</div>
+        <h2>Disciplinas de <span class="acento">campeones</span></h2>
+        <p class="lede">Cada clase la dirige un entrenador certificado y se reserva con un toque desde la app, sin filas ni esperas.</p>
+      </div>
+      <div class="class-grid">
+        <div class="card class-card"><div class="ct">CrossOlympus</div><div class="cd">Fuerza y resistencia funcional en circuito.</div><div class="tag">Alta intensidad</div></div>
+        <div class="card class-card"><div class="ct">Boxeo Espartano</div><div class="cd">Técnica, potencia y cardio de combate.</div><div class="tag">Combate</div></div>
+        <div class="card class-card"><div class="ct">Spinning Zeus</div><div class="cd">Ciclismo indoor con ritmo y música épica.</div><div class="tag">Cardio</div></div>
+        <div class="card class-card"><div class="ct">Hipertrofia</div><div class="cd">Volumen y fuerza con peso libre guiado.</div><div class="tag">Fuerza</div></div>
+        <div class="card class-card"><div class="ct">Funcional</div><div class="cd">Movilidad y potencia para el día a día.</div><div class="tag">Todos</div></div>
+        <div class="card class-card"><div class="ct">Yoga Atenea</div><div class="cd">Equilibrio, flexibilidad y mente clara.</div><div class="tag">Recuperación</div></div>
       </div>
     </div>
   </section>
@@ -478,34 +295,50 @@
   <!-- ===== PLANES ===== -->
   <section class="sect" id="planes">
     <div class="wrap">
-      <div class="stack-head center">
+      <div class="head center">
         <div class="eyebrow">Membresías</div>
-        <h2 class="display">Elige tu <em>senda</em></h2>
-        <p class="lede">Sin permanencia, sin letra pequeña. Cambia o congela tu plan cuando quieras — todo desde tu perfil en la app OlimpΩs.</p>
-        <div class="cta-row">
-          <a class="btn-primary" href="#app">Suscríbete en la app</a>
-        </div>
-        <div class="foot-meta">
-          <span class="pin">★</span>
-          <span>Activa tu carné digital al suscribirte</span>
-        </div>
+        <h2>Elegí tu <span class="acento">plan</span></h2>
+        <p class="lede">Sin permanencia ni letra chica. Cambiá o congelá tu plan cuando quieras desde tu perfil en la app.</p>
       </div>
       <div class="plans">
-        <div class="plan">
+        <div class="card plan">
           <div class="pname">Bronce</div>
           <div class="price">$19<small>/mes</small></div>
           <ul><li>Acceso a sala</li><li>App básica</li><li>Horario diurno</li></ul>
         </div>
-        <div class="plan feature">
-          <div class="ribbon">Popular</div>
+        <div class="card plan feature">
+          <div class="ribbon">Más elegido</div>
           <div class="pname">Oro</div>
           <div class="price">$34<small>/mes</small></div>
-          <ul><li>Acceso 24/7</li><li>Todas las clases</li><li>Carné QR en la app</li><li>Argos: tu asistente de IA</li><li>1 invitado/mes</li></ul>
+          <ul><li>Acceso 24/7</li><li>Todas las clases</li><li>Entrada con QR desde la app</li><li>Argos: tu asistente de IA</li><li>1 invitado por mes</li></ul>
         </div>
-        <div class="plan">
+        <div class="card plan">
           <div class="pname">Platino</div>
           <div class="price">$49<small>/mes</small></div>
           <ul><li>Todo lo de Oro</li><li>Spa y sauna</li><li>Plan personalizado</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== APP ===== -->
+  <section class="sect alt" id="app">
+    <div class="wrap">
+      <div class="split2">
+        <div>
+          <div class="eyebrow">App OlimpΩs</div>
+          <h2>Tu gimnasio en el <span class="acento">celular</span></h2>
+          <p class="lede">Reservá clases, seguí tu rutina y tu dieta, y entrá al gimnasio escaneando el QR de la recepción.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="app/OlimpOS.apk" download>Descargar para Android</a>
+          </div>
+          <p class="apk-note">Es un archivo APK: al abrirlo, Android puede pedirte permiso para instalar apps de esta fuente.</p>
+        </div>
+        <div class="app-features">
+          <div class="card feat"><div class="fic">✓</div><div><div class="ft">Reservas de clases</div><div class="fd">Asegurá tu lugar antes de que se llene el cupo.</div></div></div>
+          <div class="card feat"><div class="fic">▤</div><div><div class="ft">Rutina y dieta</div><div class="fd">Lo que te arma tu entrenador y tu nutricionista, siempre a mano.</div></div></div>
+          <div class="card feat"><div class="fic">▲</div><div><div class="ft">Rangos y marcas</div><div class="fd">Subí de rango a medida que te hacés más fuerte.</div></div></div>
+          <div class="card feat"><div class="fic">◎</div><div><div class="ft">Argos</div><div class="fd">Un asistente de IA que conoce tu rutina y tu progreso.</div></div></div>
         </div>
       </div>
     </div>
@@ -515,39 +348,26 @@
   <section class="sect" id="contacto">
     <div class="wrap">
       <div class="split2">
-        <div class="col text">
-          <div class="eyebrow">Visítanos</div>
-          <h2 class="display">Ven a<br /><em>entrenar</em></h2>
-          <p class="lede">Tu primera clase es gratis. Pásate por el templo, conoce a los entrenadores y siente la energía del Olimpo.</p>
-          <div class="appcta">
-            <div class="phone"><div class="scr"><img src="assets/olimpos-logo.png" alt="" /></div></div>
-            <div class="body">
-              <div class="kicker">Antes de venir</div>
-              <h3>Instala la app</h3>
-              <p>Crea tu cuenta, reserva tu clase de prueba y entra con tu carné QR.</p>
-              <div class="store-row">
-                <a class="store sub" href="#app"><span class="ic">⤓</span><span class="tx"><small>Suscríbete</small><b>App OlimpΩs</b></span></a>
-              </div>
-            </div>
+        <div>
+          <div class="eyebrow">Visitanos</div>
+          <h2>Vení a <span class="acento">entrenar</span></h2>
+          <p class="lede">Tu primera clase es gratis. Pasá por el gimnasio, conocé a los entrenadores y probá cómo funciona todo.</p>
+          <div class="contact-grid" style="margin-top: 26px;">
+            <div class="card crow"><div class="ic">◉</div><div><div class="k">Dirección</div><div class="v">Av. del Olimpo 1200, Ciudad</div></div></div>
+            <div class="card crow"><div class="ic">◷</div><div><div class="k">Horario</div><div class="v">Abierto 24 horas · 7 días</div></div></div>
+            <div class="card crow"><div class="ic">✆</div><div><div class="k">Teléfono</div><div class="v">+54 11 4000 0000</div></div></div>
+            <div class="card crow"><div class="ic">✉</div><div><div class="k">Email</div><div class="v"><a href="mailto:contacto@olimpos.com">contacto@olimpos.com</a></div></div></div>
           </div>
         </div>
-        <div class="col media">
-          <div class="contact-grid">
-            <div class="crow"><div class="ic">◉</div><div><div class="k">Dirección</div><div class="v">Av. del Olimpo 1200, Ciudad</div></div></div>
-            <div class="crow"><div class="ic">◷</div><div><div class="k">Horario</div><div class="v">Abierto 24 horas · 7 días</div></div></div>
-            <div class="crow"><div class="ic">✆</div><div><div class="k">Teléfono</div><div class="v">+54 11 4000 0000</div></div></div>
-            <div class="crow"><div class="ic">✉</div><div><div class="k">Email</div><div class="v"><a href="mailto:contacto@olimpos.com">contacto@olimpos.com</a></div></div></div>
 
-            <form class="contact-form" id="contactForm">
-              <div class="cf-eyebrow">¿Querés que te contactemos?</div>
-              <input class="cf-input" type="text" id="cfNombre" placeholder="Tu nombre" maxlength="99" required />
-              <input class="cf-input" type="text" id="cfContacto" placeholder="Email o teléfono" maxlength="149" required />
-              <textarea class="cf-input cf-textarea" id="cfMensaje" placeholder="¿En qué te podemos ayudar? (opcional)" maxlength="999"></textarea>
-              <button type="submit" class="btn-primary cf-submit" id="cfSubmit">Quiero que me contacten</button>
-              <div class="cf-status" id="cfStatus"></div>
-            </form>
-          </div>
-        </div>
+        <form class="card contact-form" id="contactForm">
+          <div class="cf-title">¿Querés que te contactemos?</div>
+          <input class="cf-input" type="text" id="cfNombre" placeholder="Tu nombre" maxlength="99" required />
+          <input class="cf-input" type="text" id="cfContacto" placeholder="Email o teléfono" maxlength="149" required />
+          <textarea class="cf-input cf-textarea" id="cfMensaje" placeholder="¿En qué te podemos ayudar? (opcional)" maxlength="999"></textarea>
+          <button type="submit" class="btn btn-primary cf-submit" id="cfSubmit">Quiero que me contacten</button>
+          <div class="cf-status" id="cfStatus"></div>
+        </form>
       </div>
     </div>
   </section>
@@ -555,10 +375,10 @@
   <footer class="site-footer">
     <div class="wrap">
       <a class="brand" href="#inicio">
-        <img src="assets/olimpos-logo.png" alt="Olimpos" style="height:26px;" />
+        <img src="assets/olimpos-logo.png" alt="Olimpos" />
         <span class="word">OLIMP<span class="om">Ω</span>S</span>
       </a>
-      <div class="fine-print">© 2026 OlimpΩs · Av. del Olimpo 1200 · <a href="privacidad.html" style="color:inherit;">Política de privacidad</a></div>
+      <div class="fine-print">© 2026 OlimpΩs · Av. del Olimpo 1200 · <a href="privacidad.html">Política de privacidad</a></div>
     </div>
   </footer>
 
@@ -605,17 +425,6 @@
 </script>
 <script>
 (function () {
-
-  // =====================================================================
-  // CARRUSEL — agrega aquí las rutas de tus imágenes de clases
-  // =====================================================================
-  const CLASES_IMGS = [
-    "assets/Clase1.jpg",
-    "assets/Clase2.jpg",
-    "assets/Clase3.jpg",
-  ];
-  // =====================================================================
-
   // --- Menú hamburguesa (mobile) ---
   const menuToggle = document.getElementById("menuToggle");
   const siteNav = document.getElementById("siteNav");
@@ -632,7 +441,7 @@
     });
   }
 
-  // --- Resalta el link activo del nav según la sección visible ---
+  // --- Resalta el link activo del menú según la sección visible ---
   const navlinks = document.querySelectorAll(".nav-link");
   const sections = document.querySelectorAll(".sect[id]");
   if ("IntersectionObserver" in window && sections.length) {
@@ -646,49 +455,6 @@
     }, { rootMargin: "-40% 0px -55% 0px" });
     sections.forEach((s) => obs.observe(s));
   }
-
-  // --- Carrusel automático de clases ---
-  const ccImg   = document.querySelector(".ccard img");
-  const cnumEl  = document.querySelector(".cnum");
-  const btnNext = document.querySelector('.cbtn[aria-label="siguiente"]');
-  const btnPrev = document.querySelector('.cbtn[aria-label="anterior"]');
-  let cIdx  = 0;
-  const total = CLASES_IMGS.length;
-
-  function updateCounter() {
-    if (!cnumEl || total === 0) return;
-    cnumEl.innerHTML = String(cIdx + 1).padStart(2, "0") +
-      "<small>/" + String(total).padStart(2, "0") + "</small>";
-  }
-
-  function setSlide(i, animate) {
-    if (!ccImg || total === 0) return;
-    cIdx = ((i % total) + total) % total;
-    if (animate) {
-      ccImg.style.opacity = "0";
-      setTimeout(() => {
-        ccImg.src = CLASES_IMGS[cIdx];
-        ccImg.style.opacity = "1";
-        updateCounter();
-      }, 320);
-    } else {
-      ccImg.src = CLASES_IMGS[cIdx];
-      updateCounter();
-    }
-  }
-
-  let autoTimer = total > 1 ? setInterval(() => setSlide(cIdx + 1, true), 4000) : null;
-
-  function resetTimer() {
-    clearInterval(autoTimer);
-    if (total > 1) autoTimer = setInterval(() => setSlide(cIdx + 1, true), 4000);
-  }
-
-  if (btnNext) btnNext.addEventListener("click", () => { setSlide(cIdx + 1, true); resetTimer(); });
-  if (btnPrev) btnPrev.addEventListener("click", () => { setSlide(cIdx - 1, true); resetTimer(); });
-
-  setSlide(0, false);
-
 })();
 </script>
 </body>
