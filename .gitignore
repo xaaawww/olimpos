@@ -58,3 +58,5 @@ Thumbs.db
 # APKs sueltas de AppMovil (copias/respaldos). La que se descarga desde la
 # página (Paginas/app/OlimpOS.apk) sí se sube.
 AppMovil/*.apk
+.firebase/
+firebase-debug.log

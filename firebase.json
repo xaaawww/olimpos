@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "public": "Paginas",
+    "ignore": ["**/.*", "**/desktop.ini", "app/**"],
+    "rewrites": [
+      { "source": "/", "destination": "/OlimpOS Landing.html" }
+    ]
+  }
+}
