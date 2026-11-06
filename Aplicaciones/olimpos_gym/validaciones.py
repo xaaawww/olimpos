@@ -22,15 +22,23 @@ MAX_EMAIL = 120
 MAX_DIRECCION = 120
 MAX_TEXTO_CORTO = 255    # varchar(255) de la base
 
-# ── filtros de tipeo (un carácter por vez) ──
-SOLO_DIGITOS = ft.InputFilter(regex_string=r"[0-9]", allow=True, replacement_string="")
-TELEFONO = ft.InputFilter(regex_string=r"[0-9+\s()\-]", allow=True, replacement_string="")
-MONTO = ft.InputFilter(regex_string=r"[0-9.,]", allow=True, replacement_string="")
+# ── filtros de tipeo ──
+# Flet compara el TEXTO COMPLETO del campo con la expresión y, si no coincide,
+# deja el valor anterior. Por eso cada filtro es "^[...]*$": tiene que aceptar
+# también el campo vacío (si no, no se puede borrar el último carácter que queda).
+def _filtro(caracteres: str) -> ft.InputFilter:
+    return ft.InputFilter(regex_string=rf"^[{caracteres}]*$", allow=True, replacement_string="")
+
+
+SOLO_DIGITOS = _filtro(r"0-9")
+TELEFONO = _filtro(r"0-9+\s()\-")
+MONTO = _filtro(r"0-9.,")
 DECIMAL = MONTO
-FECHA = ft.InputFilter(regex_string=r"[0-9/]", allow=True, replacement_string="")
-NOMBRE = ft.InputFilter(regex_string=r"[A-Za-zÁÉÍÓÚáéíóúÜüÑñ' .\-]", allow=True, replacement_string="")
-USUARIO = ft.InputFilter(regex_string=r"[A-Za-z0-9._]", allow=True, replacement_string="")
-EMAIL = ft.InputFilter(regex_string=r"[A-Za-z0-9._%+\-@]", allow=True, replacement_string="")
+FECHA = _filtro(r"0-9/")
+NOMBRE = _filtro(r"A-Za-zÁÉÍÓÚáéíóúÜüÑñ' .\-")
+USUARIO = _filtro(r"A-Za-z0-9._")
+EMAIL = _filtro(r"A-Za-z0-9._%+\-@")
+REPETICIONES = _filtro(r"0-9\-")
 
 _LETRAS_NOMBRE = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÜüÑñ]+(?:[ '.\-][A-Za-zÁÉÍÓÚáéíóúÜüÑñ]+)*\.?$")
 _EMAIL = re.compile(r"^[a-z0-9](?:[a-z0-9._%+\-]*[a-z0-9])?@[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9\-]*[a-z0-9])?)*\.[a-z]{2,}$")

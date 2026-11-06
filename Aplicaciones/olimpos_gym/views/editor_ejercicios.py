@@ -489,7 +489,7 @@ class EditorEjerciciosView:
                               keyboard_type=ft.KeyboardType.NUMBER, on_change=self._cambio_series,
                               input_filter=validaciones.SOLO_DIGITOS, max_length=2, counter=ft.Text(""))
         reps = ft.TextField(value=e.get("repeticiones", ""), hint_text="8-12", expand=True, **sin_borde,
-                            input_filter=ft.InputFilter(regex_string=r"[0-9\-]"), max_length=7, counter=ft.Text(""),
+                            input_filter=validaciones.REPETICIONES, max_length=7, counter=ft.Text(""),
                             on_change=lambda ev: self._cambio("repeticiones", ev.control.value))
 
         return ft.Column([

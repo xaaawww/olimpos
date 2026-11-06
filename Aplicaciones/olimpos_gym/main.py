@@ -55,6 +55,7 @@ def main(page: ft.Page):
     page.window.min_height = 640
     page.padding = 0
     page.spacing = 0
+    theme.aplicar_tema(page)
 
     def titulo():
         page.title = f"{configuracion_repo.club(forzar=True)['nombre']} — Sistema de Gestión"

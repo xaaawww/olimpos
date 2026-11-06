@@ -94,6 +94,30 @@ ICONOS_NAV = {
     "argos": _ft.Icons.AUTO_AWESOME_OUTLINED,
 }
 
+# ── Tema fijo (siempre claro) ──
+# Sin esto Flet sigue el modo claro/oscuro de Windows: en una PC con Windows en
+# modo oscuro el texto de los campos salía claro sobre el fondo crema y no se leía.
+TEXTO = "#1D1B16"         # texto que se escribe en los campos
+TEXTO_ETIQUETA = "#4A4637"  # etiquetas, íconos y bordes de los campos
+
+
+def tema_flet() -> "_ft.Theme":
+    return _ft.Theme(
+        color_scheme=_ft.ColorScheme(
+            on_surface=TEXTO,
+            on_surface_variant=TEXTO_ETIQUETA,
+        ),
+        hint_color=TEXT_MUTED,
+    )
+
+
+def aplicar_tema(page) -> None:
+    """Modo claro siempre, en cualquier PC, sin importar la configuración de Windows."""
+    page.theme_mode = _ft.ThemeMode.LIGHT
+    page.theme = tema_flet()
+    page.dark_theme = tema_flet()   # por si algo pide el tema oscuro, que sea igual al claro
+
+
 # Role data
 ROLES = {
     "dueno": {
