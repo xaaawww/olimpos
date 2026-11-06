@@ -685,7 +685,7 @@ class PersonalView:
                 *mensajeria.enviar_email(email, "Tu acceso al sistema OlimpΩs",
                                          mensajeria.texto_plantilla("acceso_sistema", [primer_nombre, usuario, password])))))
         aviso = ft.Text("", size=12, color=GREEN)
-        demo = usuario in {u["usuario"] for u in empleados_credenciales.USUARIOS_DEMO}
+        demo = usuario in empleados_credenciales.USUARIOS_PRINCIPALES
         self._dialogo("Datos para entrar al sistema", [
             ft.Text(f"{'Usuario creado para' if nuevo else 'Nueva contraseña de'} {nombre}. Pasáselos en persona: "
                     "la contraseña no se vuelve a mostrar.", size=12.5, color=TEXT_MUTED),
@@ -696,8 +696,8 @@ class PersonalView:
                         ft.Text(password, size=15, weight=ft.FontWeight.W_600, selectable=True,
                                 font_family="Consolas")]),
             ], spacing=8), bgcolor="#FBFAF6", border_radius=12, padding=14),
-            *([ft.Text("Ojo: es un usuario de demostración y el panel del login va a seguir mostrando la contraseña "
-                       "vieja.", size=11.5, color="#B45309")] if demo else []),
+            *([ft.Text("Ojo: es uno de los usuarios principales. Acordate de anotar la contraseña nueva en "
+                       "usuarios_y_contraseñas.txt (carpeta del sistema).", size=11.5, color="#B45309")] if demo else []),
             aviso,
         ], [ft.TextButton("Copiar", icon=ft.Icons.CONTENT_COPY, on_click=copiar), *enviar,
             self._boton_ok("Listo", lambda ev: self.page.pop_dialog())])

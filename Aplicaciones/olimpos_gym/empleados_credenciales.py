@@ -176,20 +176,6 @@ def cerrar_sesion() -> None:
     _actual = None
 
 
-# Usuarios de demostración, uno por rol, para el panel del login. En la base
-# la contraseña está cifrada (no se puede leer de ahí), por eso se repite acá
-# en texto plano. Si se cambia una contraseña en la base, cambiarla también acá.
-USUARIOS_DEMO = [
-    {"label": "Dueño",         "usuario": "dueno",         "password": "Dueno#2026"},
-    {"label": "Administrador", "usuario": "admin",         "password": "Admin#2026"},
-    {"label": "Entrenador",    "usuario": "entrenador",    "password": "Entrenador#2026"},
-    {"label": "Nutricionista", "usuario": "nutricionista", "password": "Nutricionista#2026"},
-    {"label": "Seguridad",     "usuario": "seguridad",     "password": "Seguridad#2026"},
-    {"label": "Recepcionista", "usuario": "recepcion",     "password": "Recepcion#2026"},
-]
-
-
-def listado_para_mostrar() -> list[dict]:
-    """Una fila por rol (rol, usuario y contraseña) para el panel de
-    referencia del login."""
-    return USUARIOS_DEMO
+# Usuarios principales (uno por rol). Sus contraseñas ya no están en el código:
+# están en usuarios_y_contraseñas.txt, en esta carpeta (no se sube a git).
+USUARIOS_PRINCIPALES = {"dueno", "admin", "entrenador", "nutricionista", "seguridad", "recepcion"}

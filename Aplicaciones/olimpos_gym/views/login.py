@@ -108,33 +108,6 @@ class LoginView:
         self.error_text.value = mensaje
         self.page.update()
 
-    def _completar(self, fila: dict):
-        self.usuario_field.value = fila["usuario"]
-        self.password_field.value = fila["password"]
-        self.error_text.value = ""
-        self.page.update()
-
-    def _credencial_row(self, fila: dict) -> ft.Container:
-        return ft.Container(
-            content=ft.Row([
-                ft.Text(fila["label"], size=12, weight=ft.FontWeight.W_600,
-                        color=GOLD, font_family="Poppins", expand=True),
-                ft.Column([
-                    ft.Text(fila["usuario"], size=12.5, weight=ft.FontWeight.W_500,
-                            color=ft.Colors.WHITE, font_family="Consolas, monospace"),
-                    ft.Text(fila["password"], size=11.5,
-                            color=ft.Colors.with_opacity(0.6, ft.Colors.WHITE),
-                            font_family="Consolas, monospace"),
-                ], spacing=1, horizontal_alignment=ft.CrossAxisAlignment.END),
-            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-            padding=ft.padding.symmetric(vertical=8, horizontal=6),
-            border=ft.border.only(bottom=ft.border.BorderSide(1, ft.Colors.with_opacity(0.08, ft.Colors.WHITE))),
-            border_radius=8,
-            ink=True,
-            on_click=lambda e, f=fila: self._completar(f),
-            tooltip="Clic para completar usuario y contraseña",
-        )
-
     def build(self) -> ft.Stack:
         self.usuario_field = ft.TextField(
             label="Usuario", width=320, border_color=ft.Colors.with_opacity(0.25, GOLD),
@@ -195,31 +168,6 @@ class LoginView:
                                 color=ft.Colors.with_opacity(0.5, ft.Colors.BLACK)),
         )
 
-        credenciales_panel = ft.Container(
-            content=ft.Column([
-                ft.Text("🔑 USUARIOS DEL SISTEMA", size=12, weight=ft.FontWeight.W_600,
-                        color=GOLD, font_family="Poppins", style=ft.TextStyle(letter_spacing=1)),
-                ft.Text("Un usuario por rol — tocá una fila para completar los datos", size=10.5,
-                        color=ft.Colors.with_opacity(0.45, ft.Colors.WHITE)),
-                ft.Row([
-                    ft.Text("ROL", size=9.5, weight=ft.FontWeight.W_500, expand=True,
-                            color=ft.Colors.with_opacity(0.35, ft.Colors.WHITE)),
-                    ft.Text("USUARIO / CONTRASEÑA", size=9.5, weight=ft.FontWeight.W_500,
-                            color=ft.Colors.with_opacity(0.35, ft.Colors.WHITE)),
-                ]),
-                ft.Container(height=6),
-                ft.Column(
-                    [self._credencial_row(f) for f in _creds.listado_para_mostrar()],
-                    spacing=0,
-                ),
-            ], spacing=2),
-            bgcolor=ft.Colors.with_opacity(0.04, ft.Colors.WHITE),
-            border=ft.border.all(1, ft.Colors.with_opacity(0.15, GOLD)),
-            border_radius=20,
-            padding=ft.padding.symmetric(vertical=22, horizontal=22),
-            width=340,
-        )
-
         bg = ft.Container(
             expand=True,
             gradient=ft.LinearGradient(
@@ -230,13 +178,7 @@ class LoginView:
         )
 
         centered = ft.Container(
-            content=ft.Row(
-                [login_box, credenciales_panel],
-                alignment=ft.MainAxisAlignment.CENTER,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=28,
-                wrap=True,
-            ),
+            content=login_box,
             alignment=ft.Alignment.CENTER,
             expand=True,
             padding=20,

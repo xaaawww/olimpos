@@ -5,6 +5,7 @@
 **/anthropic_credentials.json
 **/github_credentials.json
 **/mensajeria_credentials.json
+**/usuarios_y_contraseñas.txt
 local.properties
 
 # Backups manuales de antes de tener git: quedan en el disco tal cual,
