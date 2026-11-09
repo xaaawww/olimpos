@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dietas — OlimpΩs</title>
+<script src="assets/platos/platos.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -17,11 +19,15 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradi
 @keyframes ringPulse{0%,100%{box-shadow:0 0 0 0 rgba(238,196,49,.45);}50%{box-shadow:0 0 0 10px rgba(238,196,49,0);}}
 @keyframes idleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 .scrl::-webkit-scrollbar{width:0;}
+.tabs::-webkit-scrollbar{height:0;}
+.volver{position:fixed;top:16px;left:16px;z-index:100;font:700 13px Manrope,sans-serif;color:#5b4a12;background:#fff;border:1px solid #eadfb8;border-radius:30px;padding:9px 16px;text-decoration:none;box-shadow:0 6px 16px -8px rgba(0,0,0,.35);}
+@media (max-width:460px){body{overflow-x:hidden;}.escena{padding:64px 0 0 !important;align-items:flex-start !important;}.marco{transform:scale(calc((100vw - 16px) / 390px));transform-origin:top center;margin-bottom:calc((100vw - 406px) * 2.2);}}
 </style>
 </helmet>
 
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 24px;">
-  <div style="width:390px;height:844px;background:#0b0b0d;border-radius:48px;padding:11px;box-shadow:0 40px 90px -30px rgba(0,0,0,.55),0 0 0 2px rgba(255,255,255,.04) inset;position:relative;">
+<a class="volver" href="/">← Volver a OlimpΩs</a>
+<div class="escena" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 24px;">
+  <div class="marco" style="width:390px;height:844px;flex:none;background:#0b0b0d;border-radius:48px;padding:11px;box-shadow:0 40px 90px -30px rgba(0,0,0,.55),0 0 0 2px rgba(255,255,255,.04) inset;position:relative;">
 
     <div style="position:relative;width:100%;height:100%;background:#ffffff;border-radius:38px;overflow:hidden;">
 
@@ -49,25 +55,16 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradi
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;line-height:1;">
           <span style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:oklch(0.66 0.13 78);">Mi dieta</span>
-          <span style="font-size:17px;font-weight:800;color:oklch(0.22 0.012 80);margin-top:2px;">Plato saludable</span>
+          <span style="font-size:15px;font-weight:800;color:oklch(0.22 0.012 80);margin-top:2px;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ plateTitle }}</span>
         </div>
         <div style="width:36px;height:36px;border-radius:50%;background:oklch(0.96 0.05 95);border:1.5px solid oklch(0.88 0.07 95);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:oklch(0.55 0.13 78);">A</div>
       </div>
 
-      <!-- TABS -->
-      <div style="position:absolute;top:102px;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 18px;z-index:55;">
-        <div onClick="{{ selPlate0 }}" style="position:relative;flex:1;text-align:center;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:oklch(0.32 0.012 80);">
-          <sc-if value="{{ a0 }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;inset:0;border-radius:14px;background:oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(214,170,30,.8);"></div></sc-if>
-          <span style="position:relative;z-index:1;">Atún</span>
-        </div>
-        <div onClick="{{ selPlate1 }}" style="position:relative;flex:1;text-align:center;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:oklch(0.32 0.012 80);">
-          <sc-if value="{{ a1 }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;border-radius:14px;background:oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(214,170,30,.8);"></div></sc-if>
-          <span style="position:relative;z-index:1;">Salmón</span>
-        </div>
-        <div onClick="{{ selPlate2 }}" style="position:relative;flex:1;text-align:center;padding:11px 6px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;color:oklch(0.32 0.012 80);">
-          <sc-if value="{{ a2 }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;border-radius:14px;background:oklch(0.86 0.16 95);box-shadow:0 8px 18px -8px rgba(214,170,30,.8);"></div></sc-if>
-          <span style="position:relative;z-index:1;">Ensalada</span>
-        </div>
+      <!-- TABS: los 37 platos, deslizables -->
+      <div class="tabs" style="position:absolute;top:102px;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 18px;z-index:55;overflow-x:auto;">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+          <div onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</div>
+        </sc-for>
       </div>
 
       <!-- STAGE -->
@@ -92,6 +89,7 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradi
         <!-- OVERVIEW CTA -->
         <sc-if value="{{ overview }}" hint-placeholder-val="{{ true }}">
           <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:30px;pointer-events:none;">
+            <span style="font-size:12.5px;font-weight:700;color:oklch(0.42 0.05 80);background:rgba(255,255,255,.85);padding:6px 14px;border-radius:30px;backdrop-filter:blur(4px);">{{ macrosTxt }}</span>
             <span style="font-size:12.5px;font-weight:600;color:oklch(0.5 0.015 80);background:rgba(255,255,255,.7);padding:6px 14px;border-radius:30px;backdrop-filter:blur(4px);">Toca un ingrediente o inicia el recorrido</span>
             <div onClick="{{ startTour }}" style="pointer-events:auto;display:flex;align-items:center;gap:10px;background:oklch(0.86 0.16 95);color:oklch(0.24 0.012 80);font-weight:800;font-size:15px;padding:14px 26px;border-radius:30px;box-shadow:0 12px 26px -8px rgba(214,170,30,.7);cursor:pointer;animation:idleFloat 3s ease-in-out infinite;">
               <span style="font-size:13px;">▶</span>Iniciar recorrido
@@ -168,53 +166,8 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradi
 class Component extends DCLogic {
   state = { plateIdx:0, activeItem:0, rotation:0, panelOpen:true, playing:true };
 
-  PLATES = [
-    { id:'atun', tab:'Atún', name:'Atún sellado', img:'assets/atun.png', items:[
-      { name:'Atún sellado', cat:'Proteína', angle:212, rad:96, kcal:'144 kcal', tags:['29 g proteína','Omega-3','Selenio'],
-        aporte:'Pescado azul magro: proteína de alto valor biológico y ácidos grasos omega-3 que cuidan el corazón y bajan la inflamación.',
-        beneficios:['Construye y repara músculo','Omega-3 para corazón y cerebro','Rico en vitamina B12 y selenio'] },
-      { name:'Brócoli', cat:'Verdura', angle:300, rad:96, kcal:'34 kcal', tags:['Fibra','Vitamina C','Antioxidantes'],
-        aporte:'Crucífera densa en nutrientes: mucha vitamina C, fibra y antioxidantes con muy pocas calorías.',
-        beneficios:['Refuerza el sistema inmune','Mejora la digestión por su fibra','Aporta calcio y folato vegetales'] },
-      { name:'Rábano', cat:'Verdura', angle:22, rad:96, kcal:'16 kcal', tags:['Hidratante','Vitamina C','Bajo en kcal'],
-        aporte:'Fresco y crujiente, casi todo agua: suma volumen y saciedad al plato con calorías mínimas.',
-        beneficios:['Hidrata y refresca','Favorece la digestión','Antioxidantes que protegen las células'] },
-      { name:'Camote asado', cat:'Carbohidrato', angle:112, rad:96, kcal:'86 kcal', tags:['Betacaroteno','Fibra','Energía'],
-        aporte:'Carbohidrato complejo de bajo índice glucémico: energía estable y betacaroteno que el cuerpo convierte en vitamina A.',
-        beneficios:['Energía de liberación lenta','Vitamina A para vista y piel','Potasio y fibra que sacian'] },
-      { name:'Aceite de oliva', cat:'Grasa saludable', angle:270, rad:0, kcal:'120 kcal', tags:['Monoinsaturadas','Vitamina E','Polifenoles'],
-        aporte:'Grasa monoinsaturada del aderezo: ayuda a absorber vitaminas liposolubles y da sabor sin grasas saturadas.',
-        beneficios:['Cuida el colesterol bueno (HDL)','Antioxidante: vitamina E y polifenoles','Mejora la absorción de nutrientes'] }
-    ]},
-    { id:'salmon', tab:'Salmón', name:'Salmón con quinoa', img:'assets/salmon.png', items:[
-      { name:'Salmón', cat:'Proteína', angle:180, rad:92, kcal:'208 kcal', tags:['20 g proteína','Omega-3','Vitamina D'],
-        aporte:'Pescado graso estrella: omega-3 EPA y DHA, proteína completa y una de las pocas fuentes naturales de vitamina D.',
-        beneficios:['Omega-3 para corazón y cerebro','Vitamina D para huesos e inmunidad','Proteína completa de calidad'] },
-      { name:'Quinoa', cat:'Cereal integral', angle:286, rad:92, kcal:'120 kcal', tags:['Proteína vegetal','Fibra','Sin gluten'],
-        aporte:'Pseudocereal con proteína vegetal completa (todos los aminoácidos esenciales), fibra y minerales, sin gluten.',
-        beneficios:['Proteína vegetal completa','Energía de índice glucémico moderado','Hierro y magnesio'] },
-      { name:'Brócoli', cat:'Verdura', angle:20, rad:92, kcal:'34 kcal', tags:['Fibra','Vitamina C','Antioxidantes'],
-        aporte:'Crucífera densa en nutrientes: vitamina C, fibra y antioxidantes con muy pocas calorías.',
-        beneficios:['Refuerza el sistema inmune','Mejora la digestión','Calcio y folato vegetales'] },
-      { name:'Aguacate', cat:'Grasa saludable', angle:128, rad:92, kcal:'160 kcal', tags:['Monoinsaturadas','Potasio','Fibra'],
-        aporte:'Fruta cremosa rica en grasas monoinsaturadas, potasio y fibra que dan saciedad y cuidan el corazón.',
-        beneficios:['Grasas que cuidan el corazón','Más potasio que el plátano','Fibra y vitamina E'] }
-    ]},
-    { id:'ensalada', tab:'Ensalada', name:'Huevo y cítricos', img:'assets/ensalada.png', items:[
-      { name:'Huevo', cat:'Proteína', angle:355, rad:88, kcal:'78 kcal', tags:['6 g proteína','Colina','Vitamina B12'],
-        aporte:'Proteína completa y económica; la yema concentra colina, vitamina D y B12 esenciales para el cerebro.',
-        beneficios:['Proteína completa de referencia','Colina para la memoria','Saciante con pocas calorías'] },
-      { name:'Hojas verdes', cat:'Verdura', angle:228, rad:88, kcal:'15 kcal', tags:['Folato','Fibra','Vitamina K'],
-        aporte:'Base de hojas frescas: folato, vitamina K y mucha agua y fibra con apenas calorías.',
-        beneficios:['Volumen y saciedad sin calorías','Folato y vitamina K','Hidratan y aportan antioxidantes'] },
-      { name:'Naranja', cat:'Fruta', angle:138, rad:88, kcal:'47 kcal', tags:['Vitamina C','Fibra','Antioxidantes'],
-        aporte:'Cítrico jugoso cargado de vitamina C que refuerza las defensas y mejora la absorción del hierro vegetal.',
-        beneficios:['Vitamina C para las defensas','Fibra que regula el azúcar','Hidratante y antioxidante'] },
-      { name:'Aderezo ligero', cat:'Grasa saludable', angle:292, rad:88, kcal:'90 kcal', tags:['Con moderación','Sabor','Grasa buena'],
-        aporte:'Un toque de grasa de sabor: úsalo con moderación para realzar el plato sin disparar las calorías.',
-        beneficios:['Realza el sabor del plato','Ayuda a absorber vitaminas','Mejor si es a base de aceite de oliva'] }
-    ]}
-  ];
+  // Los platos salen de la base (ver neon/demo/exportar_dietas_web.py)
+  PLATES = window.PLATOS_WEB || [];
 
   componentDidMount(){
     this.setActive(0);
@@ -291,9 +244,10 @@ class Component extends DCLogic {
     if(focused){
       const it=items[ai];
       const a=it.angle*D2R;
-      const f=0.30;
-      const bgX=it.rad>0?(50+f*100*Math.cos(a)):50;
-      const bgY=it.rad>0?(50+f*100*Math.sin(a)):50;
+      // centra el recorte (imagen al 250 %) en el ingrediente: el plato mide 336 px al 112 %
+      const k=2.5/1.5*100/336;
+      const bgX=Math.min(100,Math.max(0,50+k*it.rad*Math.cos(a)));
+      const bgY=Math.min(100,Math.max(0,50+k*it.rad*Math.sin(a)));
       cropStyleStr=`background-image:url(${plate.img});background-size:250%;background-position:${bgX}% ${bgY}%;background-color:#fff;background-repeat:no-repeat;`;
       current={
         name:it.name, category:it.cat, kcal:it.kcal, aporte:it.aporte,
@@ -313,8 +267,13 @@ class Component extends DCLogic {
     }));
 
     return {
-      a0:pi===0, a1:pi===1, a2:pi===2,
-      selPlate0:()=>this.selectPlate(0), selPlate1:()=>this.selectPlate(1), selPlate2:()=>this.selectPlate(2),
+      tabs:this.PLATES.map((p,idx)=>({
+        label:p.tab, onClick:()=>this.selectPlate(idx),
+        style:{flex:'none',whiteSpace:'nowrap',textAlign:'center',padding:'11px 14px',borderRadius:'14px',fontSize:'14px',fontWeight:'700',cursor:'pointer',
+               color:'oklch(0.32 0.012 80)',transition:'all .3s ease',background:idx===pi?ACC:'transparent',boxShadow:idx===pi?'0 8px 18px -8px rgba(214,170,30,.8)':'none'}
+      })),
+      plateTitle:plate.name,
+      macrosTxt:`${plate.macros[0]} kcal · ${plate.macros[1]} g prot · ${plate.macros[2]} g carbs · ${plate.macros[3]} g grasas`,
       dots, turntableStyle, plateBg:`background-image:url(${plate.img});`,
       showRing:focused, ringStyle, focused, overview:!focused,
       current, cropStyleStr, panelStyleStr, panelOpen:this.state.panelOpen,
