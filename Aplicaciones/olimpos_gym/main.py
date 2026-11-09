@@ -53,6 +53,13 @@ def main(page: ft.Page):
     page.window.height = 820
     page.window.min_width = 960
     page.window.min_height = 640
+    # Ícono de la ventana y de la barra de tareas (en el .exe viene al lado de
+    # main.py; corriendo desde el repo se toma el de Aplicaciones/empaquetar).
+    for icono in ("olimpos.ico", os.path.join("..", "empaquetar", "olimpos.ico")):
+        ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), icono)
+        if os.path.isfile(ruta):
+            page.window.icon = os.path.abspath(ruta)
+            break
     page.padding = 0
     page.spacing = 0
     theme.aplicar_tema(page)
