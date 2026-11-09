@@ -105,6 +105,19 @@ object SesionEntrenamiento {
         guardar()
     }
 
+    /** "Reiniciar rutina": todo como recién abierta — cronómetro a cero y en
+     *  pausa, sin series marcadas y con el peso y las reps sugeridos. Las
+     *  series que ya se registraron siguen en el historial (Ghost Mode, kg del
+     *  mes): esto limpia la sesión de la pantalla, no borra entrenamientos. */
+    fun reiniciar(pesoInicial: List<Float>, repsIniciales: List<Int>) {
+        corriendoDesde = null
+        acumuladoMs = 0L
+        seriesHechas.forEach { it.clear() }
+        pesoInicial.forEachIndexed { i, kg -> if (i < pesos.size) pesos[i] = kg }
+        repsIniciales.forEachIndexed { i, n -> if (i < reps.size) reps[i] = n }
+        guardar()
+    }
+
     private fun guardar() {
         val ctx = contexto ?: return
         val ejercicios = JSONArray()

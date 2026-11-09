@@ -109,6 +109,7 @@ fun EntrenarScreen() {
     val reps = SesionEntrenamiento.reps
     val seriesHechas = SesionEntrenamiento.seriesHechas
     var avisoTerminar by remember { mutableStateOf<String?>(null) }
+    var confirmarReinicio by remember { mutableStateOf(false) }
     val totalObjetivo = remember(rutina) { rutina.ejercicios.sumOf { it.seriesObjetivo } }
     val totalHechas = seriesHechas.sumOf { it.size }
     val historialSeries = DatosRemotos.seriesEntrenamiento ?: emptyList()
@@ -129,7 +130,23 @@ fun EntrenarScreen() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Eyebrow("Gestión en curso")
             Spacer(Modifier.weight(1f))
+            BotonReiniciar(
+                habilitado = !confirmarReinicio && (totalHechas > 0 || SesionEntrenamiento.iniciado ||
+                    pesos.indices.any { pesos[it] != pesoInicial(rutina.ejercicios[it]) || reps[it] != repsIniciales(rutina.ejercicios[it]) }),
+                onClick = { confirmarReinicio = true }
+            )
+            Spacer(Modifier.width(8.dp))
             CronometroSesion()
+        }
+        if (confirmarReinicio) {
+            ConfirmarReinicio(
+                onSi = {
+                    SesionEntrenamiento.reiniciar(rutina.ejercicios.map(pesoInicial), rutina.ejercicios.map(repsIniciales))
+                    confirmarReinicio = false
+                    avisoTerminar = null
+                },
+                onNo = { confirmarReinicio = false }
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -357,6 +374,45 @@ private fun CronometroSesion() {
             fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
             color = if (corriendo) Olimpos.GoldLight else Olimpos.Muted
         )
+    }
+}
+
+/** Botón "↺" al lado del cronómetro: pide confirmación antes de reiniciar. */
+@Composable
+private fun BotonReiniciar(habilitado: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(Olimpos.Card)
+            .border(1.dp, Olimpos.Line, RoundedCornerShape(20.dp))
+            .clickable(enabled = habilitado, onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("↺", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (habilitado) Olimpos.GoldLight else Olimpos.Muted)
+        Spacer(Modifier.width(5.dp))
+        Text(
+            "Reiniciar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            color = if (habilitado) Olimpos.GoldLight else Olimpos.Muted
+        )
+    }
+}
+
+/** Confirmación en línea (sin diálogo, igual que el resto de la app). */
+@Composable
+private fun ConfirmarReinicio(onSi: () -> Unit, onNo: () -> Unit) {
+    TarjetaOro(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+        Text("¿Reiniciar la rutina?", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Olimpos.Cream)
+        Text(
+            "El cronómetro vuelve a 0 y los ejercicios quedan sin series marcadas, con el peso y las reps sugeridos. " +
+                "Las series que ya registraste siguen guardadas en tu historial.",
+            fontSize = 12.sp, color = Olimpos.Muted, lineHeight = 16.sp, modifier = Modifier.padding(top = 4.dp)
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BotonPrincipal("Sí, reiniciar", Modifier.weight(1f), onClick = onSi)
+            BotonSecundario("Cancelar", Modifier.weight(1f), onClick = onNo)
+        }
     }
 }
 
