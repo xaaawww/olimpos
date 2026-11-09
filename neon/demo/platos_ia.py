@@ -5,7 +5,15 @@ imagen) donde aparece en el dibujo. Cuando la imagen salió distinta a la receta
 pedida, el plato se ajustó a lo que muestra la imagen. "reemplaza" es el nombre que
 tenía el plato antes, para actualizar esa misma fila en vez de crear otra.
 """
+import json
+import os
+
 from platos_demo import ING
+
+# Las coordenadas de PLATOS están medidas sobre la imagen original de ChatGPT; al
+# encuadrarla con margen blanco (encuadrar_ia.py) los puntos se corren igual.
+_AJ = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes_ia", "ajustes.json")
+AJUSTES = json.load(open(_AJ)) if os.path.exists(_AJ) else {}
 
 # (archivo, nombre, reemplaza, descripción, etiquetas, momento, [(ingrediente, x, y), ...], (centro, x, y) o None)
 PLATOS = [
@@ -117,7 +125,9 @@ def datos(plato):
     items = zonas + ([centro] if centro else [])
     macros = [sum(ING[k][2][j] for k, _, _ in items) for j in range(4)]
     puntos = []
+    aj = AJUSTES.get(archivo, {"escala_x": 1, "escala_y": 1, "dx": 0, "dy": 0})
     for orden, (k, x, y) in enumerate(items):
+        x, y = round(aj["dx"] + x * aj["escala_x"], 1), round(aj["dy"] + y * aj["escala_y"], 1)
         nom, cat, (kcal, *_), aporte, ben, etq, _ = ING[k]
         puntos.append({"id": slug(nom), "nombre": nom, "categoria": cat, "aporte": aporte, "kcal": f"{kcal} kcal",
                        "x": float(x), "y": float(y), "orden": orden, "beneficios": ben, "etiquetas": etq})
