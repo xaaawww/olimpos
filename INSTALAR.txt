@@ -171,8 +171,6 @@ ponelos en estos lugares exactos:
        Generar nueva clave privada)
 
   Aplicaciones\olimpos_gym\anthropic_credentials.json   (para Argos)
-  Aplicaciones\olimpos_gym\openai_credentials.json      (para generar
-                                                         imagenes de platos)
 
   AppMovil\app\google-services.json
       (Firebase -> Configuracion del proyecto -> app Android ->

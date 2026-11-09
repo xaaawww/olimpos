@@ -7,7 +7,7 @@
 # ningún lado más que en memoria mientras la pantalla de chat está abierta).
 #
 # Requiere un archivo "anthropic_credentials.json" en esta misma carpeta
-# (mismo criterio que firebase_credentials.json / openai_credentials.json:
+# (mismo criterio que firebase_credentials.json:
 # NUNCA se sube a git — ver .gitignore), con la forma:
 #   {"api_key": "sk-ant-..."}
 #
@@ -19,7 +19,7 @@
 #
 # El cupo diario (MAXIMO_DIARIO) es propio de esta app — Anthropic no
 # expone "cuántos mensajes te quedan hoy" — para no gastar de más sin
-# darse cuenta (mismo patrón que generador_imagenes.py).
+# darse cuenta.
 
 import json
 import os

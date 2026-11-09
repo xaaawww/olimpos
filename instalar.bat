@@ -85,7 +85,6 @@ echo ---------------------------------------------------------------------
 call :credencial "Aplicaciones\olimpos_gym\neon_credentials.json"
 call :credencial "Aplicaciones\olimpos_gym\firebase_credentials.json"
 call :credencial "Aplicaciones\olimpos_gym\anthropic_credentials.json"
-call :credencial "Aplicaciones\olimpos_gym\openai_credentials.json"
 call :credencial "AppMovil\app\google-services.json"
 
 echo.

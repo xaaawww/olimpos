@@ -941,17 +941,7 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     }
 }
 
-/* ── Equivalencia visual de carga ── */
-data class Equivalencia(val umbralKg: Int, val texto: String, val emoji: String)
-
-private val EQUIVALENCIAS = listOf(
-    Equivalencia(80, "un auto compacto", "🚗"),
-    Equivalencia(150, "un piano de cola", "🎹"),
-    Equivalencia(300, "una vaca adulta", "🐄"),
-    Equivalencia(1000, "una camioneta 4x4", "🚙"),
-    Equivalencia(3000, "un elefante africano", "🐘"),
-    Equivalencia(Int.MAX_VALUE, "una ballena beluga", "🐳")
-)
+/* ── Equivalencia visual de carga: el catálogo está en Equivalencias.kt ── */
 
 private fun esDeEsteMes(timestampMs: Long): Boolean {
     val ahora = java.util.Calendar.getInstance()
@@ -976,8 +966,6 @@ fun kgMovidosEsteMes(marcas: List<MarcaPersonal>, series: List<SerieEntrenamient
     return (deMarcas + deSeries).toInt()
 }
 
-fun equivalenciaDeCarga(kg: Int): Equivalencia = EQUIVALENCIAS.first { kg <= it.umbralKg }
-fun cantidadEquivalencia(kg: Int, umbral: Int): Int = (kg / umbral.toFloat()).let { if (it < 1) 1 else it.toInt() }
 
 /* ── Ghost Mode: hoy vs. tu sesión anterior de este mismo ejercicio ── */
 

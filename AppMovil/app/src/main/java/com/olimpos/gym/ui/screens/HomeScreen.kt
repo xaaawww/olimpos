@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,8 +61,16 @@ import com.olimpos.gym.data.ReservaClase
 import com.olimpos.gym.data.ResultadoReserva
 import com.olimpos.gym.data.cancelarReservaClaseEnFirebase
 import com.olimpos.gym.data.cargarOcupacionDesdeFirebase
-import com.olimpos.gym.data.cantidadEquivalencia
+import com.olimpos.gym.data.EQUIVALENCIAS
+import com.olimpos.gym.data.EscalaEquivalencia
+import com.olimpos.gym.data.anosParaMover
 import com.olimpos.gym.data.equivalenciaDeCarga
+import com.olimpos.gym.data.formatoPeso
+import com.olimpos.gym.data.mejorPorEscala
+import com.olimpos.gym.data.proximaEquivalencia
+import com.olimpos.gym.data.textoAnos
+import com.olimpos.gym.data.tituloEquivalencia
+import com.olimpos.gym.data.vecesEquivalencia
 import com.olimpos.gym.data.guardarReservaClaseEnFirebase
 import com.olimpos.gym.data.kgMovidosEsteMes
 import com.olimpos.gym.data.leerObjetivoArena
@@ -356,21 +365,118 @@ private fun EquivalenciaCarga() {
         }
         return
     }
-    val eq = equivalenciaDeCarga(kgDelMes)
-    val cantidad = cantidadEquivalencia(kgDelMes, eq.umbralKg)
+    val kg = kgDelMes.toDouble()
+    val actual = equivalenciaDeCarga(kg)
+    val proxima = proximaEquivalencia(kg)
+    var escalaAbierta by remember { mutableStateOf(false) }
 
     TarjetaOro(Modifier.fillMaxWidth()) {
+        // ── lo más pesado que ya superaste ──
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(eq.emoji, fontSize = 32.sp)
+            Text(actual?.emoji ?: "💪", fontSize = 34.sp)
             Spacer(Modifier.width(13.dp))
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(
-                    if (cantidad > 1) "$cantidad × ${eq.texto}" else eq.texto,
+                    actual?.let { tituloEquivalencia(kg, it) } ?: "Vas en camino",
                     fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = Olimpos.Cream
                 )
-                Text("$kgDelMes kg movidos este mes", fontSize = 11.5.sp, color = Olimpos.Muted)
+                Text("${formatoPeso(kg)} movidos este mes", fontSize = 11.5.sp, color = Olimpos.Muted)
             }
         }
+
+        // ── próxima meta ──
+        if (proxima != null) {
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Próxima meta: ${proxima.emoji} ${proxima.singular}",
+                    fontSize = 12.sp, color = Olimpos.Cream, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
+                )
+                Text(vecesEquivalencia(kg, proxima), fontSize = 12.sp, color = Olimpos.GoldLight, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(6.dp))
+            BarraProgreso((kg / proxima.kg).toFloat(), alto = 7)
+            Text(
+                "Te faltan ${formatoPeso(proxima.kg - kg)}",
+                fontSize = 11.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
+        // ── una comparación por escala: casa, animales, vehículos, monumentos y espacio ──
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            mejorPorEscala(kg).forEach { eq ->
+                Column(
+                    Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Olimpos.GoldSoft)
+                        .padding(horizontal = 11.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(eq.emoji, fontSize = 20.sp)
+                    Text(vecesEquivalencia(kg, eq), fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight)
+                    Text(
+                        eq.escala.titulo, fontSize = 9.5.sp, color = Olimpos.Muted
+                    )
+                }
+            }
+        }
+
+        // ── ritmo cósmico ──
+        val luna = EQUIVALENCIAS.first { it.singular == "la Luna" }
+        anosParaMover(kg, luna)?.let { anos ->
+            Text(
+                "🌙 A este ritmo moverías la Luna en ${textoAnos(anos)}.",
+                fontSize = 11.5.sp, color = Olimpos.Muted, modifier = Modifier.padding(top = 10.dp)
+            )
+        }
+
+        // ── escala completa ──
+        Text(
+            if (escalaAbierta) "Ocultar la escala ▴" else "Ver la escala completa ▾",
+            fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight,
+            modifier = Modifier
+                .padding(top = 10.dp)
+                .clickable { escalaAbierta = !escalaAbierta }
+        )
+        if (escalaAbierta) {
+            EscalaEquivalencia.values().forEach { escala ->
+                Text(
+                    "${escala.emoji} ${escala.titulo}".uppercase(), fontSize = 10.5.sp, letterSpacing = 1.2.sp,
+                    fontWeight = FontWeight.SemiBold, color = Olimpos.Muted, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp)
+                )
+                EQUIVALENCIAS.filter { it.escala == escala }.forEach { eq -> FilaEscala(kg, eq) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilaEscala(kg: Double, eq: com.olimpos.gym.data.Equivalencia) {
+    val superada = kg >= eq.kg
+    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(eq.emoji, fontSize = 20.sp)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                eq.singular.replaceFirstChar { it.uppercase() }, fontSize = 12.5.sp,
+                fontWeight = FontWeight.Medium, color = Olimpos.Cream
+            )
+            Text("${formatoPeso(eq.kg)} · ${eq.dato}", fontSize = 10.5.sp, color = Olimpos.Muted, lineHeight = 13.sp)
+            if (!superada) {
+                Spacer(Modifier.height(4.dp))
+                BarraProgreso((kg / eq.kg).toFloat(), alto = 4)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            if (superada) "✓ ${vecesEquivalencia(kg, eq)}" else vecesEquivalencia(kg, eq),
+            fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold,
+            color = if (superada) Olimpos.Green else Olimpos.Muted
+        )
     }
 }
 

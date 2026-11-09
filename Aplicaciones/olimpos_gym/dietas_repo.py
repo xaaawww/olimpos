@@ -33,7 +33,7 @@
 import base64
 import io
 import uuid
-from datetime import date, datetime
+from datetime import datetime
 
 import psycopg
 from PIL import Image as PILImage
@@ -135,10 +135,8 @@ def nuevo_punto(x: float, y: float) -> dict:
 def comprimir_imagen(img: PILImage.Image) -> str:
     """Redimensiona/comprime una imagen ya cargada en memoria y la devuelve
     codificada en Base64 (string, sin prefijo "data:"). Tanto ft.Image (Flet)
-    como Coil (Android) aceptan un string Base64 como fuente. Usado tanto por
-    [procesar_imagen] (imagen subida por el empleado) como por
-    generador_imagenes.py (imagen generada con OpenAI) — mismo formato final
-    para las dos, así la app móvil no distingue una de otra."""
+    como Coil (Android) aceptan un string Base64 como fuente. Lo usa
+    [procesar_imagen] con la imagen que sube el empleado."""
     img = img.convert("RGB")
     img.thumbnail((DIMENSION_MAXIMA, DIMENSION_MAXIMA), PILImage.LANCZOS)
     buffer = io.BytesIO()
@@ -252,21 +250,3 @@ def eliminar_plato(platos: list[dict], plato_id: str) -> list[dict]:
     restantes = [p for p in platos if p["id"] != plato_id]
     _cache_platos = restantes
     return restantes
-
-
-# ══════════════ Cupo diario de imágenes generadas con IA ══════════════
-# OpenAI no expone "cuántas imágenes te quedan hoy" — ese tope es propio de
-# esta app (ver generador_imagenes.py) para no gastar de más en la cuenta de
-# OpenAI sin darse cuenta. Una fila por día en la tabla "consumoimagenesia".
-
-def generaciones_ia_hoy() -> int:
-    fila = neon_db.una_fila("SELECT cantidad FROM consumoimagenesia WHERE fecha = %s", (date.today(),))
-    return fila["cantidad"] if fila else 0
-
-
-def registrar_generacion_ia():
-    neon_db.ejecutar(
-        "INSERT INTO consumoimagenesia (fecha, cantidad) VALUES (%s, 1)"
-        " ON CONFLICT (fecha) DO UPDATE SET cantidad = consumoimagenesia.cantidad + 1",
-        (date.today(),),
-    )
