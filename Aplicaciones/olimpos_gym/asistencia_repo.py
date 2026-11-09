@@ -148,3 +148,25 @@ def registrar_entrada(id_socio: int, metodo: str = "manual") -> bool:
         (id_socio, metodo, id_socio, ocupacion_repo.MINUTOS_EN_EL_CLUB),
     )
     return fila is not None
+
+
+def socio_por_dni(dni: str) -> dict | None:
+    """Ficha del socio para mostrarla antes de registrar la entrada por DNI:
+    datos, plan vigente (o el último que tuvo), última entrada y entradas del mes."""
+    return neon_db.una_fila(
+        "SELECT s.id_socio, trim(s.nombre || ' ' || s.apellido) AS nombre, s.dni, s.email, s.telefono, s.estado,"
+        "       s.nivel_experiencia, p.edad,"
+        "       (SELECT o.tipo FROM objetivos o WHERE o.id_socio = s.id_socio AND o.estado = 'activo') AS objetivo,"
+        "       m.nombre AS plan, sm.fecha_vencimiento AS vence, sm.estado AS estado_plan,"
+        "       (SELECT max(a.fecha) FROM accesos a WHERE a.id_socio = s.id_socio AND a.resultado = 'permitido') AS ultima,"
+        f"      (SELECT count(*) FROM accesos a WHERE a.id_socio = s.id_socio AND a.resultado = 'permitido'"
+        f"         AND date_trunc('month', {LOCAL}) = date_trunc('month', now() AT TIME ZONE '{ZONA}'))::int AS entradas_mes,"
+        "       EXISTS (SELECT 1 FROM accesos a WHERE a.id_socio = s.id_socio AND a.resultado = 'permitido'"
+        "               AND a.fecha > now() - make_interval(mins => %s)) AS adentro"
+        " FROM socios s LEFT JOIN perfilapp p USING (id_socio)"
+        " LEFT JOIN LATERAL (SELECT * FROM sociomembresia x WHERE x.id_socio = s.id_socio"
+        "                    ORDER BY (x.estado = 'activa') DESC, x.fecha_vencimiento DESC LIMIT 1) sm ON TRUE"
+        " LEFT JOIN membresias m ON m.id_membresia = sm.id_membresia"
+        " WHERE s.dni = %s",
+        (ocupacion_repo.MINUTOS_EN_EL_CLUB, dni),
+    )

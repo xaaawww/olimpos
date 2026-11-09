@@ -5,6 +5,7 @@ import flet as ft
 from theme import *
 from components import stat_card, section_card, card_header, avatar, action_button, page_header
 import asistencia_repo
+import validaciones
 
 MESES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto",
          "Septiembre", "Octubre", "Noviembre", "Diciembre"]
@@ -92,6 +93,135 @@ def _dialogo_registrar(page: ft.Page, al_registrar):
         actions=[
             ft.TextButton("Cancelar", on_click=lambda e: page.pop_dialog()),
             action_button("✅ Registrar", "gold", on_click=_registrar),
+        ],
+        actions_alignment=ft.MainAxisAlignment.END,
+    ))
+
+
+OBJETIVOS = {"FUERZA": "Fuerza", "HIPERTROFIA": "Hipertrofia", "SALUD": "Salud"}
+
+
+def _dialogo_dni(page: ft.Page, al_registrar):
+    """Entrada con el DNI: recepción escribe el DNI, ve la ficha del socio
+    (plan, vencimiento, última entrada) y recién ahí confirma la entrada."""
+    campo = ft.TextField(label="DNI del socio", width=240, autofocus=True, max_length=10, counter=ft.Text(""),
+                         keyboard_type=ft.KeyboardType.NUMBER, input_filter=validaciones.SOLO_DIGITOS,
+                         hint_text="Ej.: 40123456")
+    ficha = ft.Container()
+    mensaje = ft.Text("", size=12, weight=ft.FontWeight.W_500, color=RED)
+    confirmar = action_button("✅ Registrar entrada", "gold")
+    confirmar.disabled = True
+    socio = {}
+
+    def _dato(etiqueta: str, valor: str, color=DARK) -> ft.Column:
+        return ft.Column([ft.Text(etiqueta, size=10.5, color=TEXT_MUTED, weight=ft.FontWeight.W_500),
+                          ft.Text(valor, size=13, color=color, weight=ft.FontWeight.W_600)], spacing=1)
+
+    def _buscar(e=None):
+        socio.clear()
+        ficha.content = None
+        confirmar.disabled = True
+        try:
+            dni = validaciones.dni(campo.value)
+            fila = asistencia_repo.socio_por_dni(dni)
+        except ValueError as ex:
+            mensaje.value = str(ex)
+            page.update()
+            return
+        except Exception as ex:
+            mensaje.value = f"No se pudo buscar: {ex}"
+            page.update()
+            return
+        if not fila:
+            mensaje.value = "No hay ningún socio con ese DNI."
+            page.update()
+            return
+        socio.update(fila)
+        hoy = date.today()
+        plan_ok = fila["estado_plan"] == "activa" and fila["vence"] and fila["vence"] >= hoy
+        if fila["plan"] is None:
+            plan_txt, plan_color = "Sin plan", RED
+        elif plan_ok:
+            dias = (fila["vence"] - hoy).days
+            plan_txt = f"{fila['plan']} · vence {fila['vence']:%d/%m} ({dias} días)"
+            plan_color = GOLD_DARK if dias <= 5 else "#16A34A"
+        else:
+            plan_txt, plan_color = f"{fila['plan']} · vencido el {fila['vence']:%d/%m}", RED
+        ultima = fila["ultima"]
+        ultima_txt = "Nunca" if ultima is None else _fecha_larga(ultima.astimezone().date()) + f" {ultima.astimezone():%H:%M}"
+        avisos = []
+        if fila["estado"] != "activo":
+            avisos.append("⚠ El socio está dado de baja.")
+        if not plan_ok:
+            avisos.append("⚠ No tiene un plan vigente: revisá el pago antes de dejarlo pasar.")
+        if fila["adentro"]:
+            avisos.append("Ya registró una entrada hace un rato: no se va a duplicar.")
+        ficha.content = ft.Container(
+            content=ft.Column([
+                ft.Row([
+                    avatar(_iniciales(fila["nombre"]), "gold"),
+                    ft.Column([
+                        ft.Text(fila["nombre"], size=15, weight=ft.FontWeight.W_700, color=DARK),
+                        ft.Text(f"Socio #{fila['id_socio']:04d} · DNI {fila['dni']}", size=11.5, color=TEXT_MUTED),
+                    ], spacing=1, expand=True),
+                ], spacing=10),
+                ft.Row([
+                    _dato("Plan", plan_txt, plan_color),
+                    _dato("Última entrada", ultima_txt),
+                ], spacing=24, wrap=True),
+                ft.Row([
+                    _dato("Entradas este mes", str(fila["entradas_mes"])),
+                    _dato("Objetivo", OBJETIVOS.get(fila["objetivo"] or "", "—")),
+                    _dato("Nivel", fila["nivel_experiencia"] or "—"),
+                    _dato("Edad", str(fila["edad"]) if fila["edad"] else "—"),
+                ], spacing=24, wrap=True),
+                *[ft.Text(a, size=12, weight=ft.FontWeight.W_600,
+                          color=GOLD_DARK if a.startswith("Ya") else RED) for a in avisos],
+            ], spacing=12),
+            bgcolor=CREAM, border_radius=12, padding=14, border=ft.border.all(1, GOLD_LIGHT),
+        )
+        mensaje.value = ""
+        confirmar.disabled = fila["estado"] != "activo"
+        confirmar.content = "✅ Registrar entrada" if plan_ok else "Registrar igual"
+        page.update()
+
+    def _registrar(e):
+        if not socio:
+            return
+        try:
+            nuevo = asistencia_repo.registrar_entrada(socio["id_socio"], "manual")
+        except Exception as ex:
+            mensaje.value = f"No se pudo registrar: {ex}"
+            page.update()
+            return
+        page.pop_dialog()
+        al_registrar(f"✓ Entrada de {socio['nombre']} registrada" if nuevo
+                     else f"{socio['nombre']} ya había entrado hace un rato: no se duplicó la entrada")
+
+    def _al_cambiar(e):
+        if socio:  # si cambia el DNI, hay que volver a buscar antes de confirmar
+            socio.clear()
+            ficha.content = None
+            confirmar.disabled = True
+            page.update()
+
+    campo.on_submit = _buscar
+    campo.on_change = _al_cambiar
+    confirmar.on_click = _registrar
+    page.show_dialog(ft.AlertDialog(
+        modal=True,
+        title=ft.Text("Entrada con DNI", weight=ft.FontWeight.W_600, font_family="Poppins"),
+        content=ft.Column([
+            ft.Text("Escribí el DNI y tocá Buscar (o Enter). Revisá los datos del socio y confirmá la entrada.",
+                    size=12, color=TEXT_MUTED),
+            ft.Row([campo, action_button("🔍 Buscar", "outline", on_click=_buscar)],
+                   vertical_alignment=ft.CrossAxisAlignment.START, spacing=10),
+            ficha,
+            mensaje,
+        ], tight=True, spacing=12, width=440),
+        actions=[
+            ft.TextButton("Cancelar", on_click=lambda e: page.pop_dialog()),
+            confirmar,
         ],
         actions_alignment=ft.MainAxisAlignment.END,
     ))
@@ -291,7 +421,9 @@ def build_asistencia(page: ft.Page, role: str = "dueno") -> ft.Column:
 
     acciones = [aviso, action_button("🔄 Actualizar", "outline", on_click=lambda e: render())]
     if role in ROLES_QUE_REGISTRAN:
-        acciones.append(action_button("➕ Registrar entrada", "gold",
+        acciones.append(action_button("🪪 Entrada con DNI", "gold",
+                                      on_click=lambda e: _dialogo_dni(page, _tras_registrar)))
+        acciones.append(action_button("➕ Elegir de la lista", "outline",
                                       on_click=lambda e: _dialogo_registrar(page, _tras_registrar)))
 
     titulo = "📅 Control de Acceso" if role == "seguridad" else "📅 Asistencia"

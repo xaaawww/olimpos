@@ -31,6 +31,7 @@ from PIL import Image  # noqa: E402
 
 import auth_repo  # noqa: E402
 import neon_db  # noqa: E402
+import aplicar_platos_ia  # noqa: E402
 import platos_demo as pd  # noqa: E402
 
 EDGE = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
@@ -303,14 +304,14 @@ def cargar_usuario(n: int, datos, platos: dict[str, int], ejercicios: dict[str, 
 
         # dieta asignada: un plato por comida, según el objetivo
         elegir = {
-            "HIPERTROFIA": ("Panqueques de avena", "Pollo grillado con arroz", "Salmón con batata"),
-            "FUERZA": ("Tostadas con palta y huevo", "Lomo con papas al horno", "Pollo al curry con arroz integral"),
-            "SALUD": ("Yogur griego con granola", "Ensalada de garbanzos", "Merluza con batata"),
+            "HIPERTROFIA": ("Panqueques de avena", "Pollo grillado con arroz", "Pollo con quinoa y espárragos"),
+            "FUERZA": ("Tostadas con palta y huevo", "Salmón con quinoa y chauchas", "Pollo con quinoa y palta"),
+            "SALUD": ("Yogur griego con granola", "Bowl vegano de quinoa", "Pollo con quinoa y pepino"),
         }[objetivo]
         if n % 2 == 0:
-            elegir = {"HIPERTROFIA": ("Tostadas con maní y banana", "Bowl mexicano de pollo", "Carne con batata y choclo"),
-                      "FUERZA": ("Revuelto con espinaca", "Carne con quinoa y morrones", "Salmón con batata"),
-                      "SALUD": ("Bowl de avena con frutos rojos", "Atún con quinoa y palta", "Ensalada de pollo")}[objetivo]
+            elegir = {"HIPERTROFIA": ("Yogur con banana y frutillas", "Fideos con langostinos", "Pollo con quinoa y palta"),
+                      "FUERZA": ("Huevos con frutas", "Pollo grillado con arroz", "Pollo con quinoa y espárragos"),
+                      "SALUD": ("Bowl de avena con frutos rojos", "Bowl de lentejas", "Tofu salteado con arroz")}[objetivo]
         cur.execute("INSERT INTO dietas (id_socio, id_empleado, nombre, objetivo, fecha_creacion, estado) VALUES (%s,%s,%s,%s,%s,'vigente') RETURNING cod_dieta",
                     (id_socio, NUTRICIONISTA, f"Plan {objetivo.capitalize()}", objetivo, ts(registro + timedelta(days=3), 12)))
         cod_dieta = cur.fetchone()["cod_dieta"]
@@ -427,7 +428,7 @@ def main():
         borrar()
         return
     print("Platos…")
-    platos = cargar_platos()
+    platos = aplicar_platos_ia.aplicar()
     print("Tablón…")
     cargar_tablon()
     ejercicios = {f["nombre"]: f["id_ejercicio"] for f in neon_db.consulta(
