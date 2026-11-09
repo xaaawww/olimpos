@@ -20,6 +20,11 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradi
 @keyframes idleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 .scrl::-webkit-scrollbar{width:0;}
 .tabs::-webkit-scrollbar{height:0;}
+.tabs{scroll-behavior:smooth;cursor:grab;user-select:none;}
+.tabs.arrastrando{cursor:grabbing;scroll-behavior:auto;}
+.flecha-tabs{position:absolute;top:111px;width:36px;height:36px;border-radius:50%;z-index:58;display:flex;align-items:center;justify-content:center;font:800 20px Manrope,sans-serif;color:#5b4a12;background:#fff;border:1px solid #eadfb8;box-shadow:0 6px 14px -6px rgba(0,0,0,.35);cursor:pointer;transition:opacity .2s;}
+.flecha-tabs.izq{left:6px;} .flecha-tabs.der{right:6px;}
+.flecha-tabs.oculta{opacity:0;pointer-events:none;}
 .volver{position:fixed;top:16px;left:16px;z-index:100;font:700 13px Manrope,sans-serif;color:#5b4a12;background:#fff;border:1px solid #eadfb8;border-radius:30px;padding:9px 16px;text-decoration:none;box-shadow:0 6px 16px -8px rgba(0,0,0,.35);}
 @media (max-width:460px){body{overflow-x:hidden;}.escena{padding:64px 0 0 !important;align-items:flex-start !important;}.marco{transform:scale(calc((100vw - 16px) / 390px));transform-origin:top center;margin-bottom:calc((100vw - 406px) * 2.2);}}
 </style>
@@ -61,7 +66,9 @@ body{margin:0;font-family:'Manrope',system-ui,sans-serif;background:radial-gradi
       </div>
 
       <!-- TABS: los 37 platos, deslizables -->
-      <div class="tabs" style="position:absolute;top:102px;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 18px;z-index:55;overflow-x:auto;">
+      <div class="flecha-tabs izq oculta" data-dir="-1" title="Platos anteriores">‹</div>
+      <div class="flecha-tabs der" data-dir="1" title="Más platos">›</div>
+      <div class="tabs" style="position:absolute;top:102px;left:0;right:0;height:54px;display:flex;align-items:center;gap:8px;padding:0 46px;z-index:55;overflow-x:auto;">
         <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
           <div onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</div>
         </sc-for>
@@ -284,6 +291,47 @@ class Component extends DCLogic {
     };
   }
 }
+</script>
+<script>
+// Barra de platos en la computadora: rueda del mouse, arrastrar y flechas.
+(function () {
+  const barra = () => document.querySelector(".tabs");
+  function actualizarFlechas() {
+    const b = barra(); if (!b) return;
+    document.querySelector(".flecha-tabs.izq")?.classList.toggle("oculta", b.scrollLeft <= 4);
+    document.querySelector(".flecha-tabs.der")?.classList.toggle("oculta", b.scrollLeft + b.clientWidth >= b.scrollWidth - 4);
+  }
+  document.addEventListener("wheel", (e) => {
+    const b = e.target.closest && e.target.closest(".tabs");
+    if (!b || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    b.scrollLeft += e.deltaY;
+  }, { passive: false });
+  document.addEventListener("click", (e) => {
+    const f = e.target.closest && e.target.closest(".flecha-tabs");
+    if (f) barra().scrollBy({ left: Number(f.dataset.dir) * 260 });
+  });
+  // arrastrar con el mouse (sin disparar el clic de la pestaña si se movió)
+  let x0 = null, inicio = 0, movido = false;
+  document.addEventListener("mousedown", (e) => {
+    const b = e.target.closest && e.target.closest(".tabs");
+    if (!b || e.button !== 0) return;
+    x0 = e.clientX; inicio = b.scrollLeft; movido = false;
+  });
+  document.addEventListener("mousemove", (e) => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0;
+    if (Math.abs(dx) > 5) { movido = true; barra().classList.add("arrastrando"); }
+    if (movido) barra().scrollLeft = inicio - dx;
+  });
+  document.addEventListener("mouseup", () => { x0 = null; barra()?.classList.remove("arrastrando"); });
+  document.addEventListener("click", (e) => {
+    if (movido && e.target.closest && e.target.closest(".tabs")) { e.stopPropagation(); e.preventDefault(); movido = false; }
+  }, true);
+  document.addEventListener("scroll", actualizarFlechas, true);
+  window.addEventListener("resize", actualizarFlechas);
+  setInterval(actualizarFlechas, 500);
+})();
 </script>
 </body>
 </html>
