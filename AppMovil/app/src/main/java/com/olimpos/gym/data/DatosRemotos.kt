@@ -180,7 +180,9 @@ object DatosRemotos {
 
     /** Se llama al tocar "Marcar mi ingreso de hoy" en Accesos. */
     suspend fun recargarIngresos() {
-        ingresos = cargarIngresosDesdeFirebase()
+        // Sin conexión se conserva lo último que se sabía (lo recarga cada
+        // minuto la tarjeta de ingreso, y un corte no debe "sacarlo" del club).
+        cargarIngresosDesdeFirebase()?.let { ingresos = it }
     }
 
     /** Se llama al tocar "Reservar" en una clase de Inicio. */

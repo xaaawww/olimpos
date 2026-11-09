@@ -1,5 +1,5 @@
 import calendar
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import flet as ft
 from theme import *
@@ -40,6 +40,15 @@ def _barras(valores: list[int], etiquetas: list[str], alto: int = 110, resaltar_
            alignment=ft.MainAxisAlignment.END))
     return ft.Row(columnas, alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                   vertical_alignment=ft.CrossAxisAlignment.END, height=alto + 36)
+
+
+def _hace(momento: datetime) -> str:
+    """'25 min' o '1 h 10 min' desde [momento] hasta ahora."""
+    minutos = max(0, int((datetime.now(timezone.utc) - momento).total_seconds() // 60))
+    if minutos < 1:
+        return "menos de un minuto"
+    h, m = divmod(minutos, 60)
+    return f"{h} h {m} min" if h else f"{m} min"
 
 
 def _fecha_larga(d: date) -> str:
@@ -154,8 +163,9 @@ def _dialogo_dni(page: ft.Page, al_registrar):
             avisos.append("⚠ El socio está dado de baja.")
         if not plan_ok:
             avisos.append("⚠ No tiene un plan vigente: revisá el pago antes de dejarlo pasar.")
-        if fila["adentro"]:
-            avisos.append("Ya registró una entrada hace un rato: no se va a duplicar.")
+        if fila["adentro"] and ultima is not None:
+            avisos.append(f"🟢 En el gimnasio hace {_hace(ultima)} (entró a las {ultima.astimezone():%H:%M}): "
+                          "no se va a duplicar la entrada.")
         ficha.content = ft.Container(
             content=ft.Column([
                 ft.Row([
@@ -195,8 +205,11 @@ def _dialogo_dni(page: ft.Page, al_registrar):
             page.update()
             return
         page.pop_dialog()
-        al_registrar(f"✓ Entrada de {socio['nombre']} registrada" if nuevo
-                     else f"{socio['nombre']} ya había entrado hace un rato: no se duplicó la entrada")
+        al_registrar(f"✓ Entrada de {socio['nombre']} registrada · en el gimnasio desde las {datetime.now():%H:%M}"
+                     if nuevo else
+                     f"{socio['nombre']} ya está en el gimnasio hace {_hace(socio['ultima'])}: no se duplicó la entrada"
+                     if socio.get("ultima") else
+                     f"{socio['nombre']} ya había entrado hace un rato: no se duplicó la entrada")
 
     def _al_cambiar(e):
         if socio:  # si cambia el DNI, hay que volver a buscar antes de confirmar

@@ -211,7 +211,9 @@ def cargar_usuario(n: int, datos, platos: dict[str, int], ejercicios: dict[str, 
                         (id_socio, d, round(peso - delta * k / 10 + rng.uniform(-.3, .3), 1)))
 
         # membresía, medio de pago y un pago por mes desde que se registró
-        cur.execute("SELECT id_membresia, precio, duracion_dias FROM membresias WHERE nombre = %s", (plan,))
+        # Todos los usuarios de prueba tienen Platino: así al probar la app se ve todo
+        # (Argos, plan nutricional, etc.). El plan de DATOS queda solo como referencia.
+        cur.execute("SELECT id_membresia, precio, duracion_dias FROM membresias WHERE nombre = %s", ("Platino",))
         m = cur.fetchone()
         tipo = rng.choice(["Mercado Pago", "Efectivo"])
         cur.execute("INSERT INTO mediospago (id_socio, tipo, proveedor, estado) VALUES (%s,%s,%s,'activo') RETURNING id_medio_pago",

@@ -50,6 +50,15 @@ import java.util.Locale
 private val VerdeFondo = Color(0xFFDCFCE7)
 private val VerdeTexto = Color(0xFF16A34A)
 
+/** "menos de un minuto", "25 min" o "1 h 10 min". */
+private fun tiempoDesde(desde: Long, ahora: Long): String {
+    val minutos = ((ahora - desde) / 60_000L).coerceAtLeast(0L)
+    if (minutos < 1) return "menos de un minuto"
+    val h = minutos / 60
+    val m = minutos % 60
+    return if (h > 0) "$h h $m min" else "$m min"
+}
+
 /**
  * Entrada al gimnasio: si el socio ya escaneó el QR de la recepción en el
  * último rato muestra "Estás en el gimnasio"; si no, el botón que abre la
@@ -60,11 +69,15 @@ fun IngresoConQr(modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     var registrando by remember { mutableStateOf(false) }
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }   // texto, es error
-    // Se vuelve a mirar el reloj cada minuto: a los 90 minutos deja de contar como "adentro".
+    // Cada 30 s se mira el reloj (para "hace X min" y para dejar de contar como
+    // adentro a los 90 minutos) y cada minuto se recargan los ingresos: así
+    // también aparece la entrada que la recepción registra con el DNI.
     var ahora by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
+        var vuelta = 0
         while (true) {
-            delay(60_000)
+            delay(30_000)
+            if (++vuelta % 2 == 0) DatosRemotos.recargarIngresos()
             ahora = System.currentTimeMillis()
         }
     }
@@ -100,9 +113,13 @@ fun IngresoConQr(modifier: Modifier = Modifier) {
                 Box(Modifier.size(9.dp).clip(CircleShape).background(VerdeTexto))
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Estás en el gimnasio", fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = VerdeTexto)
                     Text(
-                        "Entraste a las ${SimpleDateFormat("HH:mm", Locale("es", "AR")).format(Date(desde))}",
+                        "En el gimnasio hace ${tiempoDesde(desde, ahora)}",
+                        fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = VerdeTexto
+                    )
+                    Text(
+                        "Entraste a las ${SimpleDateFormat("HH:mm", Locale("es", "AR")).format(Date(desde))}" +
+                            if (DatosRemotos.ingresos?.maxByOrNull { it.timestamp }?.metodo == "qr") " con el QR" else " · registrado en recepción",
                         fontSize = 11.5.sp, color = VerdeTexto.copy(alpha = 0.8f)
                     )
                 }

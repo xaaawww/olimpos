@@ -25,8 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -48,6 +48,7 @@ import com.olimpos.gym.data.DetalleEjercicio
 import com.olimpos.gym.data.EjercicioRutina
 import com.olimpos.gym.data.SerieEntrenamiento
 import com.olimpos.gym.data.SerieHecha
+import com.olimpos.gym.data.SesionEntrenamiento
 import com.olimpos.gym.data.ghostModeDeEjercicio
 import com.olimpos.gym.data.guardarSerieEnFirebase
 import com.olimpos.gym.ui.theme.Olimpos
@@ -94,16 +95,21 @@ fun EntrenarScreen() {
         return
     }
 
-    // Peso y reps de trabajo actual por ejercicio (ajustables) y las series
-    // ya registradas (con el peso/reps que tenían en el momento de
-    // registrarlas) — en memoria mientras dura la sesión, pero cada serie
-    // se guarda en Firestore al tocar "Registrar serie" (ver
-    // guardarSerieEnFirebase), así el Ghost Mode y "kg movidos este mes"
-    // de Inicio la ven sin esperar a que termine la sesión.
-    val pesos = remember { mutableStateListOf(*rutina.ejercicios.map { it.pesoBaseKg }.toTypedArray()) }
-    val reps = remember { mutableStateListOf(*rutina.ejercicios.map { repsSugeridas(DETALLES_EJERCICIOS[it.nombre]) }.toTypedArray()) }
-    val seriesHechas = remember { rutina.ejercicios.map { mutableStateListOf<SerieHecha>() } }
-    val totalObjetivo = remember { rutina.ejercicios.sumOf { it.seriesObjetivo } }
+    // Peso y reps de trabajo actual por ejercicio (ajustables), las series
+    // ya registradas y el cronómetro viven en SesionEntrenamiento, no en
+    // remember: así no vuelven a 0 al pasar a otra pestaña (ni al cerrar la
+    // app). Además cada serie se guarda en la base al tocar "Registrar
+    // serie" (ver guardarSerieEnFirebase), así el Ghost Mode y "kg movidos
+    // este mes" de Inicio la ven al instante.
+    val context = LocalContext.current
+    val pesoInicial: (EjercicioRutina) -> Float = { it.pesoBaseKg }
+    val repsIniciales: (EjercicioRutina) -> Int = { repsSugeridas(DETALLES_EJERCICIOS[it.nombre]) }
+    SesionEntrenamiento.preparar(context, rutina, pesoInicial, repsIniciales)
+    val pesos = SesionEntrenamiento.pesos
+    val reps = SesionEntrenamiento.reps
+    val seriesHechas = SesionEntrenamiento.seriesHechas
+    var avisoTerminar by remember { mutableStateOf<String?>(null) }
+    val totalObjetivo = remember(rutina) { rutina.ejercicios.sumOf { it.seriesObjetivo } }
     val totalHechas = seriesHechas.sumOf { it.size }
     val historialSeries = DatosRemotos.seriesEntrenamiento ?: emptyList()
 
@@ -154,13 +160,13 @@ fun EntrenarScreen() {
             TarjetaEjercicioRutina(
                 ejercicio = ej,
                 pesoActual = pesos[i],
-                onPeso = { pesos[i] = it.coerceAtLeast(0f) },
+                onPeso = { SesionEntrenamiento.ponerPeso(i, it.coerceAtLeast(0f)) },
                 repsActual = reps[i],
-                onReps = { reps[i] = it.coerceAtLeast(1) },
+                onReps = { SesionEntrenamiento.ponerReps(i, it.coerceAtLeast(1)) },
                 seriesHechas = seriesHechas[i],
                 onRegistrarSerie = {
                     val serie = SerieHecha(pesoKg = pesos[i], reps = reps[i])
-                    seriesHechas[i].add(serie)
+                    SesionEntrenamiento.agregarSerie(i, serie)
                     scope.launch {
                         guardarSerieEnFirebase(ej.nombre, serie.pesoKg, serie.reps, System.currentTimeMillis(), ej.esPesoCorporal)
                         DatosRemotos.recargarSeriesEntrenamiento()
@@ -180,10 +186,21 @@ fun EntrenarScreen() {
 
         Spacer(Modifier.height(6.dp))
         BotonPrincipal("Terminar y enviar a validación") {
-            // Cada serie ya se guarda en Firestore al instante al tocar
-            // "Registrar serie" (ver guardarSerieEnFirebase más arriba) —
-            // este botón es el cierre visual de la sesión, no dispara un
-            // envío aparte.
+            // Cada serie ya se guardó en la base al tocar "Registrar serie"
+            // (ver guardarSerieEnFirebase más arriba): este botón cierra la
+            // sesión — frena el cronómetro y deja las tarjetas listas para
+            // la próxima.
+            val tiempo = formatoCronometro(SesionEntrenamiento.transcurridoMs() / 1000)
+            avisoTerminar = if (totalHechas > 0)
+                "✓ Sesión terminada: $totalHechas series en $tiempo. Quedaron guardadas en tu historial."
+            else "Sesión cerrada sin series registradas."
+            SesionEntrenamiento.terminar(rutina.ejercicios.map(pesoInicial), rutina.ejercicios.map(repsIniciales))
+        }
+        avisoTerminar?.let {
+            Text(
+                it, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.Green, lineHeight = 16.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
         Text(
             "Cada serie queda registrada al instante en tu historial de entrenamiento.",
@@ -307,18 +324,44 @@ private fun DetalleTecnicaRutina(ejercicio: EjercicioRutina, onVolver: () -> Uni
  *  botones) se recompusiera una vez por segundo, peleándole frames al scroll. */
 @Composable
 private fun CronometroSesion() {
-    var segundos by remember { mutableIntStateOf(0) }
-    LaunchedEffect(Unit) {
-        while (true) {
+    // No cuenta solo: arranca cuando el socio lo toca, y otro toque lo pausa.
+    // El tiempo sale de SesionEntrenamiento (momento de inicio + acumulado),
+    // así sigue bien aunque se cambie de pestaña o se cierre la app.
+    val corriendo = SesionEntrenamiento.corriendoDesde != null
+    var ahora by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(corriendo) {
+        ahora = System.currentTimeMillis()
+        while (corriendo) {
             delay(1000)
-            segundos++
+            ahora = System.currentTimeMillis()
         }
     }
-    Text(
-        "%02d:%02d:%02d".format(segundos / 3600, (segundos / 60) % 60, segundos % 60),
-        fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = Olimpos.GoldLight
-    )
+    val segundos = SesionEntrenamiento.transcurridoMs(ahora) / 1000
+    val iniciado = SesionEntrenamiento.iniciado
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (corriendo) Olimpos.GoldSoft else Olimpos.Card)
+            .border(1.dp, Olimpos.Gold.copy(alpha = if (corriendo) 0.6f else 0.3f), RoundedCornerShape(20.dp))
+            .clickable { SesionEntrenamiento.alternarCronometro() }
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            if (corriendo) "⏸" else "▶",
+            fontSize = 11.sp, color = Olimpos.GoldLight
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            if (iniciado) formatoCronometro(segundos) else "Iniciar",
+            fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
+            color = if (corriendo) Olimpos.GoldLight else Olimpos.Muted
+        )
+    }
 }
+
+private fun formatoCronometro(segundos: Long): String =
+    "%02d:%02d:%02d".format(segundos / 3600, (segundos / 60) % 60, segundos % 60)
 
 @Composable
 private fun TarjetaEjercicioRutina(
