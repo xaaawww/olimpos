@@ -265,7 +265,7 @@ def cargar_usuario(n: int, datos, platos: dict[str, int], ejercicios: dict[str, 
             hora = {"Mañana": 8, "Tarde": 15, "Noche": 19}.get(rng.choice(["Mañana", "Tarde", "Noche"]), 18)
             inicio = ts(dia, hora, rng.randint(0, 40))
             cur.execute("INSERT INTO accesos (id_socio, fecha, metodo, resultado, dispositivo) VALUES (%s,%s,%s,'permitido','Recepción')",
-                        (id_socio, inicio, rng.choice(["qr", "qr", "qr", "biometrico"])))
+                        (id_socio, inicio, "qr"))
             progreso = 1 + 0.12 * (dia - dias[0]).days / 49
             t = inicio + timedelta(minutes=5)
             for id_re, ej, series, base, corporal in filas:

@@ -585,7 +585,6 @@ val LOGROS = listOf(
     Logro("❤️", "Salud ante todo", "Alcanzá tu objetivo de salud general", 0f, false),
     // ── Gimnasio físico ──
     Logro("⏰", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0f, false),
-    Logro("🖐️", "Biométrico", "Ingresá al gimnasio con huella 10 veces", 0f, false),
     Logro("📍", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
     Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0f, false),
     Logro("📸", "Antes y después", "Subí tu primera foto de progreso", 0f, false),
@@ -607,11 +606,10 @@ data class ContextoLogros(
     val sexo: SexoBiologico?,
     val rangosSocios: List<SocioRango>,
     val onboardingCompleto: Boolean,
-    /** Cuántos ingresos se marcaron con cada método (ver AccesoScreen) —
-     *  ninguno es un lector real todavía, es el método que el socio tenía
-     *  activado al tocar "Marcar mi ingreso de hoy". */
+    /** Cuántos ingresos fueron con el QR de la app (ver AccesoScreen). Los
+     *  socios no usan huella: los lectores biométricos son solo para el
+     *  personal, en las zonas restringidas. */
     val ingresosQr: Int = 0,
-    val ingresosBiometrico: Int = 0,
     val vioPlano: Boolean = false,
     val vistasBodygraph: Int = 0,
     val seccionesArenaVisitadas: Int = 0,
@@ -664,7 +662,6 @@ fun construirContextoLogros(contexto: Context): ContextoLogros {
         rangosSocios = rangosSocios,
         onboardingCompleto = datosFisicos != null,
         ingresosQr = ingresos.count { it.metodo == "qr" },
-        ingresosBiometrico = ingresos.count { it.metodo == "biometrico" },
         vioPlano = datosFisicos?.vioPlano ?: false,
         vistasBodygraph = datosFisicos?.vistasBodygraph ?: 0,
         seccionesArenaVisitadas = datosFisicos?.seccionesArenaVisitadas?.size ?: 0,
@@ -873,7 +870,6 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Explorador"] = (ctx.seccionesArenaVisitadas / 6f).coerceIn(0f, 1f) to (ctx.seccionesArenaVisitadas >= 6)
     resultados["Cambio de look"] = (if (ctx.objetivosDistintosProbados >= 2) 1f else 0f) to (ctx.objetivosDistintosProbados >= 2)
     resultados["Puntualidad"] = (ctx.ingresosQr / 20f).coerceIn(0f, 1f) to (ctx.ingresosQr >= 20)
-    resultados["Biométrico"] = (ctx.ingresosBiometrico / 10f).coerceIn(0f, 1f) to (ctx.ingresosBiometrico >= 10)
     resultados["Plato consciente"] = (if (ctx.tienePerfilNutricional) 1f else 0f) to ctx.tienePerfilNutricional
 
     // Meses aproximados (30 días) desde que un empleado asignó la

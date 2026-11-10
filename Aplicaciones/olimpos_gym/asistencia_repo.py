@@ -17,7 +17,7 @@ ZONA = "America/Argentina/Buenos_Aires"
 LOCAL = f"(a.fecha AT TIME ZONE '{ZONA}')"
 HOY_LOCAL = f"(now() AT TIME ZONE '{ZONA}')::date"
 DIAS_AUSENTE = 14  # "dejaron de venir": sin entrar hace 14 días o más
-METODOS = {"qr": "📱 Carnet (app)", "manual": "✍️ Manual", "biometrico": "🖐️ Biométrico"}
+METODOS = {"qr": "📱 Carnet (app)", "manual": "✍️ Manual"}
 
 
 def resumen() -> dict:

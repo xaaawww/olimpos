@@ -92,7 +92,7 @@ fun AccesoScreen(onVolver: () -> Unit) {
                         Text(fechaLegible(ingreso.timestamp), fontWeight = FontWeight.Bold, fontSize = 12.5.sp, color = Olimpos.Cream)
                         Text(
                             "Ingreso registrado · ${
-                                when (ingreso.metodo) { "qr" -> "QR"; "biometrico" -> "Biométrico"; else -> "Manual" }
+                                when (ingreso.metodo) { "qr" -> "QR"; else -> "Manual" }
                             }",
                             fontSize = 11.sp, color = Olimpos.Muted
                         )
