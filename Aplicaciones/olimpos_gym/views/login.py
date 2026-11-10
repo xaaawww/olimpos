@@ -9,6 +9,14 @@ import neon_db
 import validaciones
 
 
+def _recuperacion_disponible() -> bool:
+    try:
+        import mensajeria
+        return mensajeria.email_configurado() or mensajeria.whatsapp_configurado()
+    except Exception:
+        return False
+
+
 class LoginView:
     def __init__(self, page: ft.Page, on_login_callback):
         self.page = page
@@ -155,8 +163,13 @@ class LoginView:
                 self.error_text,
                 ft.Container(height=6),
                 login_button,
+                # Recuperarla por código solo si hay email o WhatsApp para mandarlo;
+                # si no, la restablece el dueño desde Personal.
                 ft.TextButton("¿Olvidaste tu contraseña?", on_click=lambda e: self._dialogo_recuperar(),
-                              style=ft.ButtonStyle(color=ft.Colors.with_opacity(0.7, GOLD))),
+                              style=ft.ButtonStyle(color=ft.Colors.with_opacity(0.7, GOLD)))
+                if _recuperacion_disponible() else
+                ft.Text("¿Olvidaste tu contraseña? Pedile al dueño que te la restablezca.",
+                        size=12.5, color=ft.Colors.with_opacity(0.6, GOLD), text_align=ft.TextAlign.CENTER),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=10,
                scroll=ft.ScrollMode.AUTO),
             bgcolor=ft.Colors.with_opacity(0.04, ft.Colors.WHITE),

@@ -23,7 +23,7 @@ import com.olimpos.gym.ui.theme.Olimpos
  *  Paginas/privacidad.html: si se cambia acá, cambiarlo allá también. */
 private val SECCIONES_POLITICA: List<Pair<String, List<String>>> = listOf(
     "1. Quién es el responsable" to listOf(
-        "OLIMPOS GYM, Av. del Olimpo 1200. Contacto para temas de privacidad: contacto@olimpos.com o en la recepción del gimnasio."
+        "OLIMPOS GYM, José Ingenieros 150, San Nicolás de los Arroyos. Contacto para temas de privacidad: en la recepción del gimnasio o con el formulario de contacto de la página web."
     ),
     "2. Qué datos tratamos" to listOf(
         "• Identificación y contacto: nombre, apellido, DNI, email, teléfono, dirección, fecha de nacimiento y sexo.",
@@ -71,7 +71,7 @@ private val SECCIONES_POLITICA: List<Pair<String, List<String>>> = listOf(
         "• Acceso: podés pedir gratis, cada seis meses, qué datos tenemos tuyos (salvo que tengas un interés legítimo para pedirlo antes). Respondemos dentro de los 10 días corridos.",
         "• Rectificación y actualización: la mayoría los podés corregir en la app (Configuración); el resto, en la recepción.",
         "• Supresión: podés pedir que borremos tus datos. Rectificación y supresión se resuelven dentro de los 5 días hábiles.",
-        "Para cualquiera de estos pedidos escribí a contacto@olimpos.com o acercate a la recepción."
+        "Para cualquiera de estos pedidos acercate a la recepción o dejanos tus datos en el formulario de contacto de la página web."
     ),
     "10. Cambios a esta política" to listOf(
         "Si cambia algo importante, lo avisamos en la app y en el Tablón del club antes de que empiece a regir."

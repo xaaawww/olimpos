@@ -585,7 +585,6 @@ val LOGROS = listOf(
     Logro("❤️", "Salud ante todo", "Alcanzá tu objetivo de salud general", 0f, false),
     // ── Gimnasio físico ──
     Logro("⏰", "Puntualidad", "Ingresá al gimnasio con QR 20 veces", 0f, false),
-    Logro("📍", "Bien equipado", "Reservá una máquina desde el Plano", 0f, false),
     Logro("🎂", "Cliente fiel", "Cumplí 6 meses de membresía activa", 0f, false),
     Logro("📸", "Antes y después", "Subí tu primera foto de progreso", 0f, false),
     Logro("🎓", "Graduado", "Completá el onboarding completo de OlimpΩs", 0f, false),
@@ -629,7 +628,10 @@ data class ContextoLogros(
     val tieneCompanero: Boolean = false,
     /** Ver [contarDiasEntrenadosConCompaneros] — días distintos que
      *  entrenó junto a algún compañero. */
-    val diasEntrenadosConCompaneros: Int = 0
+    val diasEntrenadosConCompaneros: Int = 0,
+    /** La racha más larga de días seguidos con la dieta cumplida (ver
+     *  [diaCumplido] en DietaDiaria.kt). */
+    val rachaDietaMasLarga: Int = 0
 )
 
 /** Arma el [ContextoLogros] leyendo [DatosRemotos] — un solo lugar para esta
@@ -672,8 +674,23 @@ fun construirContextoLogros(contexto: Context): ContextoLogros {
         registrosAgua = registrosAgua,
         tieneFotoDeProgreso = fotosProgreso.isNotEmpty(),
         tieneCompanero = companeros.isNotEmpty(),
-        diasEntrenadosConCompaneros = diasEntrenadosConCompaneros
+        diasEntrenadosConCompaneros = diasEntrenadosConCompaneros,
+        rachaDietaMasLarga = rachaDietaMasLarga(contexto)
     )
+}
+
+/** Días seguidos (la mejor racha, no solo la actual) en que el socio cumplió
+ *  su plan de dieta: los mismos días que cuenta la racha de "Mi dieta". */
+@Composable
+private fun rachaDietaMasLarga(contexto: Context): Int {
+    val objetivo = leerObjetivoArena(contexto) ?: ObjetivoCompetencia.SALUD
+    val meta = metaDelDia(DatosRemotos.dietaAsignada, DatosRemotos.platos.orEmpty())
+    val formato = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.US)
+    val dias = DatosRemotos.diasComidas.orEmpty()
+        .filter { diaCumplido(it, objetivo, meta) }
+        .mapNotNull { d -> runCatching { formato.parse(d.fecha)?.time }.getOrNull()?.let { (it + 43_200_000L) / 86_400_000L } }
+        .toSet()
+    return rachaMasLarga(dias)
 }
 
 private fun diaEpoch(timestampMs: Long): Long = timestampMs / 86_400_000L
@@ -870,6 +887,7 @@ fun calcularLogros(ctx: ContextoLogros): List<Logro> {
     resultados["Explorador"] = (ctx.seccionesArenaVisitadas / 6f).coerceIn(0f, 1f) to (ctx.seccionesArenaVisitadas >= 6)
     resultados["Cambio de look"] = (if (ctx.objetivosDistintosProbados >= 2) 1f else 0f) to (ctx.objetivosDistintosProbados >= 2)
     resultados["Puntualidad"] = (ctx.ingresosQr / 20f).coerceIn(0f, 1f) to (ctx.ingresosQr >= 20)
+    resultados["Nutricionista amateur"] = (ctx.rachaDietaMasLarga / 7f).coerceIn(0f, 1f) to (ctx.rachaDietaMasLarga >= 7)
     resultados["Plato consciente"] = (if (ctx.tienePerfilNutricional) 1f else 0f) to ctx.tienePerfilNutricional
 
     // Meses aproximados (30 días) desde que un empleado asignó la
